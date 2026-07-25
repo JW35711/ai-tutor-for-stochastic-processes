@@ -1,0 +1,37 @@
+[
+  {
+    "topic": "monte_carlo",
+    "title": "Monte Carlo simulation workflow",
+    "content": "Monte Carlo方法通过重复独立随机实验估计概率、期望或积分。样本均值的标准误差通常按1/sqrt(n)下降，因此样本量扩大4倍时，典型误差约减半。仿真结果应与理论参考值一起报告。",
+    "source": "notebooks/00_Monte_Carlo.ipynb",
+    "keywords": ["蒙特卡洛", "monte carlo", "样本量", "误差", "pi", "π"]
+  },
+  {
+    "topic": "poisson",
+    "title": "Poisson process and waiting times",
+    "content": "强度为λ的齐次泊松过程满足N(t)服从参数λt的Poisson分布，事件间隔独立且服从rate为λ的指数分布。仿真可以同时比较计数均值λt和等待时间均值1/λ。",
+    "source": "notebooks/01_Bernoulli&Poisson.ipynb",
+    "keywords": ["泊松", "poisson", "指数分布", "等待时间", "强度", "lambda", "λ"]
+  },
+  {
+    "topic": "random_walk",
+    "title": "Discrete-time random walk",
+    "content": "一维随机游走由独立的正负一步增量组成。若向上概率为p，则n步后位置的理论均值为n(2p-1)，方差为4np(1-p)。多路径仿真用于观察样本路径与终点经验分布。",
+    "source": "notebooks/02_Random_Walk_Part1.ipynb",
+    "keywords": ["随机游走", "random walk", "赌徒破产", "gambler", "终点分布"]
+  },
+  {
+    "topic": "brownian_motion",
+    "title": "Brownian motion and random-walk approximation",
+    "content": "标准布朗运动B(t)具有独立平稳高斯增量，B(T)的理论均值为0、方差为T。离散仿真使用方差为Δt的高斯增量，缩放后的随机游走可用于展示其逼近机制。",
+    "source": "notebooks/04_Random_Walk_Part3.ipynb",
+    "keywords": ["布朗运动", "brownian", "高斯增量", "方差", "随机游走逼近"]
+  },
+  {
+    "topic": "markov_chain",
+    "title": "Finite Markov chains and stationary distributions",
+    "content": "马尔可夫链的下一状态只依赖当前状态。转移矩阵每行必须是概率分布。平稳分布π满足πP=π；在适当的不可约和非周期条件下，长期经验状态频率会接近平稳分布。",
+    "source": "notebooks/05_Markov_Chain_Part1.ipynb",
+    "keywords": ["马尔可夫", "markov", "转移矩阵", "平稳分布", "stationary"]
+  }
+]
