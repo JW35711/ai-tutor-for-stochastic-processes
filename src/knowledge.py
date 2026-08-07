@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -62,6 +63,15 @@ class KnowledgeBase:
         self.entries = [dict(entry, kind="curated") for entry in curated]
         self.entries.extend(self._notebook_entries(notebook_root))
         self._entry_texts = [self._entry_text(entry) for entry in self.entries]
+        corpus_digest = hashlib.sha256()
+        for entry, text in zip(self.entries, self._entry_texts, strict=True):
+            corpus_digest.update(entry["module_id"].encode("utf-8"))
+            corpus_digest.update(b"\0")
+            corpus_digest.update(entry["source"].encode("utf-8"))
+            corpus_digest.update(b"\0")
+            corpus_digest.update(text.encode("utf-8"))
+            corpus_digest.update(b"\0")
+        self.corpus_sha256 = corpus_digest.hexdigest()
         self._term_sets = [self._terms(text) for text in self._entry_texts]
         document_frequency: Counter[str] = Counter()
         for terms in self._term_sets:
@@ -253,6 +263,7 @@ class KnowledgeBase:
                     "bonuses": round(bonus_score, 3),
                 },
                 "embedding_backend": self.embedding_backend.name,
+                "corpus_sha256": self.corpus_sha256,
             }
             for (
                 score,
@@ -288,5 +299,6 @@ class KnowledgeBase:
             "embedding_backend": self.embedding_backend.name,
             "embedding_dimension": self.embedding_backend.dimension,
             "embedding_fallback": self.embedding_fallback_reason,
+            "corpus_sha256": self.corpus_sha256,
             "retrieval_cache": cache_stats,
         }

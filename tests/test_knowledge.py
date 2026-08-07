@@ -14,6 +14,7 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertGreater(stats["notebook_chunks"], 100)
         self.assertEqual(stats["embedding_backend"], "local_hash")
         self.assertEqual(stats["embedding_dimension"], 384)
+        self.assertRegex(stats["corpus_sha256"], r"^[0-9a-f]{64}$")
 
     def test_retrieval_is_module_scoped_and_traceable(self) -> None:
         sources = self.knowledge.retrieve(
@@ -26,7 +27,15 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertTrue(any("#cell-" in item["source"] for item in sources))
         self.assertTrue(all(item["score"] > 0 for item in sources))
         self.assertTrue(all("score_breakdown" in item for item in sources))
-        self.assertTrue(all(item["embedding_backend"] == "local_hash" for item in sources))
+        self.assertTrue(
+            all(item["embedding_backend"] == "local_hash" for item in sources)
+        )
+        self.assertTrue(
+            all(
+                item["corpus_sha256"] == self.knowledge.corpus_sha256
+                for item in sources
+            )
+        )
 
     def test_chinese_character_terms_retrieve_relevant_card(self) -> None:
         sources = self.knowledge.retrieve("布朗运动方差", module_id="module04")
@@ -49,6 +58,10 @@ class KnowledgeBaseTests(unittest.TestCase):
         knowledge.retrieve("Brownian path", module_id="module04")
         stats = knowledge.stats()["retrieval_cache"]
         self.assertEqual(stats, {"capacity": 0, "size": 0, "hits": 0, "misses": 0})
+
+    def test_corpus_fingerprint_is_stable_for_same_material(self) -> None:
+        other = KnowledgeBase()
+        self.assertEqual(other.corpus_sha256, self.knowledge.corpus_sha256)
 
 
 if __name__ == "__main__":

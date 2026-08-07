@@ -63,6 +63,11 @@ queries. Cached results are deep-copied on both insertion and return so one
 request cannot mutate another request's evidence. Cache counters are exposed
 for operational tuning without logging the query text.
 
+At index time, the ordered module IDs, source locators and normalized entry
+text are hashed into `corpus_sha256`. The fingerprint travels with every result
+and the health response, making content changes observable without publishing
+the local reference PDFs.
+
 Retrieval is regression-tested separately from end-to-end routing. The
 22-case suite spans all eleven modules and reports Hit@3 and mean reciprocal
 rank. Keeping this suite separate makes a future neural embedding change

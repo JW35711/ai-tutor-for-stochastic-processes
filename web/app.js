@@ -153,10 +153,12 @@ function renderEvidence(payload) {
   emptyEvidence.classList.add("hidden");
   evidenceContent.classList.remove("hidden");
   const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
+  const corpusLabel = payload.sources?.[0]?.corpus_sha256?.slice(0, 8) || "unknown";
   runMeta.innerHTML = `
     <span>${escapeHtml(payload.module_id.toUpperCase())}</span>
     <span>${escapeHtml(payload.tool)}</span>
     <span>RUN ${escapeHtml(requestLabel)}</span>
+    <span>KB ${escapeHtml(corpusLabel)}</span>
     <span>${payload.llm_applied ? "LLM VERIFIED" : "OFFLINE GROUNDED"}</span>
   `;
   renderChart(payload.result?.series, payload.result?.chart);
