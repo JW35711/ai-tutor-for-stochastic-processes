@@ -227,6 +227,7 @@ python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
 python3 evals/run_retrieval_evaluation.py
 python3 evals/run_pedagogy_evaluation.py
+python3 evals/run_latency_benchmark.py --repetitions 2
 ```
 
 The deterministic acceptance suite currently contains 30 single-turn cases,
