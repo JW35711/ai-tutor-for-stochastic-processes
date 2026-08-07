@@ -64,7 +64,8 @@ The 10-case pedagogy set checks misconception corrections, neutral controls and
 the required teaching-response structure.
 The latency report breaks one representative prompt per module into end-to-end
 and seven-node p50/p95 timings. It is explicitly labeled as a local offline
-benchmark rather than a production SLA.
+benchmark rather than a production SLA. CI uploads it with the quality reports
+for comparison instead of enforcing a noisy shared-runner latency threshold.
 
 ## Honest boundaries
 
