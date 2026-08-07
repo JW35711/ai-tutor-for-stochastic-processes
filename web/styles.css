@@ -413,6 +413,12 @@ h1 {
   letter-spacing: 0.08em;
 }
 
+.verified-badge.invalid {
+  color: var(--danger);
+  border-color: rgba(214, 97, 84, 0.22);
+  background: rgba(214, 97, 84, 0.06);
+}
+
 .ghost-button {
   padding: 8px 11px;
   color: var(--ink-soft);

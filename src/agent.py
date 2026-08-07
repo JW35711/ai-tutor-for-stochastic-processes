@@ -785,6 +785,7 @@ class StochasticTutorAgent:
             "tool": self.tools[state.tool_key].__name__,
             "parameters": state.parameters,
             "result": state.result,
+            "verified": state.verified,
             "sources": state.sources,
             "trace": state.trace,
             "workflow": {"nodes": list(self.workflow.node_names)},

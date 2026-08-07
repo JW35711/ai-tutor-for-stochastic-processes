@@ -24,6 +24,7 @@ class WebContractTests(unittest.TestCase):
             "LEARNER PROFILE",
             "RETRIEVED SOURCES",
             "STATE GRAPH TRACE",
+            "WAITING",
         ):
             self.assertIn(label, self.html)
 

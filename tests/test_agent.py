@@ -63,6 +63,7 @@ class AgentTests(unittest.TestCase):
         response = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
         self.assertEqual(response["tool"], "run_monte_carlo_pi")
         self.assertEqual(response["parameters"]["samples"], 2000)
+        self.assertTrue(response["verified"])
         self.assertTrue(response["sources"])
         self.assertEqual(
             [item["node"] for item in response["trace"]],
@@ -112,6 +113,7 @@ class AgentTests(unittest.TestCase):
     def test_signed_invalid_rate_reaches_tool_validation(self) -> None:
         response = self.agent.answer("泊松过程：强度为-2、时长为5")
         self.assertEqual(response["parameters"]["rate"], -2.0)
+        self.assertFalse(response["verified"])
         self.assertIn("error", response["result"])
         self.assertIn("rate", response["result"]["error"])
 

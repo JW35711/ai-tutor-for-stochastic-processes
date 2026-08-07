@@ -21,6 +21,7 @@ const healthMeta = document.querySelector("#healthMeta");
 const moduleCount = document.querySelector("#moduleCount");
 const toolCount = document.querySelector("#toolCount");
 const sourceCount = document.querySelector("#sourceCount");
+const verificationBadge = document.querySelector("#verificationBadge");
 const evaluationCount = document.querySelector("#evaluationCount");
 const evaluationMeta = document.querySelector("#evaluationMeta");
 
@@ -152,6 +153,8 @@ function renderProfile(memory, note = "", recommendation = null) {
 function renderEvidence(payload) {
   emptyEvidence.classList.add("hidden");
   evidenceContent.classList.remove("hidden");
+  verificationBadge.classList.toggle("invalid", !payload.verified);
+  verificationBadge.textContent = payload.verified ? "VERIFIED" : "VALIDATION FAILED";
   const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
   const corpusLabel = payload.sources?.[0]?.corpus_sha256?.slice(0, 8) || "unknown";
   runMeta.innerHTML = `
@@ -342,6 +345,8 @@ async function restoreSession() {
     emptyEvidence.classList.add("hidden");
     evidenceContent.classList.remove("hidden");
     chart.innerHTML = "<p>会话已恢复。继续提问后将显示新的仿真路径。</p>";
+    verificationBadge.classList.remove("invalid");
+    verificationBadge.textContent = "SESSION RESTORED";
     runMeta.innerHTML = `<span>SESSION RESTORED</span><span>${escapeHtml(activeModuleId.toUpperCase())}</span>`;
     parameters.innerHTML = latest?.parameters
       ? Object.entries(latest.parameters)
@@ -395,6 +400,8 @@ resetButton.addEventListener("click", async () => {
   `;
   evidenceContent.classList.add("hidden");
   emptyEvidence.classList.remove("hidden");
+  verificationBadge.classList.remove("invalid");
+  verificationBadge.textContent = "WAITING";
   quizPanel.classList.add("hidden");
   input.focus();
 });
