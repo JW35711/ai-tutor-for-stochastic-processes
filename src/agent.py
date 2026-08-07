@@ -15,6 +15,7 @@ from .processes import (
     analyze_markov_chain,
     run_monte_carlo_pi,
     simulate_brownian_motion,
+    simulate_continuous_random_walk,
     simulate_poisson_process,
     simulate_random_walk,
 )
@@ -31,6 +32,7 @@ class StochasticTutorAgent:
             "monte_carlo": run_monte_carlo_pi,
             "poisson": simulate_poisson_process,
             "random_walk": simulate_random_walk,
+            "continuous_random_walk": simulate_continuous_random_walk,
             "brownian_motion": simulate_brownian_motion,
             "markov_chain": analyze_markov_chain,
         }
@@ -93,6 +95,22 @@ class StochasticTutorAgent:
                 ),
                 "seed": seed,
             }
+        if topic == "continuous_random_walk":
+            return {
+                "rate": self._find_number(
+                    question, ("lambda", "λ", "rate", "跳跃率", "速率"), 1.0
+                ),
+                "horizon": self._find_number(
+                    question, ("horizon", "时间范围", "时长", "T"), 10.0
+                ),
+                "probability_up": self._find_number(
+                    question, ("p", "向上概率", "正向概率"), 0.5
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径"), 20, integer=True
+                ),
+                "seed": seed,
+            }
         if topic == "brownian_motion":
             return {
                 "horizon": self._find_number(
@@ -134,6 +152,15 @@ class StochasticTutorAgent:
             return (
                 f"终点经验均值为 {result['empirical_endpoint_mean']}，理论均值为 "
                 f"{result['theoretical_endpoint_mean']}；经验方差为 "
+                f"{result['empirical_endpoint_variance']}，理论方差为 "
+                f"{result['theoretical_endpoint_variance']}。"
+            )
+        if topic == "continuous_random_walk":
+            return (
+                f"到时间T的经验平均跳跃数为 {result['empirical_jump_mean']}，"
+                f"理论值λT为 {result['theoretical_jump_mean']}。终点经验均值为 "
+                f"{result['empirical_endpoint_mean']}，理论均值为 "
+                f"{result['theoretical_endpoint_mean']}；终点经验方差为 "
                 f"{result['empirical_endpoint_variance']}，理论方差为 "
                 f"{result['theoretical_endpoint_variance']}。"
             )

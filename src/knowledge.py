@@ -34,6 +34,8 @@ class KnowledgeBase:
         query_tokens = self._tokens(query)
         scored: list[tuple[float, dict[str, Any]]] = []
         for entry in self.entries:
+            if module_id and entry["module_id"] != module_id:
+                continue
             entry_tokens = self._tokens(
                 " ".join(
                     [
@@ -46,8 +48,7 @@ class KnowledgeBase:
             )
             overlap = len(query_tokens & entry_tokens)
             topic_bonus = 8 if topic and entry["topic"] == topic else 0
-            module_bonus = 20 if module_id and entry["module_id"] == module_id else 0
-            score = overlap + topic_bonus + module_bonus
+            score = overlap + topic_bonus
             if score:
                 scored.append((score, entry))
         scored.sort(key=lambda item: item[0], reverse=True)

@@ -62,6 +62,20 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(response["result"]["status"], "tool_pending")
         self.assertTrue(response["sources"])
 
+    def test_module03_executes_continuous_random_walk_tool(self) -> None:
+        response = self.agent.answer(
+            "连续时间随机游走：跳跃率为2、时长为3、向上概率为0.6、路径数为100"
+        )
+        self.assertEqual(response["module_id"], "module03")
+        self.assertEqual(response["tool"], "simulate_continuous_random_walk")
+        self.assertEqual(response["parameters"]["rate"], 2.0)
+        self.assertEqual(response["parameters"]["horizon"], 3.0)
+        self.assertEqual(response["parameters"]["probability_up"], 0.6)
+        self.assertEqual(
+            {source["module_id"] for source in response["sources"]},
+            {"module03"},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

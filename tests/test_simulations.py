@@ -5,6 +5,7 @@ from src.processes import (
     analyze_markov_chain,
     run_monte_carlo_pi,
     simulate_brownian_motion,
+    simulate_continuous_random_walk,
     simulate_poisson_process,
     simulate_random_walk,
 )
@@ -36,6 +37,22 @@ class SimulationToolTests(unittest.TestCase):
             horizon=2.0, steps=100, paths=2_000, seed=10
         )
         self.assertLess(abs(result["empirical_terminal_variance"] - 2.0), 0.2)
+
+    def test_continuous_random_walk_tracks_compound_poisson_moments(self) -> None:
+        result = simulate_continuous_random_walk(
+            rate=2.0,
+            horizon=3.0,
+            probability_up=0.6,
+            paths=2_000,
+            seed=12,
+        )
+        self.assertLess(abs(result["empirical_jump_mean"] - 6.0), 0.2)
+        self.assertLess(abs(result["empirical_endpoint_mean"] - 1.2), 0.2)
+        self.assertLess(abs(result["empirical_endpoint_variance"] - 6.0), 0.4)
+
+    def test_continuous_random_walk_rejects_invalid_probability(self) -> None:
+        with self.assertRaises(ValueError):
+            simulate_continuous_random_walk(probability_up=-0.1)
 
     def test_markov_stationary_distribution(self) -> None:
         result = analyze_markov_chain(

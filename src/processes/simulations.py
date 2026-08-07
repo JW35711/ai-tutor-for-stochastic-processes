@@ -178,6 +178,83 @@ def simulate_random_walk(
     }
 
 
+def simulate_continuous_random_walk(
+    rate: float = 1.0,
+    horizon: float = 10.0,
+    probability_up: float = 0.5,
+    paths: int = 20,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Simulate X(t)=S_{N(t)} with Poisson jump times and signed jumps."""
+
+    rate = _positive_float(rate, "rate", 1_000.0)
+    horizon = _positive_float(horizon, "horizon", 10_000.0)
+    paths = _positive_int(paths, "paths", 2_000)
+    probability_up = float(probability_up)
+    if not 0.0 <= probability_up <= 1.0:
+        raise ValueError("probability_up must be between 0 and 1")
+
+    rng = random.Random(seed)
+    endpoints: list[int] = []
+    jump_counts: list[int] = []
+    sample_series: list[dict[str, Any]] = []
+
+    for path_index in range(paths):
+        time = 0.0
+        position = 0
+        jump_times: list[float] = []
+        positions: list[int] = []
+        while True:
+            time += rng.expovariate(rate)
+            if time > horizon:
+                break
+            position += 1 if rng.random() < probability_up else -1
+            jump_times.append(time)
+            positions.append(position)
+
+        endpoints.append(position)
+        jump_counts.append(len(jump_times))
+        if path_index < 8:
+            x_values = [0.0, *jump_times, horizon]
+            y_values = [0, *positions, position]
+            sample_series.append(
+                {
+                    "name": f"path {path_index + 1}",
+                    "x": _compress_series(x_values),
+                    "values": _compress_series(y_values),
+                }
+            )
+
+    endpoint_mean = sum(endpoints) / paths
+    endpoint_variance = (
+        sum((value - endpoint_mean) ** 2 for value in endpoints) / paths
+    )
+    jump_mean = sum(jump_counts) / paths
+    theoretical_mean = rate * horizon * (2.0 * probability_up - 1.0)
+    theoretical_variance = rate * horizon
+
+    return {
+        "topic": "continuous_random_walk",
+        "parameters": {
+            "rate": rate,
+            "horizon": horizon,
+            "probability_up": probability_up,
+            "paths": paths,
+            "seed": seed,
+        },
+        "empirical_jump_mean": round(jump_mean, 6),
+        "theoretical_jump_mean": round(rate * horizon, 6),
+        "empirical_endpoint_mean": round(endpoint_mean, 6),
+        "theoretical_endpoint_mean": round(theoretical_mean, 6),
+        "empirical_endpoint_variance": round(endpoint_variance, 6),
+        "theoretical_endpoint_variance": round(theoretical_variance, 6),
+        "endpoints": endpoints[:200],
+        "jump_counts": jump_counts[:200],
+        "series": sample_series,
+        "chart": {"x_label": "time", "y_label": "position", "step": "post"},
+    }
+
+
 def simulate_brownian_motion(
     horizon: float = 1.0,
     steps: int = 200,

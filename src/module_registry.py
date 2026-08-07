@@ -90,6 +90,7 @@ MODULES: tuple[ModuleSpec, ...] = (
             "random jump times",
             "随机跳跃时刻",
         ),
+        "continuous_random_walk",
     ),
     ModuleSpec(
         "module04",
