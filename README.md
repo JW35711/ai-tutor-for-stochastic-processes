@@ -1,14 +1,14 @@
-# Simulation and Visualization of Stochastic Processes
+# AI Tutor for Stochastic Processes
 
-Computational companion to the degree project:
+An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
 Engineering Course Development**.
 
-The repository contains the final teaching notebooks, selected generated
-figures, exercises, reusable simulation code, and an initial AI teaching-agent
-extension. The thesis material remains the primary deliverable; the Agent
-demonstrates how the same simulations can be exposed as verifiable educational
-tools.
+The final thesis notebooks are mirrored here as the Agent's approved teaching
+material. The repository also contains reusable simulation tools, an exercise,
+tests, and a web demonstration. The thesis-only computational repository is
+available at
+[simulation-visualization-stochastic-processes](https://github.com/JW35711/simulation-visualization-stochastic-processes).
 
 ## Degree-project aim
 
@@ -40,7 +40,7 @@ explore.
 | 7 | `07_Markov_Chain_Part3.ipynb` | Reliability, buffers and the M/M/1 queue |
 | 8 | `08_Exploratory_Module_1.ipynb` | Non-homogeneous Poisson processes by thinning |
 | 9 | `09_Exploratory_Module_2.ipynb` | Growing self-avoiding walks |
-| 10 | `010_Exploratory_Module_3..ipynb` | Coalescing particles on a circle |
+| 10 | `10_Exploratory_Module_3.ipynb` | Coalescing particles on a circle |
 
 The mathematical scope covers counting processes, random-motion models,
 discrete- and continuous-time Markov chains, reliability and queueing. The
@@ -161,10 +161,11 @@ project deliverables.
 
 ## Reproducibility policy
 
-Figures used in the thesis should be regenerated with fixed random seeds.
-Exploratory classroom cells may intentionally generate new realisations, but
-the distinction must be stated in the notebook. Simulation outputs should be
-interpreted together with their theoretical reference values.
+The teaching notebooks do not fix a random seed during normal execution, so a
+rerun produces another valid realisation. Reproducibility means using the same
+model, parameters and procedure and obtaining the same statistical behaviour,
+not identical values. Simulation outputs should be interpreted together with
+their theoretical reference values.
 
 ## Current Agent limitations
 

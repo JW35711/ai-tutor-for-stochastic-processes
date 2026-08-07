@@ -42,19 +42,22 @@ Run the notebooks from top to bottom in this order:
 8. `07_Markov_Chain_Part3.ipynb`
 9. `08_Exploratory_Module_1.ipynb`
 10. `09_Exploratory_Module_2.ipynb`
-11. `010_Exploratory_Module_3..ipynb`
+11. `10_Exploratory_Module_3.ipynb`
 
 Use **Kernel → Restart Kernel and Run All Cells** for each notebook. A clean run
 must not rely on variables created by another notebook.
 
 ## 3. Random-seed policy
 
-- Use fixed seeds for figures and numerical summaries cited in the thesis.
-- A fixed seed must be set before the corresponding experiment is run.
-- Classroom exploration cells may use fresh random seeds when their purpose is
-  to show variability.
-- Clearly label exploratory cells so that changing output is not mistaken for a
-  reproducibility failure.
+- Normal notebook execution uses a fresh NumPy random generator without a
+  fixed seed, so rerunning a notebook produces another valid realisation.
+- Record important parameter values and sample sizes next to the result or in
+  its caption.
+- Reproducibility means that the same model, procedure and statistical
+  behaviour can be obtained in a compatible environment; it does not require
+  identical random values.
+- A fixed seed may be supplied temporarily when debugging a specific result,
+  but it is not required for the teaching experiments.
 
 ## 4. Numerical checks
 
@@ -103,10 +106,3 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 - [ ] The Agent unit tests pass.
 - [ ] The final thesis PDF and editable source are packaged separately when
       required by the examiner or university submission system.
-
-## 7. Known naming issue
-
-The original Module 10 notebook is currently named
-`010_Exploratory_Module_3..ipynb`. It is retained to avoid breaking existing
-thesis references. A future cleanup may rename it to
-`10_Exploratory_Module_3.ipynb` after checking all links and captions.
