@@ -402,3 +402,12 @@ class LearnerMemory:
     def close(self) -> None:
         with self._lock:
             self._connection.close()
+
+    def is_ready(self) -> bool:
+        """Check whether the learner store can serve a query."""
+
+        try:
+            with self._lock:
+                return self._connection.execute("SELECT 1").fetchone()[0] == 1
+        except sqlite3.Error:
+            return False

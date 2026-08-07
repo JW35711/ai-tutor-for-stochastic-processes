@@ -76,6 +76,9 @@ omission allowed only when the server can generate a new session.
 
 ## Health
 
+`GET /live` is a minimal process-liveness probe. `GET /ready` checks SQLite,
+the 11-module catalog, 15-tool registry, knowledge index, assessment bank and
+evaluation-to-corpus version match; it returns `503` if any check fails.
 `GET /health` reports module and tool coverage, the declared workflow nodes,
 knowledge-index statistics, embedding backend/fallback state and process-local
 request metrics. It also returns the checked evaluation manifest used by the

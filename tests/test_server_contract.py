@@ -6,6 +6,7 @@ from server import (
     RATE_LIMITER,
     TutorHTTPServer,
     TutorRequestHandler,
+    readiness_report,
     validate_session_id,
 )
 
@@ -38,6 +39,11 @@ class ServerContractTests(unittest.TestCase):
 
     def test_dashboard_evaluation_matches_live_corpus(self) -> None:
         self.assertTrue(EVALUATION["corpus_match"])
+
+    def test_service_is_ready_only_when_all_dependencies_pass(self) -> None:
+        report = readiness_report()
+        self.assertTrue(report["ready"])
+        self.assertTrue(all(report["checks"].values()))
 
     def test_api_rate_limit_helper_returns_retry_metadata(self) -> None:
         handler = object.__new__(TutorRequestHandler)

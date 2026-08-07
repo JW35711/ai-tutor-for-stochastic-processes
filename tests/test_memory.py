@@ -47,6 +47,12 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(foreign_keys, 1)
         self.assertEqual(journal_mode.lower(), "wal")
         self.assertEqual(busy_timeout, 5000)
+        self.assertTrue(self.memory.is_ready())
+
+    def test_closed_memory_is_not_ready(self) -> None:
+        separate = LearnerMemory(":memory:")
+        separate.close()
+        self.assertFalse(separate.is_ready())
 
     def test_profile_aggregates_practice_and_misconceptions(self) -> None:
         misconception = {

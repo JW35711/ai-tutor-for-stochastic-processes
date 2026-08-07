@@ -46,6 +46,23 @@ PURGED_SESSIONS_ON_STARTUP = (
 )
 
 
+def readiness_report() -> dict[str, object]:
+    """Report whether every local dependency is safe to receive traffic."""
+
+    expected_modules = {f"module{index:02d}" for index in range(11)}
+    checks = {
+        "memory": AGENT.memory.is_ready(),
+        "module_catalog": {
+            item["module_id"] for item in module_catalog()
+        } == expected_modules,
+        "tool_registry": len(AGENT.tools) == 15,
+        "knowledge_index": AGENT.knowledge.stats()["entries"] >= 11,
+        "assessment_bank": set(ASSESSMENTS.by_module) == expected_modules,
+        "evaluation_corpus": bool(EVALUATION["corpus_match"]),
+    }
+    return {"ready": all(checks.values()), "checks": checks}
+
+
 def validate_session_id(value: object, *, required: bool = False) -> str | None:
     if value is None or value == "":
         if required:
@@ -204,7 +221,18 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         path = parsed.path
         if path.startswith("/api/") and not self._allow_api_request():
             return
-        if path == "/health":
+        if path == "/live":
+            self._json({"status": "ok", "service": "stochastic-tutor-agent"})
+        elif path == "/ready":
+            readiness = readiness_report()
+            self._json(
+                {"status": "ready" if readiness["ready"] else "not_ready", **readiness},
+                HTTPStatus.OK
+                if readiness["ready"]
+                else HTTPStatus.SERVICE_UNAVAILABLE,
+            )
+        elif path == "/health":
+            readiness = readiness_report()
             self._json(
                 {
                     "status": "ok",
@@ -231,6 +259,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "questions": len(ASSESSMENTS.questions),
                         "bank_sha256": ASSESSMENTS.bank_sha256,
                     },
+                    "readiness": readiness,
                     "runtime": asdict(METRICS.snapshot()),
                 }
             )
