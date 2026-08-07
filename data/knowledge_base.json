@@ -1,37 +1,90 @@
 [
   {
+    "module_id": "module00",
     "topic": "monte_carlo",
     "title": "Monte Carlo simulation workflow",
-    "content": "Monte Carlo方法通过重复独立随机实验估计概率、期望或积分。样本均值的标准误差通常按1/sqrt(n)下降，因此样本量扩大4倍时，典型误差约减半。仿真结果应与理论参考值一起报告。",
+    "content": "Monte Carlo 方法通过重复独立随机实验估计概率、期望或积分。样本均值的标准误差通常按 1/sqrt(n) 下降，因此样本量扩大四倍时，典型误差约减半。Module 00 用骰子均值和事件概率说明估计量如何随样本量增加而稳定，并强调仿真结果应与理论值比较。",
     "source": "notebooks/00_Monte_Carlo.ipynb",
-    "keywords": ["蒙特卡洛", "monte carlo", "样本量", "误差", "pi", "π"]
+    "keywords": ["蒙特卡洛", "monte carlo", "骰子", "样本量", "误差", "pi", "π"]
   },
   {
-    "topic": "poisson",
-    "title": "Poisson process and waiting times",
-    "content": "强度为λ的齐次泊松过程满足N(t)服从参数λt的Poisson分布，事件间隔独立且服从rate为λ的指数分布。仿真可以同时比较计数均值λt和等待时间均值1/λ。",
+    "module_id": "module01",
+    "topic": "bernoulli_poisson",
+    "title": "Bernoulli and Poisson counting processes",
+    "content": "Module 01 先用独立 Bernoulli 到达构造离散时间计数过程，累计事件数服从二项分布，首次到达等待时间服从几何分布。连续时间部分研究齐次 Poisson 过程，其中 N(t) 服从参数 λt 的 Poisson 分布，事件间隔独立且服从 rate 为 λ 的指数分布。仿真用于比较计数、等待时间和理论分布。",
     "source": "notebooks/01_Bernoulli&Poisson.ipynb",
-    "keywords": ["泊松", "poisson", "指数分布", "等待时间", "强度", "lambda", "λ"]
+    "keywords": ["伯努利", "bernoulli", "泊松", "poisson", "二项分布", "几何分布", "指数分布", "等待时间", "计数过程"]
   },
   {
-    "topic": "random_walk",
-    "title": "Discrete-time random walk",
-    "content": "一维随机游走由独立的正负一步增量组成。若向上概率为p，则n步后位置的理论均值为n(2p-1)，方差为4np(1-p)。多路径仿真用于观察样本路径与终点经验分布。",
+    "module_id": "module02",
+    "topic": "discrete_random_walk",
+    "title": "Discrete-time random walks and gambler's ruin",
+    "content": "Module 02 研究增量为正一或负一的一维离散时间随机游走。若向右概率为 p，则 n 步位置的理论均值为 n(2p-1)，方差为 4np(1-p)。单条路径展示随机演化，多次重复给出终点分布；带有两个吸收边界的 gambler's ruin 实验用于研究 hitting probability 和随机停止时间。",
     "source": "notebooks/02_Random_Walk_Part1.ipynb",
-    "keywords": ["随机游走", "random walk", "赌徒破产", "gambler", "终点分布"]
+    "keywords": ["离散时间随机游走", "discrete random walk", "赌徒破产", "gambler's ruin", "终点分布", "到达概率", "停止时间"]
   },
   {
+    "module_id": "module03",
+    "topic": "continuous_random_walk",
+    "title": "Continuous-time random walks",
+    "content": "Module 03 把离散随机游走的方向增量与 Poisson 跳跃时刻组合成 X(t)=S_{N(t)}。路径在事件之间保持不变，只在随机时刻跳跃。到时间 T 的跳跃数服从 Poisson(λT)，位置满足 E[X(T)]=λT(2p-1) 且 Var[X(T)]=λT；终点分布可通过对随机跳跃数进行条件化得到。",
+    "source": "notebooks/03_Random_Walk_Part2.ipynb",
+    "keywords": ["连续时间随机游走", "continuous time random walk", "poisson jump times", "随机跳跃时刻", "条件分布", "跳跃率"]
+  },
+  {
+    "module_id": "module04",
     "topic": "brownian_motion",
     "title": "Brownian motion and random-walk approximation",
-    "content": "标准布朗运动B(t)具有独立平稳高斯增量，B(T)的理论均值为0、方差为T。离散仿真使用方差为Δt的高斯增量，缩放后的随机游走可用于展示其逼近机制。",
+    "content": "Module 04 研究具有独立平稳高斯增量和连续路径的标准 Brownian motion。B(T) 的理论均值为零、方差为 T。仿真使用方差为 Δt 的高斯增量生成路径，并通过缩放的对称随机游走说明 Brownian motion 的逼近机制；二维和三维实验展示随机粒子运动。",
     "source": "notebooks/04_Random_Walk_Part3.ipynb",
-    "keywords": ["布朗运动", "brownian", "高斯增量", "方差", "随机游走逼近"]
+    "keywords": ["布朗运动", "brownian motion", "维纳过程", "高斯增量", "随机游走逼近", "粒子运动"]
   },
   {
-    "topic": "markov_chain",
-    "title": "Finite Markov chains and stationary distributions",
-    "content": "马尔可夫链的下一状态只依赖当前状态。转移矩阵每行必须是概率分布。平稳分布π满足πP=π；在适当的不可约和非周期条件下，长期经验状态频率会接近平稳分布。",
+    "module_id": "module05",
+    "topic": "discrete_markov_chain",
+    "title": "Discrete-time Markov chains",
+    "content": "Module 05 用有限状态模型介绍 Markov property、转移图和转移矩阵。状态分布通过矩阵迭代演化，平稳分布 π 满足 πP=π；在合适的不可约和非周期条件下，长期经验频率趋近平稳分布。模块还用 gambler's ruin 和 PageRank 展示吸收概率与网络排名应用。",
     "source": "notebooks/05_Markov_Chain_Part1.ipynb",
-    "keywords": ["马尔可夫", "markov", "转移矩阵", "平稳分布", "stationary"]
+    "keywords": ["离散时间马尔可夫链", "markov chain", "转移矩阵", "平稳分布", "吸收", "pagerank", "转移图"]
+  },
+  {
+    "module_id": "module06",
+    "topic": "continuous_markov_chain",
+    "title": "Continuous-time Markov chains and birth-death processes",
+    "content": "Module 06 研究在随机时刻改变状态的连续时间 Markov chain。生成矩阵 Q 的非对角元素是跳跃率，负的对角元素给出离开率，因此一个状态的 holding time 为指数分布。模块通过工作与维修机器、birth-death process、气体粒子模型和 buffer 模型连接路径、停留时间、状态频率与满足 πQ=0 的平稳分布。",
+    "source": "notebooks/06_Markov_Chain_Part2.ipynb",
+    "keywords": ["连续时间马尔可夫链", "ctmc", "生成矩阵", "generator matrix", "holding time", "停留时间", "birth death", "出生死亡过程"]
+  },
+  {
+    "module_id": "module07",
+    "topic": "applied_markov_models",
+    "title": "Reliability, buffers and M/M/1 queues",
+    "content": "Module 07 汇集 Markov 模型的工程应用。可靠性部分比较寿命、survival function、hazard rate 以及串并联系统；buffer 部分研究到达和服务事件如何改变库存；M/M/1 queue 用 Poisson 到达和指数服务时间展示队长路径与稳定条件 λ<μ。仿真把单条系统路径与重复实验得到的概率或长期行为区分开。",
+    "source": "notebooks/07_Markov_Chain_Part3.ipynb",
+    "keywords": ["可靠性", "reliability", "survival", "hazard", "串联系统", "并联系统", "buffer", "m/m/1", "queue", "排队稳定性"]
+  },
+  {
+    "module_id": "module08",
+    "topic": "nonhomogeneous_poisson",
+    "title": "Nonhomogeneous Poisson processes by thinning",
+    "content": "Module 08 把常数到达率推广为时变强度 λ(t)。在区间 [a,b] 中，增量均值为强度积分 Λ(a,b)。Thinning 先从上界强度 λmax 的齐次 Poisson 过程生成候选事件，再以 λ(t)/λmax 的概率接受候选点。候选点、接受点和计数路径共同解释为什么事件在高强度时段更密集。",
+    "source": "notebooks/08_Exploratory_Module_1.ipynb",
+    "keywords": ["非齐次泊松", "nonhomogeneous poisson", "thinning", "时变强度", "intensity function", "候选事件", "接受概率"]
+  },
+  {
+    "module_id": "module09",
+    "topic": "self_avoiding_walk",
+    "title": "Growing self-avoiding walks",
+    "content": "Module 09 研究方格上的 growing self-avoiding walk。每一步只能从尚未访问的最近邻中均匀选择；如果没有可选邻居，路径被困并停止。当前位置不足以决定下一步分布，因为可用动作还依赖完整 visited set。重复仿真比较普通随机游走与自避免路径的停止长度、终点距离、受困位置和路径依赖。",
+    "source": "notebooks/09_Exploratory_Module_2.ipynb",
+    "keywords": ["自避免游走", "self avoiding walk", "self-avoiding walk", "visited set", "路径依赖", "受困", "trapping", "停止长度"]
+  },
+  {
+    "module_id": "module10",
+    "topic": "coalescing_particles",
+    "title": "Coalescing particles on a circle",
+    "content": "Module 10 在有限圆周格点上模拟会合并的粒子簇。每一步随机选择一个当前簇并向顺时针或逆时针移动；若目标位置已经被占据，两个簇合并。簇数量因此单调不增，直到只剩一个簇。路径、圆周快照和重复实验分别展示空间位置、合并事件以及 coalescence time 的分布。",
+    "source": "notebooks/10_Exploratory_Module_3.ipynb",
+    "keywords": ["粒子合并", "coalescing particles", "圆周", "circle", "簇数量", "cluster count", "合并时间", "coalescence time"]
   }
 ]

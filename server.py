@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from src.agent import StochasticTutorAgent
+from src.module_registry import module_catalog
 
 
 ROOT = Path(__file__).resolve().parent
@@ -52,17 +53,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self._json({"status": "ok", "service": "stochastic-tutor-agent"})
         elif path == "/api/topics":
-            self._json(
-                {
-                    "topics": [
-                        "Monte Carlo",
-                        "Poisson process",
-                        "Random walk",
-                        "Brownian motion",
-                        "Markov chain",
-                    ]
-                }
-            )
+            self._json({"modules": module_catalog()})
         else:
             self._static(path)
 

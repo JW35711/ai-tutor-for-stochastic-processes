@@ -10,6 +10,7 @@ from typing import Any
 
 from .knowledge import KnowledgeBase
 from .llm import OpenAICompatibleLLM
+from .module_registry import MODULE_BY_ID, classify_module
 from .processes import (
     analyze_markov_chain,
     run_monte_carlo_pi,
@@ -17,15 +18,6 @@ from .processes import (
     simulate_poisson_process,
     simulate_random_walk,
 )
-
-
-TOPIC_LABELS = {
-    "monte_carlo": "Monte Carlo",
-    "poisson": "Poisson process",
-    "random_walk": "Random walk",
-    "brownian_motion": "Brownian motion",
-    "markov_chain": "Markov chain",
-}
 
 
 class StochasticTutorAgent:
@@ -45,18 +37,14 @@ class StochasticTutorAgent:
 
     @staticmethod
     def classify_topic(question: str) -> str:
-        lowered = question.lower()
-        rules = [
-            ("brownian_motion", ("brownian", "布朗", "wiener")),
-            ("poisson", ("poisson", "泊松", "等待时间", "到达过程")),
-            ("markov_chain", ("markov", "马尔可夫", "平稳分布", "转移矩阵")),
-            ("random_walk", ("random walk", "随机游走", "gambler", "赌徒")),
-            ("monte_carlo", ("monte carlo", "蒙特卡洛", "估计π", "估计pi")),
-        ]
-        for topic, keywords in rules:
-            if any(keyword in lowered for keyword in keywords):
-                return topic
-        return "monte_carlo"
+        """Backward-compatible topic label derived from the module registry."""
+
+        module_id = classify_module(question)
+        return MODULE_BY_ID[module_id].topic if module_id else "unknown"
+
+    @staticmethod
+    def classify_module(question: str) -> str | None:
+        return classify_module(question)
 
     @staticmethod
     def _find_number(
@@ -166,19 +154,70 @@ class StochasticTutorAgent:
         session_id = session_id or str(uuid.uuid4())
         trace: list[dict[str, str]] = []
 
-        topic = self.classify_topic(question)
-        trace.append({"node": "classify", "detail": TOPIC_LABELS[topic]})
+        module_id = self.classify_module(question)
+        if module_id is None:
+            raise ValueError(
+                "I could not identify the teaching module. Please name a model or Module 00-10."
+            )
+        module = MODULE_BY_ID[module_id]
+        topic = module.topic
+        trace.append(
+            {
+                "node": "classify",
+                "detail": f"Module {module.number:02d}: {module.label}",
+            }
+        )
 
-        sources = self.knowledge.retrieve(question, topic=topic)
+        sources = self.knowledge.retrieve(
+            question, topic=topic, module_id=module_id
+        )
         trace.append(
             {"node": "retrieve", "detail": f"{len(sources)} source-aware notes"}
         )
 
-        parameters = self.extract_parameters(topic, question)
-        trace.append({"node": "plan", "detail": f"call {topic} simulation tool"})
+        tool_key = module.tool_key
+        if tool_key is None:
+            trace.append(
+                {
+                    "node": "plan",
+                    "detail": f"Module {module.number:02d} tool extraction pending",
+                }
+            )
+            source_text = sources[0]["content"] if sources else module.label
+            answer = (
+                f"### Module {module.number:02d}: {module.label}\n{source_text}\n\n"
+                "该模块已经进入课程检索与路由系统；对应的可执行仿真工具正在从论文 Notebook 中提取。"
+            )
+            self.sessions.setdefault(session_id, []).append(
+                {"question": question, "topic": topic, "module_id": module_id}
+            )
+            return {
+                "session_id": session_id,
+                "answer": answer,
+                "module_id": module_id,
+                "module_number": module.number,
+                "module_label": module.label,
+                "topic": topic,
+                "topic_label": module.label,
+                "tool": None,
+                "parameters": {},
+                "result": {"status": "tool_pending"},
+                "sources": sources,
+                "trace": trace,
+                "memory": {
+                    "turns": len(self.sessions[session_id]),
+                    "modules": [
+                        item["module_id"] for item in self.sessions[session_id]
+                    ],
+                },
+                "llm_enabled": self.llm.enabled,
+            }
+
+        parameters = self.extract_parameters(tool_key, question)
+        trace.append({"node": "plan", "detail": f"call {tool_key} simulation tool"})
 
         try:
-            result = self.tools[topic](**parameters)
+            result = self.tools[tool_key](**parameters)
             trace.append({"node": "tool", "detail": "simulation completed"})
             verified = True
         except ValueError as error:
@@ -187,7 +226,7 @@ class StochasticTutorAgent:
             verified = False
 
         if verified:
-            explanation = self._summary(topic, result)
+            explanation = self._summary(tool_key, result)
             citation_text = "；".join(source["source"] for source in sources)
             deterministic_answer = (
                 f"### 先看实验结果\n{explanation}\n\n"
@@ -233,21 +272,26 @@ class StochasticTutorAgent:
         )
 
         self.sessions.setdefault(session_id, []).append(
-            {"question": question, "topic": topic}
+            {"question": question, "topic": topic, "module_id": module_id}
         )
         return {
             "session_id": session_id,
             "answer": answer,
+            "module_id": module_id,
+            "module_number": module.number,
+            "module_label": module.label,
             "topic": topic,
-            "topic_label": TOPIC_LABELS[topic],
-            "tool": self.tools[topic].__name__,
+            "topic_label": module.label,
+            "tool": self.tools[tool_key].__name__,
             "parameters": parameters,
             "result": result,
             "sources": sources,
             "trace": trace,
             "memory": {
                 "turns": len(self.sessions[session_id]),
-                "topics": [item["topic"] for item in self.sessions[session_id]],
+                "modules": [
+                    item["module_id"] for item in self.sessions[session_id]
+                ],
             },
             "llm_enabled": self.llm.enabled,
         }
