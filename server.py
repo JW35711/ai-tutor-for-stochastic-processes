@@ -46,6 +46,23 @@ PURGED_SESSIONS_ON_STARTUP = (
 )
 
 
+def validate_session_id(value: object, *, required: bool = False) -> str | None:
+    if value is None or value == "":
+        if required:
+            raise ValueError("session_id is required")
+        return None
+    if not isinstance(value, str):
+        raise ValueError("session_id must be a string")
+    normalized = value.strip()
+    if not normalized or len(normalized) > 128 or any(
+        ord(character) < 32 for character in normalized
+    ):
+        raise ValueError(
+            "session_id must contain 1 to 128 printable characters"
+        )
+    return normalized
+
+
 class TutorRequestHandler(BaseHTTPRequestHandler):
     server_version = "StochasticTutor/0.2"
 
@@ -193,11 +210,14 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._json({"tools": build_tool_catalog(AGENT.tools)})
         elif path == "/api/profile":
             session_id = parse_qs(parsed.query).get("session_id", [""])[0]
-            if not session_id:
+            try:
+                session_id = validate_session_id(session_id, required=True)
+            except ValueError as error:
                 self._json(
-                    {"error": "session_id is required"}, HTTPStatus.BAD_REQUEST
+                    {"error": str(error)}, HTTPStatus.BAD_REQUEST
                 )
             else:
+                assert session_id is not None
                 profile = AGENT.memory.profile(session_id)
                 self._json(
                     {
@@ -246,17 +266,14 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     raise ValueError(
                         f"question exceeds {MAX_QUESTION_CHARS} characters"
                     )
-                raw_session_id = payload.get("session_id")
-                if raw_session_id is not None and not isinstance(raw_session_id, str):
-                    raise ValueError("session_id must be a string")
-                if raw_session_id and len(raw_session_id) > 128:
-                    raise ValueError("session_id is too long")
+                raw_session_id = validate_session_id(payload.get("session_id"))
                 response = AGENT.answer(
                     question,
                     session_id=raw_session_id,
                 )
             else:
-                session_id = str(payload.get("session_id") or uuid.uuid4())
+                session_id = validate_session_id(payload.get("session_id"))
+                session_id = session_id or str(uuid.uuid4())
                 result = ASSESSMENTS.grade(
                     str(payload.get("question_id", "")),
                     payload.get("answer_index"),
@@ -297,10 +314,15 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         if not path.startswith(prefix):
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
-        session_id = unquote(path[len(prefix) :]).strip()
-        if not session_id or "/" in session_id or len(session_id) > 128:
-            self._json({"error": "invalid session id"}, HTTPStatus.BAD_REQUEST)
+        raw_session_id = unquote(path[len(prefix) :])
+        try:
+            session_id = validate_session_id(raw_session_id, required=True)
+            if session_id and "/" in session_id:
+                raise ValueError("session_id path cannot contain a slash")
+        except ValueError as error:
+            self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
             return
+        assert session_id is not None
         AGENT.memory.reset(session_id)
         self._json({"status": "reset", "session_id": session_id})
 

@@ -1,7 +1,13 @@
 import unittest
 from unittest.mock import Mock
 
-from server import EVALUATION, RATE_LIMITER, TutorHTTPServer, TutorRequestHandler
+from server import (
+    EVALUATION,
+    RATE_LIMITER,
+    TutorHTTPServer,
+    TutorRequestHandler,
+    validate_session_id,
+)
 
 
 class ServerContractTests(unittest.TestCase):
@@ -48,6 +54,14 @@ class ServerContractTests(unittest.TestCase):
         args = handler._json.call_args.args
         self.assertEqual(args[1].value, 429)
         self.assertIn("Retry-After", args[2])
+
+    def test_session_id_contract_is_shared_across_api_routes(self) -> None:
+        self.assertEqual(validate_session_id(" learner-1 "), "learner-1")
+        self.assertIsNone(validate_session_id(None))
+        for invalid in (123, "", "x" * 129, "line\nbreak"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    validate_session_id(invalid, required=True)
 
 
 if __name__ == "__main__":
