@@ -29,9 +29,11 @@ reason code, learner-facing reason and suggested next question.
 
 ## Concept checks
 
-- `GET /api/quiz?module_id=module04` returns a question without its answer.
+- `GET /api/quiz?module_id=module04` returns a question without its answer and
+  includes `bank_sha256` so an attempt can be traced to the exact quiz bank.
 - `POST /api/quiz/submit` accepts `question_id`, zero-based `answer_index` and
-  an optional `session_id`.
+  an optional `session_id`; the result carries the same quiz-bank hash. Boolean,
+  string and out-of-range answer indices are rejected rather than coerced.
 
 ## Discovery
 

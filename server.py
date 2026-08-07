@@ -201,6 +201,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "mode": "verified_rewrite",
                     },
                     "evaluation": EVALUATION,
+                    "assessment": {
+                        "questions": len(ASSESSMENTS.questions),
+                        "bank_sha256": ASSESSMENTS.bank_sha256,
+                    },
                     "runtime": asdict(METRICS.snapshot()),
                 }
             )
