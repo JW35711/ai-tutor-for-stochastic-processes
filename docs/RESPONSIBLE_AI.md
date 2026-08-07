@@ -55,6 +55,10 @@ numeric parameters that are parsed and validated. The RAG corpus is local and
 read-only. Retrieved text is evidence, not an instruction channel, and a hosted
 model cannot overwrite the tool result accepted by the API.
 
+Regression tests cover the function whitelist, prompt text containing an
+unregistered Python call, and parameterized SQLite session deletion. These
+tests do not replace authentication or external penetration testing.
+
 The server still needs an authenticated reverse proxy before public exposure.
 Its in-process rate limiter and request limits protect an interview deployment,
 not a hostile multi-tenant service.
