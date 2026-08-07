@@ -34,6 +34,20 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(profile["turns"], 1)
         self.assertEqual(profile["covered_modules"], ["module04"])
 
+    def test_file_database_enables_integrity_and_wal_pragmas(self) -> None:
+        foreign_keys = self.memory._connection.execute(
+            "PRAGMA foreign_keys"
+        ).fetchone()[0]
+        journal_mode = self.memory._connection.execute(
+            "PRAGMA journal_mode"
+        ).fetchone()[0]
+        busy_timeout = self.memory._connection.execute(
+            "PRAGMA busy_timeout"
+        ).fetchone()[0]
+        self.assertEqual(foreign_keys, 1)
+        self.assertEqual(journal_mode.lower(), "wal")
+        self.assertEqual(busy_timeout, 5000)
+
     def test_profile_aggregates_practice_and_misconceptions(self) -> None:
         misconception = {
             "code": "brownian_variance_sqrt_t",

@@ -113,6 +113,9 @@ module and tool. It carries forward only parameters that the learner did not
 explicitly replace. The `classify` and `plan` trace entries state whether the
 module or individual parameters came from context. SQLite schema migration adds
 the parameter column to existing local profiles without deleting earlier turns.
+File-backed memory uses WAL mode, enforced foreign keys and a bounded busy
+timeout; application-level locking keeps the shared standard-library connection
+consistent across request threads.
 
 ## Reliability and safety
 

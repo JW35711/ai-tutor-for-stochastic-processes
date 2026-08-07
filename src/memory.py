@@ -39,6 +39,10 @@ class LearnerMemory:
         self._lock = RLock()
         self._connection = sqlite3.connect(self.path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
+        self._connection.execute("PRAGMA foreign_keys=ON")
+        self._connection.execute("PRAGMA busy_timeout=5000")
+        if str(self.path) != ":memory:":
+            self._connection.execute("PRAGMA journal_mode=WAL")
         self._create_schema()
 
     @staticmethod
