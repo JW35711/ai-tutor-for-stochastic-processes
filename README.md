@@ -143,6 +143,21 @@ python3 server.py
 The application remains usable in offline-safe mode when these variables are
 unset.
 
+Retrieval also works without a key. By default it combines IDF-weighted sparse
+matching with a deterministic 384-dimensional local hashing vector. To use a
+neural OpenAI-compatible embedding endpoint instead:
+
+```bash
+export RAG_EMBEDDING_BACKEND="openai_compatible"
+export EMBEDDING_API_KEY="your-key"
+export EMBEDDING_MODEL="your-embedding-model"
+export EMBEDDING_BASE_URL="https://your-provider.example/v1"
+python3 server.py
+```
+
+If configuration or initial indexing fails, startup records the reason and
+safely falls back to the local vector backend.
+
 The Agent also supports contextual follow-ups. After a full request such as
 `M/M/1 queue：到达率为0.75、服务率为1、时长为300`, the learner can simply say
 `再把到达率改成0.8`; the module, queue tool and unchanged parameters are read
@@ -173,7 +188,14 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 
 python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
+python3 evals/run_retrieval_evaluation.py
 ```
+
+The deterministic acceptance suite currently contains 30 single-turn cases,
+5 multi-turn conversations and 22 module-scoped retrieval cases. The checked
+local-hash baseline reaches `Hit@3 = 1.0000` and `MRR = 0.9242` on the
+retrieval set. These figures describe this repository's small regression set,
+not a general benchmark of tutoring quality.
 
 The test suite checks reproducibility, theoretical agreement, transition-matrix
 validation, stability conditions, exploratory-model invariants, topic routing,
@@ -187,7 +209,7 @@ Additional endpoints:
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Tool, module, memory and knowledge-index status |
+| `GET /health` | Tool, module, workflow, memory and knowledge-index status |
 | `GET /api/topics` | Public catalogue for Modules 00–10 |
 | `POST /api/chat` | Full retrieval and simulation Agent turn |
 | `GET /api/profile?session_id=...` | Persistent learner profile and history |
@@ -212,6 +234,7 @@ Additional endpoints:
 │   ├── pedagogy.py         # Transparent misconception diagnosis
 │   ├── assessment.py       # Module concept checks
 │   ├── workflow.py         # Typed seven-node state graph
+│   ├── embeddings.py       # Local and optional hosted vector backends
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests
@@ -237,8 +260,8 @@ See [Architecture](docs/ARCHITECTURE.md) for component boundaries and
 
 ## Current Agent limitations
 
-- Retrieval indexes 11 curated cards and Notebook Markdown cells with hybrid
-  sparse scoring; it is not yet a dense embedding index.
+- The default vector backend is a transparent local hashing model, not a neural
+  semantic embedding; an OpenAI-compatible neural backend is optional.
 - Offline topic routing uses deterministic rules.
 - The misconception detector is an interpretable seed rule set rather than a
   trained student model.
@@ -246,8 +269,8 @@ See [Architecture](docs/ARCHITECTURE.md) for component boundaries and
 - The lightweight web chart does not replace the notebook's Matplotlib figures.
 
 The next Agent iteration can add a LangGraph runtime adapter behind the current
-node contract, dense retrieval with reranking, a larger calibrated assessment
-bank, authentication and hosted deployment.
+node contract, a learned reranker, a larger calibrated assessment bank,
+authentication and hosted deployment.
 
 ## License
 

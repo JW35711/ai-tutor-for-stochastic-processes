@@ -25,7 +25,8 @@ flowchart LR
 | --- | --- | --- |
 | `workflow.py` | Runs the typed seven-node state graph | Node order and state transitions can be tested without the web layer |
 | `module_registry.py` | Routes Chinese and English questions to Modules 00–10 | Routing can be evaluated independently |
-| `knowledge.py` | Indexes curated cards and Markdown cells, then returns scored evidence | Retrieval remains local, traceable and replaceable |
+| `knowledge.py` | Indexes curated cards and Markdown cells, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
+| `embeddings.py` | Provides local hash and optional OpenAI-compatible vectors | Neural retrieval is optional, while offline behavior remains deterministic |
 | `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
 | `pedagogy.py` | Detects explicitly stated misconceptions | Diagnoses are transparent rather than hidden in a prompt |
 | `assessment.py` | Serves and grades module concept checks | Quiz results provide evidence beyond tool execution |
@@ -36,13 +37,22 @@ flowchart LR
 ## Retrieval
 
 At startup, the retriever loads 11 curated knowledge cards and extracts
-Markdown teaching cells from all 11 notebooks. It uses IDF-weighted sparse
-terms plus Chinese character bigrams and trigrams. Results are restricted to
-the routed module and expose a score, source type and exact `#cell-N` locator.
+Markdown teaching cells from all 11 notebooks. It combines IDF-weighted sparse
+terms, Chinese character bigrams and trigrams, and cosine similarity over a
+vector index. Results are restricted to the routed module and expose sparse,
+vector and bonus score components, the backend name, source type and exact
+`#cell-N` locator.
 
-This is an offline hybrid sparse RAG implementation, not an embedding model.
-The `retrieve()` boundary is intentionally stable so an embedding or reranking
-backend can be added later without changing the simulation tools.
+The default 384-dimensional hash vectorizer is deterministic and offline. It
+helps with wording variation but is not described as a neural semantic model.
+An OpenAI-compatible embedding backend can batch-index the same entries when
+explicitly configured. A failed hosted configuration falls back to the local
+backend and reports the reason through `/health`.
+
+Retrieval is regression-tested separately from end-to-end routing. The
+22-case suite spans all eleven modules and reports Hit@3 and mean reciprocal
+rank. Keeping this suite separate makes a future neural embedding change
+measurable instead of relying on a subjective UI demonstration.
 
 ## State graph
 

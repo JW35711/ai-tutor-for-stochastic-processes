@@ -9,6 +9,12 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from .embeddings import (
+    EmbeddingBackend,
+    LocalHashEmbedding,
+    embedding_backend_from_environment,
+)
+
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_KNOWLEDGE_PATH = ROOT / "data" / "knowledge_base.json"
@@ -19,15 +25,15 @@ class KnowledgeBase:
     """Retrieve course evidence with transparent sparse and character scoring.
 
     This is intentionally local and deterministic.  It behaves as an offline
-    RAG retriever, while exposing every score and exact notebook cell used in a
-    response.  A hosted embedding retriever can later be added behind the same
-    ``retrieve`` interface without changing the Agent workflow.
+    RAG retriever, while exposing sparse and vector scores plus the exact
+    notebook cell used in a response.
     """
 
     def __init__(
         self,
         path: Path = DEFAULT_KNOWLEDGE_PATH,
         notebook_root: Path = DEFAULT_NOTEBOOK_ROOT,
+        embedding_backend: EmbeddingBackend | None = None,
     ) -> None:
         self.path = path
         curated: list[dict[str, Any]] = json.loads(path.read_text("utf-8"))
@@ -36,7 +42,8 @@ class KnowledgeBase:
         }
         self.entries = [dict(entry, kind="curated") for entry in curated]
         self.entries.extend(self._notebook_entries(notebook_root))
-        self._term_sets = [self._terms(self._entry_text(entry)) for entry in self.entries]
+        self._entry_texts = [self._entry_text(entry) for entry in self.entries]
+        self._term_sets = [self._terms(text) for text in self._entry_texts]
         document_frequency: Counter[str] = Counter()
         for terms in self._term_sets:
             document_frequency.update(terms)
@@ -45,6 +52,24 @@ class KnowledgeBase:
             term: math.log((total + 1) / (frequency + 1)) + 1
             for term, frequency in document_frequency.items()
         }
+        self.embedding_fallback_reason: str | None = None
+        try:
+            self.embedding_backend = (
+                embedding_backend or embedding_backend_from_environment()
+            )
+        except (ValueError, TypeError) as error:
+            self.embedding_fallback_reason = str(error)
+            self.embedding_backend = LocalHashEmbedding()
+        try:
+            self._entry_vectors = self.embedding_backend.embed_many(
+                self._entry_texts
+            )
+        except (RuntimeError, ValueError, TypeError) as error:
+            self.embedding_fallback_reason = str(error)
+            self.embedding_backend = LocalHashEmbedding()
+            self._entry_vectors = self.embedding_backend.embed_many(
+                self._entry_texts
+            )
 
     def _notebook_entries(self, notebook_root: Path) -> list[dict[str, Any]]:
         entries: list[dict[str, Any]] = []
@@ -137,9 +162,21 @@ class KnowledgeBase:
     ) -> list[dict[str, Any]]:
         query_terms = self._terms(query)
         normalized_query = " ".join(query.lower().split())
-        scored: list[tuple[float, int, dict[str, Any]]] = []
-        for index, (entry, entry_terms) in enumerate(
-            zip(self.entries, self._term_sets, strict=True)
+        try:
+            query_vector = self.embedding_backend.embed_many([query])[0]
+        except (RuntimeError, ValueError, TypeError) as error:
+            self.embedding_fallback_reason = str(error)
+            query_vector = []
+        scored: list[
+            tuple[float, int, dict[str, Any], float, float, float]
+        ] = []
+        for index, (entry, entry_terms, entry_vector) in enumerate(
+            zip(
+                self.entries,
+                self._term_sets,
+                self._entry_vectors,
+                strict=True,
+            )
         ):
             if module_id and entry["module_id"] != module_id:
                 continue
@@ -153,9 +190,24 @@ class KnowledgeBase:
                 and normalized_query in self._entry_text(entry).lower()
                 else 0.0
             )
-            score = sparse_score + topic_bonus + curated_bonus + phrase_bonus
+            dense_score = (
+                max(0.0, sum(a * b for a, b in zip(query_vector, entry_vector)))
+                if query_vector
+                else 0.0
+            )
+            bonus_score = topic_bonus + curated_bonus + phrase_bonus
+            score = sparse_score + 5.0 * dense_score + bonus_score
             if score > 0:
-                scored.append((score, -index, entry))
+                scored.append(
+                    (
+                        score,
+                        -index,
+                        entry,
+                        sparse_score,
+                        dense_score,
+                        bonus_score,
+                    )
+                )
         scored.sort(reverse=True, key=lambda item: (item[0], item[1]))
         return [
             {
@@ -166,15 +218,31 @@ class KnowledgeBase:
                 "source": entry["source"],
                 "kind": entry["kind"],
                 "score": round(score, 3),
+                "score_breakdown": {
+                    "sparse": round(sparse_score, 3),
+                    "vector": round(dense_score, 4),
+                    "bonuses": round(bonus_score, 3),
+                },
+                "embedding_backend": self.embedding_backend.name,
             }
-            for score, _, entry in scored[: max(1, min(limit, 10))]
+            for (
+                score,
+                _,
+                entry,
+                sparse_score,
+                dense_score,
+                bonus_score,
+            ) in scored[: max(1, min(limit, 10))]
         ]
 
-    def stats(self) -> dict[str, int]:
+    def stats(self) -> dict[str, Any]:
         return {
             "entries": len(self.entries),
             "curated_cards": sum(entry["kind"] == "curated" for entry in self.entries),
             "notebook_chunks": sum(
                 entry["kind"] == "notebook_cell" for entry in self.entries
             ),
+            "embedding_backend": self.embedding_backend.name,
+            "embedding_dimension": self.embedding_backend.dimension,
+            "embedding_fallback": self.embedding_fallback_reason,
         }

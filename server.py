@@ -63,6 +63,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "tools": len(AGENT.tools),
                     "persistent_memory": True,
                     "multi_turn_context": True,
+                    "workflow": {"nodes": list(AGENT.workflow.node_names)},
                     "knowledge": AGENT.knowledge.stats(),
                 }
             )
