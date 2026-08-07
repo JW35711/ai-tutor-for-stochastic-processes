@@ -5,6 +5,7 @@ const conversation = document.querySelector("#conversation");
 const resetButton = document.querySelector("#resetButton");
 const emptyEvidence = document.querySelector("#emptyEvidence");
 const evidenceContent = document.querySelector("#evidenceContent");
+const runMeta = document.querySelector("#runMeta");
 const parameters = document.querySelector("#parameters");
 const sources = document.querySelector("#sources");
 const trace = document.querySelector("#trace");
@@ -135,6 +136,13 @@ function renderProfile(memory, note = "") {
 function renderEvidence(payload) {
   emptyEvidence.classList.add("hidden");
   evidenceContent.classList.remove("hidden");
+  const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
+  runMeta.innerHTML = `
+    <span>${escapeHtml(payload.module_id.toUpperCase())}</span>
+    <span>${escapeHtml(payload.tool)}</span>
+    <span>RUN ${escapeHtml(requestLabel)}</span>
+    <span>${payload.llm_applied ? "LLM VERIFIED" : "OFFLINE GROUNDED"}</span>
+  `;
   renderChart(payload.result?.series, payload.result?.chart);
 
   parameters.innerHTML = Object.entries(payload.parameters)
@@ -153,7 +161,8 @@ function renderEvidence(payload) {
         .map((source) => `
           <div class="source-item">
             <strong>${escapeHtml(source.title)}</strong>
-            <small>${escapeHtml(source.source)} · ${escapeHtml(source.kind || "course_note")} · score ${escapeHtml(source.score ?? "—")}</small>
+            <small>${escapeHtml(source.source)} · ${escapeHtml(source.kind || "course_note")}</small>
+            <small>score ${escapeHtml(source.score ?? "—")} · sparse ${escapeHtml(source.score_breakdown?.sparse ?? "—")} · vector ${escapeHtml(source.score_breakdown?.vector ?? "—")}</small>
           </div>
         `)
         .join("")
@@ -299,6 +308,7 @@ async function restoreSession() {
     emptyEvidence.classList.add("hidden");
     evidenceContent.classList.remove("hidden");
     chart.innerHTML = "<p>会话已恢复。继续提问后将显示新的仿真路径。</p>";
+    runMeta.innerHTML = `<span>SESSION RESTORED</span><span>${escapeHtml(activeModuleId.toUpperCase())}</span>`;
     parameters.innerHTML = latest?.parameters
       ? Object.entries(latest.parameters)
           .map(([key, value]) => `<div class="metric"><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></div>`)
