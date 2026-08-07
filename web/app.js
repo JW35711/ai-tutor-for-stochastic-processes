@@ -115,7 +115,7 @@ function renderProfile(memory, note = "") {
           return `
             <div class="profile-item">
               <div><strong>${escapeHtml(item.module_id.toUpperCase())}</strong><span>${escapeHtml(item.attempts)} 次仿真 · ${escapeHtml(item.quiz_correct)}/${escapeHtml(item.quiz_attempts)} 测验</span></div>
-              <div class="mastery-track" aria-label="掌握度 ${percent}%"><i style="width:${percent}%"></i></div>
+              <progress class="mastery-track" max="100" value="${percent}" aria-label="练习证据 ${percent}%"></progress>
               <small>练习证据 ${percent}%</small>
             </div>
           `;
@@ -230,25 +230,28 @@ async function openQuiz() {
 async function submitQuiz(questionId, answerIndex) {
   const buttons = quizPanel.querySelectorAll("[data-answer]");
   buttons.forEach((button) => { button.disabled = true; });
-  const response = await fetch("/api/quiz/submit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question_id: questionId, answer_index: answerIndex, session_id: sessionId }),
-  });
-  const payload = await response.json();
   const feedback = quizPanel.querySelector(".quiz-feedback");
-  if (!response.ok) {
-    feedback.textContent = payload.error || "提交失败";
-    return;
+  try {
+    const response = await fetch("/api/quiz/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question_id: questionId, answer_index: answerIndex, session_id: sessionId }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "提交失败");
+    sessionId = payload.session_id;
+    window.localStorage.setItem("stochasticTutorSession", sessionId);
+    const result = payload.result;
+    feedback.className = `quiz-feedback ${result.correct ? "correct" : "incorrect"}`;
+    feedback.textContent = `${result.correct ? "回答正确。" : "还差一步。"}${result.explanation}`;
+    emptyEvidence.classList.add("hidden");
+    evidenceContent.classList.remove("hidden");
+    renderProfile(payload.memory, "测验结果已经写入持久化学习档案。下一步可以运行对应仿真验证答案。");
+  } catch (error) {
+    feedback.className = "quiz-feedback incorrect";
+    feedback.textContent = `提交失败：${error.message}`;
+    buttons.forEach((button) => { button.disabled = false; });
   }
-  sessionId = payload.session_id;
-  window.localStorage.setItem("stochasticTutorSession", sessionId);
-  const result = payload.result;
-  feedback.className = `quiz-feedback ${result.correct ? "correct" : "incorrect"}`;
-  feedback.textContent = `${result.correct ? "回答正确。" : "还差一步。"}${result.explanation}`;
-  emptyEvidence.classList.add("hidden");
-  evidenceContent.classList.remove("hidden");
-  renderProfile(payload.memory, "测验结果已经写入持久化学习档案。下一步可以运行对应仿真验证答案。");
 }
 
 quizButton.addEventListener("click", openQuiz);

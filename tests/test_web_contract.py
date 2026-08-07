@@ -51,6 +51,10 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('href="/styles.css"', self.html)
         self.assertIn('src="/app.js"', self.html)
 
+    def test_dynamic_ui_does_not_require_inline_styles(self) -> None:
+        self.assertNotIn('style="', self.javascript)
+        self.assertIn("<progress", self.javascript)
+
 
 if __name__ == "__main__":
     unittest.main()
