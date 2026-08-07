@@ -45,6 +45,10 @@ and backup policy.
 independently for each learner. When a learner reaches the configured cap, the
 oldest event of the same type is removed; other sessions are not affected.
 
+`API_RATE_LIMIT_CLIENT_CAP=10000` bounds the number of active client keys held
+by the in-process rate limiter. Expired keys are removed when capacity is
+needed; a new key receives `429` if every slot is still active.
+
 ## Public exposure checklist
 
 Before exposing the application beyond a private demo:

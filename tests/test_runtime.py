@@ -48,6 +48,28 @@ class RuntimeTests(unittest.TestCase):
             )
         self.assertEqual(sum(decisions), 10)
 
+    def test_client_key_capacity_is_bounded_and_recovers_after_window(self) -> None:
+        clock = FakeClock()
+        limiter = SlidingWindowRateLimiter(
+            limit=2,
+            window_seconds=10,
+            max_clients=2,
+            clock=clock,
+        )
+        self.assertTrue(limiter.allow("client-a")[0])
+        self.assertTrue(limiter.allow("client-b")[0])
+        self.assertFalse(limiter.allow("client-c")[0])
+        self.assertEqual(limiter.tracked_clients, 2)
+        clock.now = 10.1
+        self.assertTrue(limiter.allow("client-c")[0])
+        self.assertEqual(limiter.tracked_clients, 1)
+
+    def test_client_key_capacity_must_be_positive(self) -> None:
+        for invalid in (0, -1, True):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "client capacity"):
+                    SlidingWindowRateLimiter(max_clients=invalid)
+
     def test_structured_event_is_valid_json(self) -> None:
         payload = json.loads(structured_event("request", status=200))
         self.assertEqual(payload["event"], "request")

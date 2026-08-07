@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import math
 import threading
 import time
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -20,16 +21,24 @@ class SlidingWindowRateLimiter:
         self,
         limit: int = 60,
         window_seconds: float = 60.0,
+        max_clients: int = 10_000,
         clock: Clock = time.monotonic,
     ) -> None:
         if limit < 1:
             raise ValueError("rate limit must be positive")
         if window_seconds <= 0:
             raise ValueError("rate-limit window must be positive")
+        if (
+            isinstance(max_clients, bool)
+            or not isinstance(max_clients, int)
+            or max_clients < 1
+        ):
+            raise ValueError("rate-limit client capacity must be positive")
         self.limit = limit
         self.window_seconds = window_seconds
+        self.max_clients = max_clients
         self._clock = clock
-        self._events: dict[str, deque[float]] = defaultdict(deque)
+        self._events: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
 
     def allow(self, client_id: str) -> tuple[bool, int, int]:
@@ -38,7 +47,20 @@ class SlidingWindowRateLimiter:
         now = self._clock()
         cutoff = now - self.window_seconds
         with self._lock:
-            events = self._events[client_id]
+            events = self._events.get(client_id)
+            if events is None:
+                if len(self._events) >= self.max_clients:
+                    stale = [
+                        key
+                        for key, timestamps in self._events.items()
+                        if not timestamps or timestamps[-1] <= cutoff
+                    ]
+                    for key in stale:
+                        del self._events[key]
+                if len(self._events) >= self.max_clients:
+                    return False, 0, max(1, math.ceil(self.window_seconds))
+                events = deque()
+                self._events[client_id] = events
             while events and events[0] <= cutoff:
                 events.popleft()
             if len(events) >= self.limit:
@@ -46,6 +68,11 @@ class SlidingWindowRateLimiter:
                 return False, 0, retry_after
             events.append(now)
             return True, self.limit - len(events), 0
+
+    @property
+    def tracked_clients(self) -> int:
+        with self._lock:
+            return len(self._events)
 
 
 @dataclass(frozen=True)

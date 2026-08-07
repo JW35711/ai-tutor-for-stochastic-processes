@@ -35,7 +35,8 @@ EVALUATION["corpus_match"] = (
     EVALUATION["corpus_sha256"] == AGENT.knowledge.corpus_sha256
 )
 RATE_LIMITER = SlidingWindowRateLimiter(
-    limit=max(1, int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "60")))
+    limit=max(1, int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "60"))),
+    max_clients=max(1, int(os.getenv("API_RATE_LIMIT_CLIENT_CAP", "10000"))),
 )
 METRICS = ServiceMetrics()
 MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
@@ -295,6 +296,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     },
                     "readiness": readiness,
                     "runtime": asdict(METRICS.snapshot()),
+                    "rate_limit": {
+                        "requests_per_minute": RATE_LIMITER.limit,
+                        "client_capacity": RATE_LIMITER.max_clients,
+                        "tracked_clients": RATE_LIMITER.tracked_clients,
+                    },
                 }
             )
         elif path == "/api/topics":
