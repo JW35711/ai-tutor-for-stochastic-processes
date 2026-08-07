@@ -12,6 +12,9 @@ from collections.abc import Sequence
 from typing import Any
 
 
+MAX_RECORDED_TRANSITIONS = 500
+
+
 def _positive_int(value: int, name: str, maximum: int = 100_000) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{name} must be an integer")
@@ -97,23 +100,29 @@ def simulate_poisson_process(
     counts: list[int] = []
     event_paths: list[list[float]] = []
 
-    for _ in range(paths):
+    event_times_truncated = False
+    for path_index in range(paths):
         time = 0.0
         events: list[float] = []
+        count = 0
         while True:
             time += rng.expovariate(rate)
             if time > horizon:
                 break
-            events.append(time)
-        counts.append(len(events))
-        if len(event_paths) < 8:
+            count += 1
+            if path_index < 8 and len(events) < MAX_RECORDED_TRANSITIONS:
+                events.append(time)
+            elif path_index < 8:
+                event_times_truncated = True
+        counts.append(count)
+        if path_index < 8:
             event_paths.append(events)
 
     empirical_mean = sum(counts) / paths
     expected_count = rate * horizon
     first_events = event_paths[0] if event_paths else []
     step_times = [0.0, *first_events, horizon]
-    step_counts = list(range(len(first_events) + 1)) + [len(first_events)]
+    step_counts = list(range(len(first_events) + 1)) + [counts[0]]
     return {
         "topic": "poisson",
         "parameters": {
@@ -129,6 +138,7 @@ def simulate_poisson_process(
         "event_times": [
             [round(event, 6) for event in events] for events in event_paths
         ],
+        "event_times_truncated": event_times_truncated,
         "series": [
             {
                 "name": "first counting path",
@@ -211,23 +221,30 @@ def simulate_continuous_random_walk(
     endpoints: list[int] = []
     jump_counts: list[int] = []
     sample_series: list[dict[str, Any]] = []
+    series_truncated = False
 
     for path_index in range(paths):
         time = 0.0
         position = 0
+        record_path = path_index < 8
         jump_times: list[float] = []
         positions: list[int] = []
+        jump_count = 0
         while True:
             time += rng.expovariate(rate)
             if time > horizon:
                 break
             position += 1 if rng.random() < probability_up else -1
-            jump_times.append(time)
-            positions.append(position)
+            jump_count += 1
+            if record_path and len(jump_times) < MAX_RECORDED_TRANSITIONS:
+                jump_times.append(time)
+                positions.append(position)
+            elif record_path:
+                series_truncated = True
 
         endpoints.append(position)
-        jump_counts.append(len(jump_times))
-        if path_index < 8:
+        jump_counts.append(jump_count)
+        if record_path:
             x_values = [0.0, *jump_times, horizon]
             y_values = [0, *positions, position]
             sample_series.append(
@@ -263,6 +280,7 @@ def simulate_continuous_random_walk(
         "theoretical_endpoint_variance": round(theoretical_variance, 6),
         "endpoints": endpoints[:200],
         "jump_counts": jump_counts[:200],
+        "series_truncated": series_truncated,
         "series": sample_series,
         "chart": {"x_label": "time", "y_label": "position", "step": "post"},
     }
@@ -429,12 +447,6 @@ def _step_series(
     }
 
 
-def _mean_or_none(values: Sequence[float]) -> float | None:
-    if not values:
-        return None
-    return round(sum(values) / len(values), 6)
-
-
 def simulate_two_state_ctmc(
     failure_rate: float = 0.25,
     repair_rate: float = 0.15,
@@ -456,15 +468,19 @@ def simulate_two_state_ctmc(
 
     rng = random.Random(seed)
     occupancy = [0.0, 0.0]
-    holding_times: list[list[float]] = [[], []]
+    holding_sums = [0.0, 0.0]
+    holding_counts = [0, 0]
     sample_series: list[dict[str, Any]] = []
     transition_count = 0
+    series_truncated = False
 
     for path_index in range(paths):
         time = 0.0
         state = initial_state
+        record_path = path_index < 5
         times = [time]
         states = [state]
+        path_truncated = False
         while time < horizon:
             leaving_rate = failure_rate if state == 0 else repair_rate
             holding_time = rng.expovariate(leaving_rate)
@@ -474,14 +490,22 @@ def simulate_two_state_ctmc(
                 time = horizon
                 break
 
-            holding_times[state].append(holding_time)
+            holding_sums[state] += holding_time
+            holding_counts[state] += 1
             time = next_time
             state = 1 - state
             transition_count += 1
-            times.append(time)
-            states.append(state)
+            if record_path and len(times) <= MAX_RECORDED_TRANSITIONS:
+                times.append(time)
+                states.append(state)
+            elif record_path:
+                path_truncated = True
 
-        if path_index < 5:
+        if record_path:
+            if path_truncated:
+                times.append(horizon)
+                states.append(state)
+                series_truncated = True
             sample_series.append(
                 _step_series(times, states, horizon, f"path {path_index + 1}")
             )
@@ -491,7 +515,10 @@ def simulate_two_state_ctmc(
     denominator = failure_rate + repair_rate
     stationary = [repair_rate / denominator, failure_rate / denominator]
     theoretical_holding = [1.0 / failure_rate, 1.0 / repair_rate]
-    empirical_holding = [_mean_or_none(values) for values in holding_times]
+    empirical_holding = [
+        round(total / count, 6) if count else None
+        for total, count in zip(holding_sums, holding_counts, strict=True)
+    ]
 
     return {
         "topic": "ctmc",
@@ -519,6 +546,7 @@ def simulate_two_state_ctmc(
             round(value, 6) for value in theoretical_holding
         ],
         "transition_count": transition_count,
+        "series_truncated": series_truncated,
         "series": sample_series,
         "chart": {"x_label": "time", "y_label": "state", "step": "post"},
     }
@@ -565,12 +593,15 @@ def simulate_birth_death_process(
     sample_series: list[dict[str, Any]] = []
     birth_count = 0
     death_count = 0
+    series_truncated = False
 
     for path_index in range(paths):
         time = 0.0
         state = initial_state
+        record_path = path_index < 5
         times = [time]
         states = [state]
+        path_truncated = False
         while time < horizon:
             up_rate = birth_rate if state < capacity else 0.0
             down_rate = death_rate if state > 0 else 0.0
@@ -589,10 +620,17 @@ def simulate_birth_death_process(
             else:
                 state -= 1
                 death_count += 1
-            times.append(time)
-            states.append(state)
+            if record_path and len(times) <= MAX_RECORDED_TRANSITIONS:
+                times.append(time)
+                states.append(state)
+            elif record_path:
+                path_truncated = True
 
-        if path_index < 5:
+        if record_path:
+            if path_truncated:
+                times.append(horizon)
+                states.append(state)
+                series_truncated = True
             sample_series.append(
                 _step_series(times, states, horizon, f"path {path_index + 1}")
             )
@@ -639,6 +677,7 @@ def simulate_birth_death_process(
         ),
         "birth_count": birth_count,
         "death_count": death_count,
+        "series_truncated": series_truncated,
         "series": sample_series,
         "chart": {"x_label": "time", "y_label": "state", "step": "post"},
     }

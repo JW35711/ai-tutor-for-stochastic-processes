@@ -7,6 +7,7 @@ import random
 from typing import Any
 
 from .simulations import (
+    MAX_RECORDED_TRANSITIONS,
     _compress_series,
     _positive_float,
     _positive_int,
@@ -192,12 +193,15 @@ def simulate_mm1_queue(
     weighted_state_time = 0.0
     sample_series: list[dict[str, Any]] = []
     maximum_observed = 0
+    series_truncated = False
 
     for path_index in range(paths):
         time = 0.0
         state = 0
+        record_path = path_index < 5
         times = [time]
         states = [state]
+        path_truncated = False
         while time < horizon:
             total_rate = arrival_rate + (service_rate if state > 0 else 0.0)
             holding_time = rng.expovariate(total_rate)
@@ -217,10 +221,17 @@ def simulate_mm1_queue(
             else:
                 state -= 1
             maximum_observed = max(maximum_observed, state)
-            times.append(time)
-            states.append(state)
+            if record_path and len(times) <= MAX_RECORDED_TRANSITIONS:
+                times.append(time)
+                states.append(state)
+            elif record_path:
+                path_truncated = True
 
-        if path_index < 5:
+        if record_path:
+            if path_truncated:
+                times.append(horizon)
+                states.append(state)
+                series_truncated = True
             sample_series.append(
                 _step_series(times, states, horizon, f"path {path_index + 1}")
             )
@@ -264,6 +275,7 @@ def simulate_mm1_queue(
         ),
         "overflow_time_fraction": round(overflow_time / total_time, 6),
         "maximum_observed_state": maximum_observed,
+        "series_truncated": series_truncated,
         "series": sample_series,
         "chart": {"x_label": "time", "y_label": "customers", "step": "post"},
     }

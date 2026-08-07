@@ -56,6 +56,28 @@ class SimulationToolTests(unittest.TestCase):
             0.25,
         )
 
+    def test_high_event_count_outputs_are_bounded_and_labeled(self) -> None:
+        poisson = simulate_poisson_process(
+            rate=100.0, horizon=20.0, paths=1, seed=18
+        )
+        self.assertTrue(poisson["event_times_truncated"])
+        self.assertLessEqual(len(poisson["event_times"][0]), 500)
+        self.assertEqual(
+            len(poisson["series"][0]["x"]),
+            len(poisson["series"][0]["values"]),
+        )
+
+        ctmc = simulate_two_state_ctmc(
+            failure_rate=100.0,
+            repair_rate=100.0,
+            horizon=20.0,
+            paths=1,
+            seed=19,
+        )
+        self.assertTrue(ctmc["series_truncated"])
+        self.assertLessEqual(len(ctmc["series"][0]["values"]), 241)
+        self.assertGreater(ctmc["transition_count"], 500)
+
     def test_random_walk_theory(self) -> None:
         result = simulate_random_walk(
             steps=100, probability_up=0.6, paths=2_000, seed=9

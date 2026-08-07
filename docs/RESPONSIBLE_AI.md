@@ -58,6 +58,9 @@ multiplicative work factor, such as paths times steps or expected event count.
 Finite-state Markov input is capped at 50 states. These bounds prevent a
 syntactically valid learner prompt from expanding into an unbounded local CPU
 or memory request.
+Event-driven tools compute aggregate statistics online and retain at most 500
+raw transitions for each displayed path. A `series_truncated` or
+`event_times_truncated` flag makes that display-only sampling explicit.
 
 A learner question cannot choose an arbitrary Python name, shell command, file
 path or URL. It can only select one of 15 registered functions and supply
