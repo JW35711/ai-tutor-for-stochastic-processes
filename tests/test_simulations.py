@@ -14,6 +14,35 @@ from src.processes import (
 
 
 class SimulationToolTests(unittest.TestCase):
+    def test_core_tools_reject_multiplicative_resource_amplification(self) -> None:
+        oversized_calls = (
+            lambda: simulate_poisson_process(rate=1000, horizon=10_000, paths=2_000),
+            lambda: simulate_random_walk(steps=50_000, paths=2_000),
+            lambda: simulate_continuous_random_walk(
+                rate=1000, horizon=10_000, paths=2_000
+            ),
+            lambda: simulate_brownian_motion(steps=50_000, paths=2_000),
+        )
+        for call in oversized_calls:
+            with self.subTest(call=call):
+                with self.assertRaisesRegex(ValueError, "too large"):
+                    call()
+
+    def test_probabilities_reject_non_numeric_or_non_finite_values(self) -> None:
+        for invalid in (True, "0.5", float("nan"), float("inf")):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    simulate_random_walk(probability_up=invalid)  # type: ignore[arg-type]
+
+    def test_markov_state_space_is_bounded(self) -> None:
+        size = 51
+        matrix = [
+            [1.0 if row == column else 0.0 for column in range(size)]
+            for row in range(size)
+        ]
+        with self.assertRaisesRegex(ValueError, "at most 50 states"):
+            analyze_markov_chain(matrix)
+
     def test_monte_carlo_is_reproducible(self) -> None:
         first = run_monte_carlo_pi(samples=20_000, seed=7)
         second = run_monte_carlo_pi(samples=20_000, seed=7)

@@ -53,6 +53,12 @@ is visible through the health response.
 
 ## Abuse and prompt-injection boundary
 
+Every executable simulation validates both individual parameters and the
+multiplicative work factor, such as paths times steps or expected event count.
+Finite-state Markov input is capped at 50 states. These bounds prevent a
+syntactically valid learner prompt from expanding into an unbounded local CPU
+or memory request.
+
 A learner question cannot choose an arbitrary Python name, shell command, file
 path or URL. It can only select one of 15 registered functions and supply
 numeric parameters that are parsed and validated. The RAG corpus is local and

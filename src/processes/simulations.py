@@ -29,6 +29,17 @@ def _positive_float(value: float, name: str, maximum: float = 10_000.0) -> float
     return number
 
 
+def _probability(value: float, name: str, allow_zero: bool = True) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a number")
+    number = float(value)
+    lower_ok = number >= 0.0 if allow_zero else number > 0.0
+    if not math.isfinite(number) or not lower_ok or number > 1.0:
+        interval = "[0, 1]" if allow_zero else "(0, 1]"
+        raise ValueError(f"{name} must be in {interval}")
+    return number
+
+
 def _compress_series(values: Sequence[float], max_points: int = 240) -> list[float]:
     """Keep payloads small while retaining the shape of a simulated path."""
     if len(values) <= max_points:
@@ -80,6 +91,8 @@ def simulate_poisson_process(
     rate = _positive_float(rate, "rate", 1_000.0)
     horizon = _positive_float(horizon, "horizon", 10_000.0)
     paths = _positive_int(paths, "paths", 2_000)
+    if rate * horizon * paths > 3_000_000:
+        raise ValueError("requested Poisson experiment is too large")
     rng = random.Random(seed)
     counts: list[int] = []
     event_paths: list[list[float]] = []
@@ -136,9 +149,9 @@ def simulate_random_walk(
     """Simulate one-dimensional random walks with increments in {-1, +1}."""
     steps = _positive_int(steps, "steps", 50_000)
     paths = _positive_int(paths, "paths", 2_000)
-    probability_up = float(probability_up)
-    if not 0.0 <= probability_up <= 1.0:
-        raise ValueError("probability_up must be between 0 and 1")
+    probability_up = _probability(probability_up, "probability_up")
+    if steps * paths > 3_000_000:
+        raise ValueError("requested random-walk experiment is too large")
 
     rng = random.Random(seed)
     endpoints: list[int] = []
@@ -190,9 +203,9 @@ def simulate_continuous_random_walk(
     rate = _positive_float(rate, "rate", 1_000.0)
     horizon = _positive_float(horizon, "horizon", 10_000.0)
     paths = _positive_int(paths, "paths", 2_000)
-    probability_up = float(probability_up)
-    if not 0.0 <= probability_up <= 1.0:
-        raise ValueError("probability_up must be between 0 and 1")
+    probability_up = _probability(probability_up, "probability_up")
+    if rate * horizon * paths > 3_000_000:
+        raise ValueError("requested continuous random-walk experiment is too large")
 
     rng = random.Random(seed)
     endpoints: list[int] = []
@@ -265,6 +278,8 @@ def simulate_brownian_motion(
     horizon = _positive_float(horizon, "horizon", 1_000.0)
     steps = _positive_int(steps, "steps", 50_000)
     paths = _positive_int(paths, "paths", 2_000)
+    if steps * paths > 3_000_000:
+        raise ValueError("requested Brownian-motion experiment is too large")
     rng = random.Random(seed)
     dt = horizon / steps
     scale = math.sqrt(dt)
@@ -308,6 +323,8 @@ def _validate_transition_matrix(matrix: Sequence[Sequence[float]]) -> list[list[
     if not matrix or not all(isinstance(row, Sequence) for row in matrix):
         raise ValueError("transition_matrix must be a non-empty square matrix")
     size = len(matrix)
+    if size > 50:
+        raise ValueError("transition_matrix must have at most 50 states")
     validated: list[list[float]] = []
     for row in matrix:
         if len(row) != size:

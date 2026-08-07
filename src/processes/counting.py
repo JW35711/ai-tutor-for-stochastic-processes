@@ -6,16 +6,7 @@ import math
 import random
 from typing import Any
 
-from .simulations import _compress_series, _positive_float, _positive_int
-
-
-def _probability(value: float, name: str, allow_zero: bool = False) -> float:
-    number = float(value)
-    lower_ok = number >= 0.0 if allow_zero else number > 0.0
-    if not math.isfinite(number) or not lower_ok or number > 1.0:
-        interval = "[0, 1]" if allow_zero else "(0, 1]"
-        raise ValueError(f"{name} must be in {interval}")
-    return number
+from .simulations import _compress_series, _positive_float, _positive_int, _probability
 
 
 def _geometric_wait(probability: float, rng: random.Random) -> int:
@@ -33,7 +24,7 @@ def simulate_bernoulli_process(
     """Simulate Bernoulli counting paths and geometric waiting times."""
 
     slots = _positive_int(slots, "slots", 50_000)
-    probability = _probability(probability, "probability")
+    probability = _probability(probability, "probability", allow_zero=False)
     paths = _positive_int(paths, "paths", 5_000)
     if slots * paths > 2_000_000:
         raise ValueError("requested Bernoulli experiment is too large")

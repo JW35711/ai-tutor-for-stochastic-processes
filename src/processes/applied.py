@@ -10,6 +10,7 @@ from .simulations import (
     _compress_series,
     _positive_float,
     _positive_int,
+    _probability,
     _step_series,
 )
 
@@ -117,9 +118,9 @@ def simulate_batch_buffer(
 
     steps = _positive_int(steps, "steps", 100_000)
     paths = _positive_int(paths, "paths", 5_000)
-    arrival_probability = float(arrival_probability)
-    if not math.isfinite(arrival_probability) or not 0.0 < arrival_probability <= 1.0:
-        raise ValueError("arrival_probability must be in (0, 1]")
+    arrival_probability = _probability(
+        arrival_probability, "arrival_probability", allow_zero=False
+    )
     if steps * paths > 2_000_000:
         raise ValueError("requested buffer experiment is too large")
 
