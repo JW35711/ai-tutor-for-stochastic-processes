@@ -10,7 +10,9 @@ from typing import Any
 
 from .knowledge import KnowledgeBase
 from .llm import OpenAICompatibleLLM
+from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
+from .pedagogy import adaptive_note, diagnose
 from .processes import (
     analyze_markov_chain,
     analyze_reliability_system,
@@ -33,10 +35,10 @@ from .processes import (
 class StochasticTutorAgent:
     """Route questions through retrieval, simulation, verification and teaching."""
 
-    def __init__(self) -> None:
+    def __init__(self, memory: LearnerMemory | None = None) -> None:
         self.knowledge = KnowledgeBase()
         self.llm = OpenAICompatibleLLM()
-        self.sessions: dict[str, list[dict[str, str]]] = {}
+        self.memory = memory or LearnerMemory()
         self.tools: dict[str, Callable[..., dict[str, Any]]] = {
             "monte_carlo": run_monte_carlo_pi,
             "bernoulli": simulate_bernoulli_process,
@@ -504,6 +506,12 @@ class StochasticTutorAgent:
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         if not question.strip():
             raise ValueError("question must not be empty")
+        if session_id is not None and (
+            not isinstance(session_id, str)
+            or not session_id.strip()
+            or len(session_id) > 128
+        ):
+            raise ValueError("session_id must be a non-empty string of at most 128 characters")
         session_id = session_id or str(uuid.uuid4())
         trace: list[dict[str, str]] = []
 
@@ -514,6 +522,7 @@ class StochasticTutorAgent:
             )
         module = MODULE_BY_ID[module_id]
         topic = module.topic
+        misconceptions = diagnose(question, module_id)
         trace.append(
             {
                 "node": "classify",
@@ -541,9 +550,16 @@ class StochasticTutorAgent:
                 f"### Module {module.number:02d}: {module.label}\n{source_text}\n\n"
                 "该模块已经进入课程检索与路由系统；对应的可执行仿真工具正在从论文 Notebook 中提取。"
             )
-            self.sessions.setdefault(session_id, []).append(
-                {"question": question, "topic": topic, "module_id": module_id}
+            self.memory.record_turn(
+                session_id=session_id,
+                question=question,
+                module_id=module_id,
+                topic=topic,
+                tool=None,
+                verified=False,
+                misconceptions=misconceptions,
             )
+            profile = self.memory.profile(session_id)
             return {
                 "session_id": session_id,
                 "answer": answer,
@@ -557,12 +573,8 @@ class StochasticTutorAgent:
                 "result": {"status": "tool_pending"},
                 "sources": sources,
                 "trace": trace,
-                "memory": {
-                    "turns": len(self.sessions[session_id]),
-                    "modules": [
-                        item["module_id"] for item in self.sessions[session_id]
-                    ],
-                },
+                "memory": profile,
+                "misconceptions": misconceptions,
                 "llm_enabled": self.llm.enabled,
             }
 
@@ -596,6 +608,12 @@ class StochasticTutorAgent:
                 "我不会用不合法的参数生成看似合理的图。"
             )
 
+        if misconceptions:
+            corrections = "\n".join(
+                f"- {item['correction']}" for item in misconceptions
+            )
+            deterministic_answer += f"\n\n### 先纠正一个常见误区\n{corrections}"
+
         llm_prompt = json.dumps(
             {
                 "question": question,
@@ -626,9 +644,17 @@ class StochasticTutorAgent:
             }
         )
 
-        self.sessions.setdefault(session_id, []).append(
-            {"question": question, "topic": topic, "module_id": module_id}
+        self.memory.record_turn(
+            session_id=session_id,
+            question=question,
+            module_id=module_id,
+            topic=topic,
+            tool=tool_key,
+            verified=verified,
+            misconceptions=misconceptions,
         )
+        profile = self.memory.profile(session_id)
+        learning_note = adaptive_note(profile, module_id)
         return {
             "session_id": session_id,
             "answer": answer,
@@ -642,11 +668,8 @@ class StochasticTutorAgent:
             "result": result,
             "sources": sources,
             "trace": trace,
-            "memory": {
-                "turns": len(self.sessions[session_id]),
-                "modules": [
-                    item["module_id"] for item in self.sessions[session_id]
-                ],
-            },
+            "memory": profile,
+            "misconceptions": misconceptions,
+            "learning_note": learning_note,
             "llm_enabled": self.llm.enabled,
         }

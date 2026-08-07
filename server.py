@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import uuid
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
+from src.assessment import AssessmentEngine
 from src.agent import StochasticTutorAgent
 from src.module_registry import module_catalog
 
@@ -17,6 +19,7 @@ from src.module_registry import module_catalog
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
 AGENT = StochasticTutorAgent()
+ASSESSMENTS = AssessmentEngine()
 
 
 class TutorRequestHandler(BaseHTTPRequestHandler):
@@ -49,16 +52,46 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/health":
-            self._json({"status": "ok", "service": "stochastic-tutor-agent"})
+            self._json(
+                {
+                    "status": "ok",
+                    "service": "stochastic-tutor-agent",
+                    "modules": 11,
+                    "tools": len(AGENT.tools),
+                    "persistent_memory": True,
+                    "knowledge": AGENT.knowledge.stats(),
+                }
+            )
         elif path == "/api/topics":
             self._json({"modules": module_catalog()})
+        elif path == "/api/profile":
+            session_id = parse_qs(parsed.query).get("session_id", [""])[0]
+            if not session_id:
+                self._json(
+                    {"error": "session_id is required"}, HTTPStatus.BAD_REQUEST
+                )
+            else:
+                self._json(
+                    {
+                        "profile": AGENT.memory.profile(session_id),
+                        "history": AGENT.memory.history(session_id),
+                    }
+                )
+        elif path == "/api/quiz":
+            module_id = parse_qs(parsed.query).get("module_id", [""])[0]
+            try:
+                self._json({"quiz": ASSESSMENTS.question(module_id)})
+            except ValueError as error:
+                self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
         else:
             self._static(path)
 
     def do_POST(self) -> None:  # noqa: N802
-        if urlparse(self.path).path != "/api/chat":
+        path = urlparse(self.path).path
+        if path not in {"/api/chat", "/api/quiz/submit"}:
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
         try:
@@ -66,10 +99,29 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             if length <= 0 or length > 1_000_000:
                 raise ValueError("invalid request size")
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            response = AGENT.answer(
-                str(payload.get("question", "")),
-                session_id=payload.get("session_id"),
-            )
+            if path == "/api/chat":
+                response = AGENT.answer(
+                    str(payload.get("question", "")),
+                    session_id=payload.get("session_id"),
+                )
+            else:
+                session_id = str(payload.get("session_id") or uuid.uuid4())
+                result = ASSESSMENTS.grade(
+                    str(payload.get("question_id", "")),
+                    payload.get("answer_index"),
+                )
+                AGENT.memory.record_assessment(
+                    session_id=session_id,
+                    question_id=result["question_id"],
+                    module_id=result["module_id"],
+                    answer_index=result["answer_index"],
+                    correct=result["correct"],
+                )
+                response = {
+                    "session_id": session_id,
+                    "result": result,
+                    "memory": AGENT.memory.profile(session_id),
+                }
             self._json(response)
         except (ValueError, json.JSONDecodeError) as error:
             self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
@@ -78,6 +130,19 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 {"error": "internal server error"},
                 HTTPStatus.INTERNAL_SERVER_ERROR,
             )
+
+    def do_DELETE(self) -> None:  # noqa: N802
+        path = urlparse(self.path).path
+        prefix = "/api/sessions/"
+        if not path.startswith(prefix):
+            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+        session_id = unquote(path[len(prefix) :]).strip()
+        if not session_id or "/" in session_id or len(session_id) > 128:
+            self._json({"error": "invalid session id"}, HTTPStatus.BAD_REQUEST)
+            return
+        AGENT.memory.reset(session_id)
+        self._json({"status": "reset", "session_id": session_id})
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"[http] {self.address_string()} {format % args}")

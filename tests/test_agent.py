@@ -1,12 +1,17 @@
 import unittest
 
 from src.agent import StochasticTutorAgent
+from src.memory import LearnerMemory
 from src.module_registry import module_catalog
 
 
 class AgentTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.agent = StochasticTutorAgent()
+        self.memory = LearnerMemory(":memory:")
+        self.agent = StochasticTutorAgent(memory=self.memory)
+
+    def tearDown(self) -> None:
+        self.memory.close()
 
     def test_routes_chinese_poisson_question(self) -> None:
         self.assertEqual(self.agent.classify_module("泊松过程的等待时间"), "module01")
@@ -51,6 +56,10 @@ class AgentTests(unittest.TestCase):
             ["classify", "retrieve", "plan", "tool", "respond"],
         )
 
+    def test_rejects_invalid_session_identifier(self) -> None:
+        with self.assertRaisesRegex(ValueError, "session_id"):
+            self.agent.answer("模拟布朗运动", session_id=123)  # type: ignore[arg-type]
+
     def test_reads_number_before_path_unit(self) -> None:
         response = self.agent.answer("用300条路径模拟100步随机游走")
         self.assertEqual(response["parameters"]["paths"], 300)
@@ -60,7 +69,17 @@ class AgentTests(unittest.TestCase):
         first = self.agent.answer("模拟100步随机游走")
         second = self.agent.answer("再模拟200步随机游走", first["session_id"])
         self.assertEqual(second["memory"]["turns"], 2)
-        self.assertEqual(second["memory"]["modules"], ["module02", "module02"])
+        self.assertEqual(second["memory"]["covered_modules"], ["module02"])
+        self.assertEqual(second["memory"]["modules"][0]["attempts"], 2)
+
+    def test_answer_exposes_diagnosis_and_adaptive_note(self) -> None:
+        response = self.agent.answer("布朗运动的方差是根号T，对吗？")
+        self.assertEqual(
+            response["misconceptions"][0]["code"],
+            "brownian_variance_sqrt_t",
+        )
+        self.assertIn("方差为 T", response["answer"])
+        self.assertTrue(response["learning_note"])
 
     def test_all_modules_report_executable_tool_coverage(self) -> None:
         self.assertTrue(all(module["tool_ready"] for module in module_catalog()))

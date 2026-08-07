@@ -27,8 +27,8 @@
         </div>
         <aside class="status-card">
           <span class="status-dot"></span>
-          <strong>Agent MVP online</strong>
-          <small>15 tools · 11/11 modules · source-aware</small>
+          <strong>Stateful Agent online</strong>
+          <small>15 tools · 11/11 modules · persistent learner memory</small>
         </aside>
       </header>
 
@@ -57,6 +57,12 @@
             <button data-question="圆上粒子合并：圆周大小为12、粒子数为9、实验次数为200">粒子合并</button>
             <button data-question="用10000个样本做蒙特卡洛实验估计π">Monte Carlo</button>
           </div>
+
+          <div class="assessment-bar">
+            <span>先预测，再用仿真验证。</span>
+            <button id="quizButton" type="button">当前模块概念测验</button>
+          </div>
+          <div id="quizPanel" class="quiz-panel hidden" aria-live="polite"></div>
 
           <div id="conversation" class="conversation" aria-live="polite">
             <article class="message agent-message">
@@ -99,6 +105,12 @@
             <section>
               <p class="section-label">PARAMETERS</p>
               <div id="parameters" class="metric-grid"></div>
+            </section>
+            <section>
+              <p class="section-label">LEARNER PROFILE</p>
+              <p id="learningNote" class="learning-note"></p>
+              <div id="learnerProfile" class="profile-list"></div>
+              <div id="misconceptions" class="misconception-list"></div>
             </section>
             <section>
               <p class="section-label">SOURCES</p>

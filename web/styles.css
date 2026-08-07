@@ -193,6 +193,73 @@ h1 {
   background: var(--acid);
 }
 
+.assessment-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 2px 0 12px;
+  padding: 12px 14px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+
+.assessment-bar button {
+  padding: 8px 11px;
+  color: #0b0e0d;
+  border: 0;
+  background: var(--cyan);
+  font-weight: 750;
+}
+
+.quiz-panel {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid rgba(127, 232, 223, 0.32);
+  background: rgba(127, 232, 223, 0.055);
+  line-height: 1.55;
+}
+
+.quiz-module {
+  margin-bottom: 7px;
+  color: var(--cyan);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.quiz-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.quiz-choices button {
+  padding: 10px;
+  color: var(--ink);
+  text-align: left;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.quiz-choices button:hover:not(:disabled) {
+  border-color: var(--cyan);
+}
+
+.quiz-feedback {
+  margin: 12px 0 0;
+}
+
+.quiz-feedback.correct {
+  color: var(--acid);
+}
+
+.quiz-feedback.incorrect {
+  color: var(--orange);
+}
+
 .conversation {
   height: 460px;
   overflow-y: auto;
@@ -335,6 +402,70 @@ h1 {
   border-bottom: 1px solid var(--line);
 }
 
+.learning-note {
+  padding: 12px 14px;
+  color: var(--ink);
+  border-left: 3px solid var(--cyan);
+  background: rgba(127, 232, 223, 0.06);
+  line-height: 1.6;
+}
+
+.profile-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-item {
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.profile-item > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.profile-item span,
+.profile-item small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.mastery-track {
+  height: 5px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mastery-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--acid));
+}
+
+.misconception-list:not(:empty) {
+  margin-top: 12px;
+  padding: 12px;
+  color: #ffd9c8;
+  border: 1px solid rgba(255, 138, 91, 0.35);
+  background: rgba(255, 138, 91, 0.06);
+}
+
+.misconception-list p:last-child {
+  margin-bottom: 0;
+}
+
+.diagnosis-title {
+  color: var(--orange);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .source-item strong,
 .source-item small {
   display: block;
@@ -429,6 +560,15 @@ h1 {
   .examples {
     flex-wrap: wrap;
     overflow: visible;
+  }
+
+  .assessment-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quiz-choices {
+    grid-template-columns: 1fr;
   }
 
   .conversation {

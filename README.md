@@ -80,10 +80,11 @@ tools:
 - growing self-avoiding walks;
 - coalescing particles on a circle.
 
-For each question, the Agent classifies the topic, retrieves a source-aware
-course note, validates parameters, chooses a simulation tool, compares the
-empirical result with theory, and returns a guided explanation with the
-execution trace.
+For each question, the Agent classifies the topic, retrieves source-aware
+Notebook evidence, validates parameters, chooses a simulation tool, compares
+the empirical result with theory, diagnoses explicit misconceptions, and
+returns a guided explanation with the execution trace. SQLite learner memory
+persists practice and concept-check results across server restarts.
 
 ```mermaid
 flowchart LR
@@ -93,7 +94,9 @@ flowchart LR
     P --> T[Simulation tool]
     T --> V[Theory comparison]
     V --> E[Guided explanation]
-    E --> UI[Web UI, sources and trace]
+    E --> M[(Learner memory)]
+    QZ[Concept check] --> M
+    M --> UI[Web UI, profile, sources and trace]
 ```
 
 Numerical computation is performed by Python, not by the language model. An
@@ -134,6 +137,20 @@ python3 server.py
 The application remains usable in offline-safe mode when these variables are
 unset.
 
+The **当前模块概念测验** button adds a graded concept check for each of the 11
+modules. Simulation practice, quiz accuracy and diagnosed misconceptions are
+shown separately in the learner profile; the UI does not claim that tool use
+alone proves mastery.
+
+### Run with Docker
+
+The Agent server itself uses only the Python standard library:
+
+```bash
+docker build -t stochastic-tutor-agent .
+docker run --rm -p 8000:8000 stochastic-tutor-agent
+```
+
 ### Agent API and tests
 
 ```bash
@@ -144,23 +161,43 @@ curl -X POST http://127.0.0.1:8000/api/chat \
   -d '{"question":"模拟100步随机游走，并比较理论均值"}'
 
 python3 -m unittest discover -s tests -v
+python3 evals/run_evaluation.py
 ```
 
 The test suite checks reproducibility, theoretical agreement, transition-matrix
 validation, stability conditions, exploratory-model invariants, topic routing,
-tool execution, citations and session memory.
+tool execution, citations, persistent memory, misconception diagnosis and
+assessment grading. The 30-case acceptance set measures module routing, tool
+choice, module-scoped evidence and workflow traces in Chinese and English.
+
+Additional endpoints:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Tool, module, memory and knowledge-index status |
+| `GET /api/topics` | Public catalogue for Modules 00–10 |
+| `POST /api/chat` | Full retrieval and simulation Agent turn |
+| `GET /api/profile?session_id=...` | Persistent learner profile and history |
+| `GET /api/quiz?module_id=module04` | Concept check without leaking the answer |
+| `POST /api/quiz/submit` | Grade and persist an answer |
+| `DELETE /api/sessions/{id}` | Reset one learner session |
 
 ## Repository structure
 
 ```text
 .
 ├── data/                   # Curated source-aware knowledge cards
+├── docs/                   # Architecture and interview demo script
+├── evals/                  # 30 Chinese/English Agent acceptance cases
 ├── exercises/              # Additional exercises
 ├── figures/                # Selected thesis figures
 ├── notebooks/              # Modules 0–10
 ├── src/
 │   ├── agent.py            # Agent orchestration
 │   ├── knowledge.py        # Retrieval and source metadata
+│   ├── memory.py           # Persistent SQLite learner profile
+│   ├── pedagogy.py         # Transparent misconception diagnosis
+│   ├── assessment.py       # Module concept checks
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests
@@ -181,16 +218,22 @@ model, parameters and procedure and obtaining the same statistical behaviour,
 not identical values. Simulation outputs should be interpreted together with
 their theoretical reference values.
 
+See [Architecture](docs/ARCHITECTURE.md) for component boundaries and
+[Five-minute interview demo](docs/INTERVIEW_DEMO.md) for a concise walkthrough.
+
 ## Current Agent limitations
 
-- Retrieval is transparent lexical retrieval rather than a vector index.
+- Retrieval indexes 11 curated cards and Notebook Markdown cells with hybrid
+  sparse scoring; it is not yet a dense embedding index.
 - Offline topic routing uses deterministic rules.
-- Session memory resets when the process restarts.
+- The misconception detector is an interpretable seed rule set rather than a
+  trained student model.
+- The practice-evidence score is not a psychometrically validated mastery score.
 - The lightweight web chart does not replace the notebook's Matplotlib figures.
 
-The next Agent iteration will add a LangGraph state graph, vector RAG over the
-final thesis, persistent learner profiles, misconception diagnosis and a
-30-question evaluation set.
+The next Agent iteration can add a LangGraph implementation behind the current
+trace contract, dense retrieval with reranking, a larger calibrated assessment
+bank, authentication and hosted deployment.
 
 ## License
 

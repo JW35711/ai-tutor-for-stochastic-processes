@@ -1,0 +1,13 @@
+[
+  {"id":"q00","module_id":"module00","question":"Monte Carlo 样本量从 n 增加到 4n 时，典型标准误差大约如何变化？","choices":["变为原来的四分之一","变为原来的一半","保持不变","变为原来的两倍"],"correct_index":1,"explanation":"独立样本均值的标准误差通常按 1/√n 缩小。"},
+  {"id":"q01","module_id":"module01","question":"强度为 λ 的齐次 Poisson 过程在长度 T 的区间内，计数均值是多少？","choices":["λ/T","T/λ","λT","λ+T"],"correct_index":2,"explanation":"N(T) 服从参数 λT 的 Poisson 分布，均值和方差均为 λT。"},
+  {"id":"q02","module_id":"module02","question":"每步向上概率为 p 的 ±1 随机游走，n 步位置的期望是多少？","choices":["np","n(2p−1)","2np","n(1−p)"],"correct_index":1,"explanation":"单步期望为 p−(1−p)=2p−1，n 个独立增量的期望相加。"},
+  {"id":"q03","module_id":"module03","question":"连续时间随机游走 X(t)=S_{N(t)} 中，路径什么时候改变？","choices":["每个整数时刻","仅在 Poisson 事件时刻","连续平滑改变","只在终点改变"],"correct_index":1,"explanation":"N(t) 只在事件时刻跳变，因此 X(t) 在事件之间保持常数。"},
+  {"id":"q04","module_id":"module04","question":"标准 Brownian motion 的 B(T) 具有哪组理论量？","choices":["均值0，方差√T","均值T，方差T","均值0，方差T","均值√T，方差1"],"correct_index":2,"explanation":"B(T)∼N(0,T)，所以标准差为 √T，而方差为 T。"},
+  {"id":"q05","module_id":"module05","question":"离散 Markov chain 的平稳分布 π 满足什么关系？","choices":["Pπ=0","πP=π","πP=0","P²=P"],"correct_index":1,"explanation":"把 π 看作行向量时，经过一步转移后保持不变，即 πP=π。"},
+  {"id":"q06","module_id":"module06","question":"连续时间 Markov chain 在状态 i 的平均停留时间由什么决定？","choices":["1/qᵢᵢ","−1/qᵢᵢ","qᵢᵢ²","与 Q 无关"],"correct_index":1,"explanation":"离开率为 −qᵢᵢ，因此指数停留时间的均值为 1/(−qᵢᵢ)。"},
+  {"id":"q07","module_id":"module07","question":"M/M/1 queue 存在平稳分布的条件是什么？","choices":["λ≤μ","λ<μ","λ>μ","λ=2μ"],"correct_index":1,"explanation":"需要交通强度 ρ=λ/μ<1；λ=μ 时也没有可归一化的平稳分布。"},
+  {"id":"q08","module_id":"module08","question":"NHPP thinning 中，候选事件在时刻 t 被接受的概率是什么？","choices":["λmax/λ(t)","λ(t)/λmax","λ(t)λmax","1/λ(t)"],"correct_index":1,"explanation":"用上界强度 λmax 生成候选点，再以 λ(t)/λmax 接受。"},
+  {"id":"q09","module_id":"module09","question":"为什么只用当前位置描述 growing self-avoiding walk 通常不是 Markov 的？","choices":["步长不是1","下一步还依赖已访问集合","路径没有终点","网格是二维的"],"correct_index":1,"explanation":"哪些邻居仍可选择取决于完整 visited set，而不只取决于当前位置。"},
+  {"id":"q10","module_id":"module10","question":"粒子在圆上移动并相遇合并时，簇数量具有什么性质？","choices":["严格增加","保持不变","单调不增","周期振荡"],"correct_index":2,"explanation":"移动不改变簇数，相遇只会使两个簇合并，因此簇数不会增加。"}
+]

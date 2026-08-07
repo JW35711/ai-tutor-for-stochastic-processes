@@ -9,8 +9,14 @@ const parameters = document.querySelector("#parameters");
 const sources = document.querySelector("#sources");
 const trace = document.querySelector("#trace");
 const chart = document.querySelector("#chart");
+const learningNote = document.querySelector("#learningNote");
+const learnerProfile = document.querySelector("#learnerProfile");
+const misconceptions = document.querySelector("#misconceptions");
+const quizButton = document.querySelector("#quizButton");
+const quizPanel = document.querySelector("#quizPanel");
 
-let sessionId = null;
+let sessionId = window.localStorage.getItem("stochasticTutorSession");
+let activeModuleId = "module01";
 
 function escapeHtml(value) {
   return String(value)
@@ -92,6 +98,33 @@ function renderChart(series, chartSpec = {}) {
   `;
 }
 
+function renderProfile(memory, note = "") {
+  learningNote.textContent = note || "测验和仿真实验会共同形成学习证据。";
+  learnerProfile.innerHTML = memory?.modules?.length
+    ? memory.modules
+        .map((item) => {
+          const percent = Math.round(Number(item.mastery) * 100);
+          return `
+            <div class="profile-item">
+              <div><strong>${escapeHtml(item.module_id.toUpperCase())}</strong><span>${escapeHtml(item.attempts)} 次仿真 · ${escapeHtml(item.quiz_correct)}/${escapeHtml(item.quiz_attempts)} 测验</span></div>
+              <div class="mastery-track" aria-label="掌握度 ${percent}%"><i style="width:${percent}%"></i></div>
+              <small>练习证据 ${percent}%</small>
+            </div>
+          `;
+        })
+        .join("")
+    : "<p>尚无学习记录。</p>";
+
+  misconceptions.innerHTML = memory?.misconceptions?.length
+    ? `
+      <p class="diagnosis-title">已识别的概念误区</p>
+      ${memory.misconceptions
+        .map((item) => `<p><strong>${escapeHtml(item.code)}</strong><br>${escapeHtml(item.correction)}</p>`)
+        .join("")}
+    `
+    : "";
+}
+
 function renderEvidence(payload) {
   emptyEvidence.classList.add("hidden");
   evidenceContent.classList.remove("hidden");
@@ -105,6 +138,8 @@ function renderEvidence(payload) {
       </div>
     `)
     .join("");
+
+  renderProfile(payload.memory, payload.learning_note);
 
   sources.innerHTML = payload.sources.length
     ? payload.sources
@@ -137,6 +172,8 @@ async function askAgent(question) {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "请求失败");
     sessionId = payload.session_id;
+    activeModuleId = payload.module_id;
+    window.localStorage.setItem("stochasticTutorSession", sessionId);
     addMessage("agent", payload.answer);
     renderEvidence(payload);
   } catch (error) {
@@ -146,6 +183,59 @@ async function askAgent(question) {
     submitButton.innerHTML = "运行 Agent <span>→</span>";
   }
 }
+
+async function openQuiz() {
+  quizButton.disabled = true;
+  try {
+    const response = await fetch(`/api/quiz?module_id=${encodeURIComponent(activeModuleId)}`);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "无法加载测验");
+    const quiz = payload.quiz;
+    quizPanel.classList.remove("hidden");
+    quizPanel.innerHTML = `
+      <p class="quiz-module">${escapeHtml(quiz.module_id.toUpperCase())} · CONCEPT CHECK</p>
+      <strong>${escapeHtml(quiz.question)}</strong>
+      <div class="quiz-choices">
+        ${quiz.choices.map((choice, index) => `<button type="button" data-answer="${index}">${String.fromCharCode(65 + index)}. ${escapeHtml(choice)}</button>`).join("")}
+      </div>
+      <p class="quiz-feedback"></p>
+    `;
+    quizPanel.querySelectorAll("[data-answer]").forEach((button) => {
+      button.addEventListener("click", () => submitQuiz(quiz.id, Number(button.dataset.answer)));
+    });
+  } catch (error) {
+    quizPanel.classList.remove("hidden");
+    quizPanel.textContent = `测验加载失败：${error.message}`;
+  } finally {
+    quizButton.disabled = false;
+  }
+}
+
+async function submitQuiz(questionId, answerIndex) {
+  const buttons = quizPanel.querySelectorAll("[data-answer]");
+  buttons.forEach((button) => { button.disabled = true; });
+  const response = await fetch("/api/quiz/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question_id: questionId, answer_index: answerIndex, session_id: sessionId }),
+  });
+  const payload = await response.json();
+  const feedback = quizPanel.querySelector(".quiz-feedback");
+  if (!response.ok) {
+    feedback.textContent = payload.error || "提交失败";
+    return;
+  }
+  sessionId = payload.session_id;
+  window.localStorage.setItem("stochasticTutorSession", sessionId);
+  const result = payload.result;
+  feedback.className = `quiz-feedback ${result.correct ? "correct" : "incorrect"}`;
+  feedback.textContent = `${result.correct ? "回答正确。" : "还差一步。"}${result.explanation}`;
+  emptyEvidence.classList.add("hidden");
+  evidenceContent.classList.remove("hidden");
+  renderProfile(payload.memory, "测验结果已经写入持久化学习档案。下一步可以运行对应仿真验证答案。");
+}
+
+quizButton.addEventListener("click", openQuiz);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -162,8 +252,16 @@ document.querySelectorAll("[data-question]").forEach((button) => {
   });
 });
 
-resetButton.addEventListener("click", () => {
+resetButton.addEventListener("click", async () => {
+  if (sessionId) {
+    try {
+      await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+    } catch (_) {
+      // A local reset should still work when the server has just restarted.
+    }
+  }
   sessionId = null;
+  window.localStorage.removeItem("stochasticTutorSession");
   conversation.innerHTML = `
     <article class="message agent-message">
       <span class="message-label">AGENT</span>
@@ -172,5 +270,6 @@ resetButton.addEventListener("click", () => {
   `;
   evidenceContent.classList.add("hidden");
   emptyEvidence.classList.remove("hidden");
+  quizPanel.classList.add("hidden");
   input.focus();
 });
