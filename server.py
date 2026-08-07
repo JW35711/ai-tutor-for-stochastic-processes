@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import os
+import re
+import time
 import uuid
+from dataclasses import asdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -14,23 +18,79 @@ from urllib.parse import parse_qs, unquote, urlparse
 from src.assessment import AssessmentEngine
 from src.agent import StochasticTutorAgent
 from src.module_registry import module_catalog
+from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 
 
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
 AGENT = StochasticTutorAgent()
 ASSESSMENTS = AssessmentEngine()
+RATE_LIMITER = SlidingWindowRateLimiter(
+    limit=max(1, int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "60")))
+)
+METRICS = ServiceMetrics()
+MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
 
 
 class TutorRequestHandler(BaseHTTPRequestHandler):
     server_version = "StochasticTutor/0.2"
 
-    def _json(self, payload: object, status: HTTPStatus = HTTPStatus.OK) -> None:
+    def _begin_request(self) -> None:
+        supplied = self.headers.get("X-Request-ID", "")
+        self.request_id = (
+            supplied
+            if re.fullmatch(r"[A-Za-z0-9._-]{1,64}", supplied)
+            else uuid.uuid4().hex
+        )
+        self.request_started = time.monotonic()
+        self.response_status = int(HTTPStatus.INTERNAL_SERVER_ERROR)
+        self.rate_limit_remaining: int | None = None
+
+    def _end_request(self) -> None:
+        latency_ms = (time.monotonic() - self.request_started) * 1000
+        METRICS.record(self.response_status, latency_ms)
+        print(
+            structured_event(
+                "http_request",
+                request_id=self.request_id,
+                method=self.command,
+                path=urlparse(self.path).path,
+                status=self.response_status,
+                latency_ms=round(latency_ms, 2),
+            ),
+            flush=True,
+        )
+
+    def _common_headers(self) -> None:
+        self.send_header("X-Request-ID", self.request_id)
+        self.send_header("X-API-Version", "1")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; img-src 'self' data:; style-src 'self'; "
+            "script-src 'self'; connect-src 'self'",
+        )
+        if self.rate_limit_remaining is not None:
+            self.send_header("X-RateLimit-Limit", str(RATE_LIMITER.limit))
+            self.send_header("X-RateLimit-Remaining", str(self.rate_limit_remaining))
+
+    def _json(
+        self,
+        payload: object,
+        status: HTTPStatus = HTTPStatus.OK,
+        extra_headers: dict[str, str] | None = None,
+    ) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.response_status = int(status)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self._common_headers()
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -45,13 +105,22 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             return
         body = candidate.read_bytes()
         content_type, _ = mimetypes.guess_type(candidate.name)
+        self.response_status = int(HTTPStatus.OK)
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
+        self._common_headers()
         self.end_headers()
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
+        self._begin_request()
+        try:
+            self._do_get()
+        finally:
+            self._end_request()
+
+    def _do_get(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path
         if path == "/health":
@@ -65,6 +134,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "multi_turn_context": True,
                     "workflow": {"nodes": list(AGENT.workflow.node_names)},
                     "knowledge": AGENT.knowledge.stats(),
+                    "runtime": asdict(METRICS.snapshot()),
                 }
             )
         elif path == "/api/topics":
@@ -92,19 +162,49 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._static(path)
 
     def do_POST(self) -> None:  # noqa: N802
+        self._begin_request()
+        try:
+            self._do_post()
+        finally:
+            self._end_request()
+
+    def _do_post(self) -> None:
         path = urlparse(self.path).path
         if path not in {"/api/chat", "/api/quiz/submit"}:
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+        allowed, remaining, retry_after = RATE_LIMITER.allow(self.client_address[0])
+        self.rate_limit_remaining = remaining
+        if not allowed:
+            self._json(
+                {"error": "rate limit exceeded", "request_id": self.request_id},
+                HTTPStatus.TOO_MANY_REQUESTS,
+                {"Retry-After": str(retry_after)},
+            )
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 1_000_000:
                 raise ValueError("invalid request size")
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("JSON body must be an object")
             if path == "/api/chat":
+                question = str(payload.get("question", "")).strip()
+                if not question:
+                    raise ValueError("question is required")
+                if len(question) > MAX_QUESTION_CHARS:
+                    raise ValueError(
+                        f"question exceeds {MAX_QUESTION_CHARS} characters"
+                    )
+                raw_session_id = payload.get("session_id")
+                if raw_session_id is not None and not isinstance(raw_session_id, str):
+                    raise ValueError("session_id must be a string")
+                if raw_session_id and len(raw_session_id) > 128:
+                    raise ValueError("session_id is too long")
                 response = AGENT.answer(
-                    str(payload.get("question", "")),
-                    session_id=payload.get("session_id"),
+                    question,
+                    session_id=raw_session_id,
                 )
             else:
                 session_id = str(payload.get("session_id") or uuid.uuid4())
@@ -124,6 +224,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "result": result,
                     "memory": AGENT.memory.profile(session_id),
                 }
+            response["request_id"] = self.request_id
             self._json(response)
         except (ValueError, json.JSONDecodeError) as error:
             self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
@@ -134,6 +235,13 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             )
 
     def do_DELETE(self) -> None:  # noqa: N802
+        self._begin_request()
+        try:
+            self._do_delete()
+        finally:
+            self._end_request()
+
+    def _do_delete(self) -> None:
         path = urlparse(self.path).path
         prefix = "/api/sessions/"
         if not path.startswith(prefix):
@@ -147,7 +255,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self._json({"status": "reset", "session_id": session_id})
 
     def log_message(self, format: str, *args: object) -> None:
-        print(f"[http] {self.address_string()} {format % args}")
+        # Request completion is emitted once as structured JSON in _end_request.
+        return
 
 
 def main() -> None:

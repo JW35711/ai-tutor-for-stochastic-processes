@@ -51,19 +51,22 @@ restart the server and query `/api/profile` to demonstrate persistence.
 ```bash
 python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
+python3 evals/run_retrieval_evaluation.py
 ```
 
 Explain that the acceptance set contains 30 Chinese and English prompts and
-measures module routing, tool choice, source scope and execution trace.
+measures module routing, tool choice, source scope and execution trace. The
+separate 22-case retrieval set reports Hit@3 and MRR. Open `/health` to show the
+seven workflow nodes, active vector backend, request counters and latency.
 
 ## Honest boundaries
 
-- The current retriever is deterministic hybrid sparse retrieval, not a dense
-  embedding service.
+- The default vector backend is deterministic local hashing rather than a
+  neural semantic model; a compatible neural embedding endpoint is optional.
 - Misconception rules are transparent seed rules, not a trained student model.
 - The practice score is a product heuristic, not a validated educational test.
 - A hosted LLM is optional and is not allowed to overwrite verified numbers.
 
-These boundaries give a clear next-step discussion: dense retrieval,
+These boundaries give a clear next-step discussion: learned reranking,
 LLM-as-judge evaluation with human calibration, richer quiz banks, and a
 deployed multi-user identity layer.

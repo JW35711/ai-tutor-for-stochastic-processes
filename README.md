@@ -217,6 +217,14 @@ Additional endpoints:
 | `POST /api/quiz/submit` | Grade and persist an answer |
 | `DELETE /api/sessions/{id}` | Reset one learner session |
 
+Every response includes `X-Request-ID`, `X-API-Version` and basic browser
+security headers. POST endpoints use a per-process sliding-window limit
+(60 requests per client per minute by default), and request completion is
+written as one privacy-conscious JSON log event without the learner's question
+text. Configure `API_RATE_LIMIT_PER_MINUTE` and `MAX_QUESTION_CHARS` through
+environment variables. See [API contract](docs/API.md) for request and error
+examples.
+
 ## Repository structure
 
 ```text
@@ -235,6 +243,7 @@ Additional endpoints:
 │   ├── assessment.py       # Module concept checks
 │   ├── workflow.py         # Typed seven-node state graph
 │   ├── embeddings.py       # Local and optional hosted vector backends
+│   ├── runtime.py          # Rate limiting, metrics and JSON events
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests
