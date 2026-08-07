@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "corpus_sha256": "3ce7ac6de8c86d90e6c7dd324f1a7f9925f0556c14853d3bab38b0742fedb80b",
   "total": 67,
   "passed": 67,
   "suites": [

@@ -78,6 +78,10 @@ explicit misconception rules plus neutral controls. The evaluator requires
 every correction to appear in the answer and every successful tool response
 to include experiment, interpretation, guiding question and source sections.
 
+The committed evaluation manifest includes the corpus fingerprint used by its
+reports. At startup the service compares that value with the live index and
+exposes `corpus_match`; the UI refuses to present a stale pass count.
+
 ## State graph
 
 `AgentState` is the single object passed through seven named nodes:

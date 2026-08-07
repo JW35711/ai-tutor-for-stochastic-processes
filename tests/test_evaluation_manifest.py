@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from src.evaluation_manifest import load_evaluation_manifest
+from src.knowledge import KnowledgeBase
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,6 +25,7 @@ class EvaluationManifestTests(unittest.TestCase):
         )
         self.assertEqual(manifest["total"], sum(expected.values()))
         self.assertEqual(manifest["passed"], manifest["total"])
+        self.assertEqual(manifest["corpus_sha256"], KnowledgeBase().corpus_sha256)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,9 @@ WEB_ROOT = ROOT / "web"
 AGENT = StochasticTutorAgent()
 ASSESSMENTS = AssessmentEngine()
 EVALUATION = load_evaluation_manifest()
+EVALUATION["corpus_match"] = (
+    EVALUATION["corpus_sha256"] == AGENT.knowledge.corpus_sha256
+)
 RATE_LIMITER = SlidingWindowRateLimiter(
     limit=max(1, int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "60")))
 )

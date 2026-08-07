@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from server import RATE_LIMITER, TutorHTTPServer, TutorRequestHandler
+from server import EVALUATION, RATE_LIMITER, TutorHTTPServer, TutorRequestHandler
 
 
 class ServerContractTests(unittest.TestCase):
@@ -29,6 +29,9 @@ class ServerContractTests(unittest.TestCase):
     def test_server_request_threads_do_not_block_shutdown(self) -> None:
         self.assertTrue(TutorHTTPServer.daemon_threads)
         self.assertTrue(TutorHTTPServer.allow_reuse_address)
+
+    def test_dashboard_evaluation_matches_live_corpus(self) -> None:
+        self.assertTrue(EVALUATION["corpus_match"])
 
 
 if __name__ == "__main__":

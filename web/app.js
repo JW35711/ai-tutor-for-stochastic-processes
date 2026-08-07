@@ -298,11 +298,13 @@ async function hydrateHealth() {
     toolCount.textContent = health.tools;
     sourceCount.textContent = health.knowledge?.entries ?? "—";
     if (health.evaluation) {
-      evaluationCount.textContent = `${health.evaluation.passed}/${health.evaluation.total}`;
+      evaluationCount.textContent = health.evaluation.corpus_match
+        ? `${health.evaluation.passed}/${health.evaluation.total}`
+        : "STALE";
       const retrieval = health.evaluation.suites?.find((suite) => suite.id === "retrieval");
-      evaluationMeta.textContent = retrieval
+      evaluationMeta.textContent = health.evaluation.corpus_match && retrieval
         ? `RAG Hit@3 ${Math.round(retrieval.hit_at_3 * 100)}% · MRR ${retrieval.mrr}`
-        : "对话、RAG 与教学验收";
+        : "课程内容已变化，需要重跑评测";
     }
   } catch (_) {
     healthStatus.innerHTML = "<i></i> Agent offline";

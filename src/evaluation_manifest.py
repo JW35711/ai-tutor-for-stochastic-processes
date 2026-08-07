@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -23,4 +24,6 @@ def load_evaluation_manifest(path: Path = DEFAULT_MANIFEST) -> dict[str, Any]:
         raise ValueError("evaluation manifest totals do not match its suites")
     if passed > total:
         raise ValueError("evaluation manifest passed count exceeds total")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(manifest.get("corpus_sha256", ""))):
+        raise ValueError("evaluation manifest needs a corpus SHA-256")
     return manifest

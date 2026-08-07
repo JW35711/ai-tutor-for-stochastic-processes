@@ -234,6 +234,8 @@ not a general benchmark of tutoring quality.
 ties every displayed suite count to its versioned case file, while CI reruns
 all suites before a release can pass. Each CI run also retains the JSON
 evaluation reports as downloadable artifacts for 14 days.
+The manifest stores the evaluated corpus SHA; the Dashboard replaces its score
+with `STALE` if the running knowledge index no longer matches that version.
 
 The test suite checks reproducibility, theoretical agreement, transition-matrix
 validation, stability conditions, exploratory-model invariants, topic routing,
