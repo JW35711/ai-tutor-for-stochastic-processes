@@ -55,6 +55,19 @@ service is mainly configuration management, not a drop-in vector RAG engine.
 Use these files only as UI and streaming references because they are written
 for a TypeScript, Next.js and Electron stack, while this project uses Python.
 
+### Mail Agent
+
+- Repository: https://github.com/54younger/mail_agent
+- Reviewed commit: `375be17`
+- License: Fair Core License 1.0, MIT Future License
+- Reviewed areas: left navigation shell, editorial dashboard hierarchy,
+  warm-neutral light palette, KPI cards, focus states and responsive layout.
+
+No Mail Agent source code, assets or brand elements are copied. The teaching
+Agent may independently use the general dashboard ideas to organize its own
+modules, workflow evidence and learner profile. This avoids creating or
+redistributing a derivative under the upstream Fair Core terms.
+
 ## Dependency reference
 
 LangGraph is the preferred workflow dependency for the future state graph:

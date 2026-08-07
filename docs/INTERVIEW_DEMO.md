@@ -19,7 +19,8 @@ Point out:
 - empirical versus theoretical mean queue length;
 - the simulation chart;
 - Notebook cell citations;
-- the visible `classify → retrieve → plan → tool → respond` trace.
+- the visible `classify → retrieve → plan → tool → diagnose → memory → respond`
+  state graph.
 
 Then ask:
 

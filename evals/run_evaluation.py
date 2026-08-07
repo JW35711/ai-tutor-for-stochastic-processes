@@ -60,7 +60,15 @@ def evaluate(cases: list[dict[str, Any]]) -> dict[str, Any]:
                             for source in response["sources"]
                         ),
                         trace_ok=trace_nodes
-                        == ["classify", "retrieve", "plan", "tool", "respond"],
+                        == [
+                            "classify",
+                            "retrieve",
+                            "plan",
+                            "tool",
+                            "diagnose",
+                            "memory",
+                            "respond",
+                        ],
                         actual_module=response["module_id"],
                         actual_tool=response["tool"],
                     )

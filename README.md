@@ -92,12 +92,18 @@ flowchart LR
     C --> R[Course-material retrieval]
     R --> P[Parameter planning]
     P --> T[Simulation tool]
-    T --> V[Theory comparison]
-    V --> E[Guided explanation]
-    E --> M[(Learner memory)]
+    T --> D[Misconception diagnosis]
+    D --> M[(Learner memory)]
     QZ[Concept check] --> M
+    M --> E[Verified guided response]
     M --> UI[Web UI, profile, sources and trace]
 ```
+
+The orchestration is an explicit typed state graph with seven independently
+tested nodes: `classify → retrieve → plan → tool → diagnose → memory →
+respond`. It is implemented locally to preserve the zero-dependency offline
+demo, while keeping node boundaries compatible with a future LangGraph
+adapter.
 
 Numerical computation is performed by Python, not by the language model. An
 optional OpenAI-compatible model can improve the wording, but it receives the
@@ -205,6 +211,7 @@ Additional endpoints:
 │   ├── memory.py           # Persistent SQLite learner profile
 │   ├── pedagogy.py         # Transparent misconception diagnosis
 │   ├── assessment.py       # Module concept checks
+│   ├── workflow.py         # Typed seven-node state graph
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests
@@ -238,8 +245,8 @@ See [Architecture](docs/ARCHITECTURE.md) for component boundaries and
 - The practice-evidence score is not a psychometrically validated mastery score.
 - The lightweight web chart does not replace the notebook's Matplotlib figures.
 
-The next Agent iteration can add a LangGraph implementation behind the current
-trace contract, dense retrieval with reranking, a larger calibrated assessment
+The next Agent iteration can add a LangGraph runtime adapter behind the current
+node contract, dense retrieval with reranking, a larger calibrated assessment
 bank, authentication and hosted deployment.
 
 ## License

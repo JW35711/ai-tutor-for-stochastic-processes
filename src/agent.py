@@ -13,6 +13,7 @@ from .llm import OpenAICompatibleLLM
 from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
+from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
 from .processes import (
     analyze_markov_chain,
     analyze_reliability_system,
@@ -106,6 +107,17 @@ class StochasticTutorAgent:
             "self_avoiding_walk": simulate_self_avoiding_walk,
             "coalescing_particles": simulate_coalescing_particles,
         }
+        self.workflow = StateGraph(
+            [
+                WorkflowNode("classify", self._node_classify),
+                WorkflowNode("retrieve", self._node_retrieve),
+                WorkflowNode("plan", self._node_plan),
+                WorkflowNode("tool", self._node_tool),
+                WorkflowNode("diagnose", self._node_diagnose),
+                WorkflowNode("memory", self._node_memory),
+                WorkflowNode("respond", self._node_respond),
+            ]
+        )
 
     @staticmethod
     def classify_topic(question: str) -> str:
@@ -573,162 +585,157 @@ class StochasticTutorAgent:
             "如果把样本量或路径数扩大4倍，你预计经验误差会怎样变化？",
         )
 
-    def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
-        if not question.strip():
-            raise ValueError("question must not be empty")
-        if session_id is not None and (
-            not isinstance(session_id, str)
-            or not session_id.strip()
-            or len(session_id) > 128
-        ):
-            raise ValueError("session_id must be a non-empty string of at most 128 characters")
-        session_id = session_id or str(uuid.uuid4())
-        previous_history = self.memory.history(session_id, limit=1)
-        previous_turn = previous_history[-1] if previous_history else None
-        trace: list[dict[str, str]] = []
-
-        module_id = self.classify_module(question)
-        module_from_context = False
-        if module_id is None and previous_turn:
-            module_id = previous_turn["module_id"]
-            module_from_context = True
-        if module_id is None:
+    def _node_classify(self, state: AgentState) -> NodeOutcome:
+        state.module_id = self.classify_module(state.question)
+        if state.module_id is None and state.previous_turn:
+            state.module_id = state.previous_turn["module_id"]
+            state.module_from_context = True
+        if state.module_id is None:
             raise ValueError(
                 "I could not identify the teaching module. Please name a model or Module 00-10."
             )
-        module = MODULE_BY_ID[module_id]
-        topic = module.topic
-        misconceptions = diagnose(question, module_id)
-        trace.append(
-            {
-                "node": "classify",
-                "detail": (
-                    f"Module {module.number:02d}: {module.label}"
-                    + (" (inherited from previous turn)" if module_from_context else "")
-                ),
-            }
-        )
+        state.module = MODULE_BY_ID[state.module_id]
+        state.topic = state.module.topic
+        detail = f"Module {state.module.number:02d}: {state.module.label}"
+        if state.module_from_context:
+            detail += " (inherited from previous turn)"
+        return NodeOutcome(detail)
 
-        retrieval_query = question
-        if module_from_context and previous_turn and previous_turn["tool"]:
-            retrieval_query += " " + self.RETRIEVAL_HINTS.get(
-                previous_turn["tool"], previous_turn["tool"]
+    def _node_retrieve(self, state: AgentState) -> NodeOutcome:
+        state.retrieval_query = state.question
+        if (
+            state.module_from_context
+            and state.previous_turn
+            and state.previous_turn["tool"]
+        ):
+            previous_tool = state.previous_turn["tool"]
+            state.retrieval_query += " " + self.RETRIEVAL_HINTS.get(
+                previous_tool, previous_tool
             )
-        sources = self.knowledge.retrieve(
-            retrieval_query, topic=topic, module_id=module_id
+        state.sources = self.knowledge.retrieve(
+            state.retrieval_query,
+            topic=state.topic,
+            module_id=state.module_id,
         )
-        trace.append(
-            {"node": "retrieve", "detail": f"{len(sources)} source-aware notes"}
-        )
+        return NodeOutcome(f"{len(state.sources)} source-aware notes")
 
-        default_tool = module.tool_key
+    def _node_plan(self, state: AgentState) -> NodeOutcome:
+        default_tool = state.module.tool_key
         if default_tool is None:
-            trace.append(
-                {
-                    "node": "plan",
-                    "detail": f"Module {module.number:02d} tool extraction pending",
-                }
-            )
-            source_text = sources[0]["content"] if sources else module.label
-            answer = (
-                f"### Module {module.number:02d}: {module.label}\n{source_text}\n\n"
-                "该模块已经进入课程检索与路由系统；对应的可执行仿真工具正在从论文 Notebook 中提取。"
-            )
-            self.memory.record_turn(
-                session_id=session_id,
-                question=question,
-                module_id=module_id,
-                topic=topic,
-                tool=None,
-                parameters={},
-                verified=False,
-                misconceptions=misconceptions,
-            )
-            profile = self.memory.profile(session_id)
-            return {
-                "session_id": session_id,
-                "answer": answer,
-                "module_id": module_id,
-                "module_number": module.number,
-                "module_label": module.label,
-                "topic": topic,
-                "topic_label": module.label,
-                "tool": None,
-                "parameters": {},
-                "result": {"status": "tool_pending"},
-                "sources": sources,
-                "trace": trace,
-                "memory": profile,
-                "misconceptions": misconceptions,
-                "llm_enabled": self.llm.enabled,
-            }
-
+            raise ValueError(f"Module {state.module.number:02d} has no executable tool")
         if (
-            previous_turn
-            and previous_turn["module_id"] == module_id
-            and previous_turn["tool"] in self.tools
+            state.previous_turn
+            and state.previous_turn["module_id"] == state.module_id
+            and state.previous_turn["tool"] in self.tools
         ):
-            default_tool = previous_turn["tool"]
-
-        tool_key = self.resolve_tool(module_id, default_tool, question)
-
-        parameters = self.extract_parameters(tool_key, question)
-        inherited_parameters: list[str] = []
+            default_tool = state.previous_turn["tool"]
+        state.tool_key = self.resolve_tool(
+            state.module_id, default_tool, state.question
+        )
+        state.parameters = self.extract_parameters(state.tool_key, state.question)
         if (
-            previous_turn
-            and previous_turn["module_id"] == module_id
-            and previous_turn["tool"] == tool_key
+            state.previous_turn
+            and state.previous_turn["module_id"] == state.module_id
+            and state.previous_turn["tool"] == state.tool_key
         ):
-            for key, previous_value in previous_turn["parameters"].items():
-                if key in parameters and not self._parameter_mentioned(key, question):
-                    parameters[key] = previous_value
-                    inherited_parameters.append(key)
-        plan_detail = f"call {tool_key} simulation tool"
-        if inherited_parameters:
-            plan_detail += "; inherited " + ", ".join(sorted(inherited_parameters))
-        trace.append({"node": "plan", "detail": plan_detail})
+            for key, previous_value in state.previous_turn["parameters"].items():
+                if key in state.parameters and not self._parameter_mentioned(
+                    key, state.question
+                ):
+                    state.parameters[key] = previous_value
+                    state.inherited_parameters.append(key)
+        detail = f"call {state.tool_key} simulation tool"
+        if state.inherited_parameters:
+            detail += "; inherited " + ", ".join(
+                sorted(state.inherited_parameters)
+            )
+        return NodeOutcome(detail)
 
+    def _node_tool(self, state: AgentState) -> NodeOutcome:
+        if state.tool_key is None:
+            raise RuntimeError("plan node did not select a tool")
         try:
-            result = self.tools[tool_key](**parameters)
-            trace.append({"node": "tool", "detail": "simulation completed"})
-            verified = True
+            state.result = self.tools[state.tool_key](**state.parameters)
+            state.verified = True
+            return NodeOutcome("simulation completed and validated")
         except ValueError as error:
-            result = {"error": str(error), "parameters": parameters, "series": []}
-            trace.append({"node": "tool", "detail": f"validation failed: {error}"})
-            verified = False
+            state.result = {
+                "error": str(error),
+                "parameters": state.parameters,
+                "series": [],
+            }
+            state.verified = False
+            return NodeOutcome(f"validation failed: {error}")
 
-        if verified:
-            explanation = self._summary(tool_key, result)
-            citation_text = "；".join(source["source"] for source in sources)
+    def _node_diagnose(self, state: AgentState) -> NodeOutcome:
+        if state.module_id is None:
+            raise RuntimeError("classification state is missing")
+        state.misconceptions = diagnose(state.question, state.module_id)
+        if not state.misconceptions:
+            return NodeOutcome("no explicit misconception trigger")
+        codes = ", ".join(item["code"] for item in state.misconceptions)
+        return NodeOutcome(f"identified {codes}")
+
+    def _node_memory(self, state: AgentState) -> NodeOutcome:
+        if state.module_id is None or state.topic is None:
+            raise RuntimeError("classified module state is missing")
+        self.memory.record_turn(
+            session_id=state.session_id,
+            question=state.question,
+            module_id=state.module_id,
+            topic=state.topic,
+            tool=state.tool_key,
+            parameters=state.parameters,
+            verified=state.verified,
+            misconceptions=state.misconceptions,
+        )
+        state.profile = self.memory.profile(state.session_id)
+        state.learning_note = adaptive_note(state.profile, state.module_id)
+        return NodeOutcome(
+            f"persisted learner turn {state.profile['turns']} to SQLite"
+        )
+
+    def _node_respond(self, state: AgentState) -> NodeOutcome:
+        if state.tool_key is None or state.topic is None:
+            raise RuntimeError("response state is incomplete")
+        if state.verified:
+            explanation = self._summary(state.tool_key, state.result)
+            source_text = (
+                state.sources[0]["content"]
+                if state.sources
+                else "本题使用可复现仿真与理论参考值进行比较。"
+            )
             deterministic_answer = (
                 f"### 先看实验结果\n{explanation}\n\n"
-                f"### 如何理解\n{sources[0]['content'] if sources else '本题使用可复现仿真与理论参考值进行比较。'}\n\n"
-                f"### 给你的思考题\n{self._guiding_question(tool_key)}"
+                f"### 如何理解\n{source_text}\n\n"
+                f"### 给你的思考题\n{self._guiding_question(state.tool_key)}"
             )
-            if citation_text:
-                deterministic_answer += f"\n\n来源：{citation_text}"
+            citations = "；".join(source["source"] for source in state.sources)
+            if citations:
+                deterministic_answer += f"\n\n来源：{citations}"
         else:
             deterministic_answer = (
-                f"参数校验没有通过：{result['error']}。请修改参数后再运行，"
+                f"参数校验没有通过：{state.result['error']}。请修改参数后再运行，"
                 "我不会用不合法的参数生成看似合理的图。"
             )
 
-        if misconceptions:
+        if state.misconceptions:
             corrections = "\n".join(
-                f"- {item['correction']}" for item in misconceptions
+                f"- {item['correction']}" for item in state.misconceptions
             )
             deterministic_answer += f"\n\n### 先纠正一个常见误区\n{corrections}"
 
         llm_prompt = json.dumps(
             {
-                "question": question,
-                "topic": topic,
+                "question": state.question,
+                "topic": state.topic,
                 "tool_result": {
                     key: value
-                    for key, value in result.items()
+                    for key, value in state.result.items()
                     if key not in {"series", "event_times", "endpoints", "counts"}
                 },
-                "retrieved_sources": sources,
+                "retrieved_sources": state.sources,
+                "learner_profile": state.profile,
                 "draft": deterministic_answer,
             },
             ensure_ascii=False,
@@ -741,45 +748,49 @@ class StochasticTutorAgent:
             ),
             llm_prompt,
         )
-        answer = polished or deterministic_answer
-        trace.append(
-            {
-                "node": "respond",
-                "detail": "LLM-polished answer" if polished else "offline safe answer",
-            }
-        )
-
-        self.memory.record_turn(
-            session_id=session_id,
-            question=question,
-            module_id=module_id,
-            topic=topic,
-            tool=tool_key,
-            parameters=parameters,
-            verified=verified,
-            misconceptions=misconceptions,
-        )
-        profile = self.memory.profile(session_id)
-        learning_note = adaptive_note(profile, module_id)
-        return {
-            "session_id": session_id,
-            "answer": answer,
-            "module_id": module_id,
-            "module_number": module.number,
-            "module_label": module.label,
-            "topic": topic,
-            "topic_label": module.label,
-            "tool": self.tools[tool_key].__name__,
-            "parameters": parameters,
-            "result": result,
-            "sources": sources,
-            "trace": trace,
-            "memory": profile,
-            "misconceptions": misconceptions,
-            "learning_note": learning_note,
+        state.answer = polished or deterministic_answer
+        state.response = {
+            "session_id": state.session_id,
+            "answer": state.answer,
+            "module_id": state.module_id,
+            "module_number": state.module.number,
+            "module_label": state.module.label,
+            "topic": state.topic,
+            "topic_label": state.module.label,
+            "tool": self.tools[state.tool_key].__name__,
+            "parameters": state.parameters,
+            "result": state.result,
+            "sources": state.sources,
+            "trace": state.trace,
+            "workflow": {"nodes": list(self.workflow.node_names)},
+            "memory": state.profile,
+            "misconceptions": state.misconceptions,
+            "learning_note": state.learning_note,
             "context": {
-                "module_inherited": module_from_context,
-                "parameters_inherited": sorted(inherited_parameters),
+                "module_inherited": state.module_from_context,
+                "parameters_inherited": sorted(state.inherited_parameters),
             },
             "llm_enabled": self.llm.enabled,
         }
+        return NodeOutcome("LLM-polished answer" if polished else "offline safe answer")
+
+    def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question must not be empty")
+        if session_id is not None and (
+            not isinstance(session_id, str)
+            or not session_id.strip()
+            or len(session_id) > 128
+        ):
+            raise ValueError(
+                "session_id must be a non-empty string of at most 128 characters"
+            )
+        resolved_session = session_id or str(uuid.uuid4())
+        history = self.memory.history(resolved_session, limit=1)
+        state = AgentState(
+            question=question.strip(),
+            session_id=resolved_session,
+            previous_turn=history[-1] if history else None,
+        )
+        completed = self.workflow.invoke(state)
+        return completed.response

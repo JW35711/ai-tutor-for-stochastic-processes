@@ -23,6 +23,7 @@ flowchart LR
 
 | Component | Responsibility | Why it is separate |
 | --- | --- | --- |
+| `workflow.py` | Runs the typed seven-node state graph | Node order and state transitions can be tested without the web layer |
 | `module_registry.py` | Routes Chinese and English questions to Modules 00–10 | Routing can be evaluated independently |
 | `knowledge.py` | Indexes curated cards and Markdown cells, then returns scored evidence | Retrieval remains local, traceable and replaceable |
 | `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
@@ -42,6 +43,21 @@ the routed module and expose a score, source type and exact `#cell-N` locator.
 This is an offline hybrid sparse RAG implementation, not an embedding model.
 The `retrieve()` boundary is intentionally stable so an embedding or reranking
 backend can be added later without changing the simulation tools.
+
+## State graph
+
+`AgentState` is the single object passed through seven named nodes:
+
+```text
+classify → retrieve → plan → tool → diagnose → memory → respond
+```
+
+Each handler owns a small set of state fields and returns a trace description.
+The graph validates unique node names and exposes its declared node contract in
+every API response. This local implementation keeps the offline server free of
+framework dependencies; its node signatures are deliberately close to hosted
+graph orchestrators so a LangGraph adapter is an integration change rather
+than another rewrite of the tools.
 
 ## Learner model
 

@@ -53,7 +53,19 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(response["sources"])
         self.assertEqual(
             [item["node"] for item in response["trace"]],
-            ["classify", "retrieve", "plan", "tool", "respond"],
+            [
+                "classify",
+                "retrieve",
+                "plan",
+                "tool",
+                "diagnose",
+                "memory",
+                "respond",
+            ],
+        )
+        self.assertEqual(
+            response["workflow"]["nodes"],
+            [item["node"] for item in response["trace"]],
         )
 
     def test_rejects_invalid_session_identifier(self) -> None:
