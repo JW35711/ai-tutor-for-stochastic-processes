@@ -419,6 +419,27 @@ h1 {
   background: rgba(214, 97, 84, 0.06);
 }
 
+.evidence-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.evidence-actions button {
+  padding: 6px 8px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.evidence-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .ghost-button {
   padding: 8px 11px;
   color: var(--ink-soft);

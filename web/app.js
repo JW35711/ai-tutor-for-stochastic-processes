@@ -22,11 +22,13 @@ const moduleCount = document.querySelector("#moduleCount");
 const toolCount = document.querySelector("#toolCount");
 const sourceCount = document.querySelector("#sourceCount");
 const verificationBadge = document.querySelector("#verificationBadge");
+const exportRunButton = document.querySelector("#exportRunButton");
 const evaluationCount = document.querySelector("#evaluationCount");
 const evaluationMeta = document.querySelector("#evaluationMeta");
 
 let sessionId = window.localStorage.getItem("stochasticTutorSession");
 let activeModuleId = "module01";
+let latestRunPayload = null;
 
 function escapeHtml(value) {
   return String(value)
@@ -155,6 +157,8 @@ function renderEvidence(payload) {
   evidenceContent.classList.remove("hidden");
   verificationBadge.classList.toggle("invalid", !payload.verified);
   verificationBadge.textContent = payload.verified ? "VERIFIED" : "VALIDATION FAILED";
+  latestRunPayload = payload;
+  exportRunButton.disabled = false;
   const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
   const corpusLabel = payload.sources?.[0]?.corpus_sha256?.slice(0, 8) || "unknown";
   runMeta.innerHTML = `
@@ -279,6 +283,8 @@ async function submitQuiz(questionId, answerIndex) {
       "测验结果已经写入持久化学习档案。下一步可以运行对应仿真验证答案。",
       payload.recommendation,
     );
+    verificationBadge.classList.remove("invalid");
+    verificationBadge.textContent = "ASSESSMENT SAVED";
   } catch (error) {
     feedback.className = "quiz-feedback incorrect";
     feedback.textContent = `提交失败：${error.message}`;
@@ -347,6 +353,7 @@ async function restoreSession() {
     chart.innerHTML = "<p>会话已恢复。继续提问后将显示新的仿真路径。</p>";
     verificationBadge.classList.remove("invalid");
     verificationBadge.textContent = "SESSION RESTORED";
+    exportRunButton.disabled = true;
     runMeta.innerHTML = `<span>SESSION RESTORED</span><span>${escapeHtml(activeModuleId.toUpperCase())}</span>`;
     parameters.innerHTML = latest?.parameters
       ? Object.entries(latest.parameters)
@@ -366,6 +373,19 @@ async function restoreSession() {
 }
 
 restoreSession();
+
+exportRunButton.addEventListener("click", () => {
+  if (!latestRunPayload) return;
+  const body = JSON.stringify(latestRunPayload, null, 2);
+  const blob = new Blob([body], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const runLabel = latestRunPayload.request_id?.slice(0, 8) || "local";
+  link.href = url;
+  link.download = `stochlab-${latestRunPayload.module_id}-${runLabel}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+});
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -402,6 +422,8 @@ resetButton.addEventListener("click", async () => {
   emptyEvidence.classList.remove("hidden");
   verificationBadge.classList.remove("invalid");
   verificationBadge.textContent = "WAITING";
+  latestRunPayload = null;
+  exportRunButton.disabled = true;
   quizPanel.classList.add("hidden");
   input.focus();
 });

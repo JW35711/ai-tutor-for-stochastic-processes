@@ -60,6 +60,10 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("查看证据摘录", self.javascript)
         self.assertIn("source.content", self.javascript)
 
+    def test_run_evidence_can_be_exported_after_execution(self) -> None:
+        self.assertIn('id="exportRunButton"', self.html)
+        self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)
+
 
 if __name__ == "__main__":
     unittest.main()
