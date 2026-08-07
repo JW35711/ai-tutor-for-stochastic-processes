@@ -289,6 +289,8 @@ their theoretical reference values.
 See [Architecture](docs/ARCHITECTURE.md) for component boundaries and
 [Five-minute interview demo](docs/INTERVIEW_DEMO.md) for a concise walkthrough.
 Deployment notes are in [Deployment](docs/DEPLOYMENT.md).
+[Responsible AI boundaries](docs/RESPONSIBLE_AI.md) describe intended use,
+learner-data handling, prompt-injection controls and evaluation limits.
 
 ## Current Agent limitations
 
