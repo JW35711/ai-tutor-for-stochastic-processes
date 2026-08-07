@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from src.memory import LearnerMemory
@@ -82,6 +83,25 @@ class LearnerMemoryTests(unittest.TestCase):
         turn = self.memory.history("context-user", limit=1)[0]
         self.assertEqual(turn["parameters"], {"rate": 3.0, "horizon": 4.0})
         self.assertTrue(turn["verified"])
+
+    def test_concurrent_turns_are_serialized_without_loss(self) -> None:
+        def record(index: int) -> None:
+            self.memory.record_turn(
+                session_id="concurrent-learner",
+                question=f"实验 {index}",
+                module_id="module02",
+                topic="discrete_random_walk",
+                tool="random_walk",
+                parameters={"steps": index + 1},
+                verified=True,
+                misconceptions=[],
+            )
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            list(executor.map(record, range(40)))
+        profile = self.memory.profile("concurrent-learner")
+        self.assertEqual(profile["turns"], 40)
+        self.assertEqual(profile["modules"][0]["successful_runs"], 40)
 
     def test_existing_first_version_database_is_migrated_in_place(self) -> None:
         legacy_path = Path(self.directory.name) / "legacy.sqlite3"

@@ -1,5 +1,6 @@
 import json
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 
@@ -34,6 +35,18 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(snapshot.errors, 1)
         self.assertEqual(snapshot.rate_limited, 1)
         self.assertEqual(snapshot.average_latency_ms, 30)
+
+    def test_concurrent_rate_limit_never_exceeds_budget(self) -> None:
+        clock = FakeClock()
+        limiter = SlidingWindowRateLimiter(limit=10, window_seconds=60, clock=clock)
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            decisions = list(
+                executor.map(
+                    lambda _: limiter.allow("same-client")[0],
+                    range(50),
+                )
+            )
+        self.assertEqual(sum(decisions), 10)
 
     def test_structured_event_is_valid_json(self) -> None:
         payload = json.loads(structured_event("request", status=200))
