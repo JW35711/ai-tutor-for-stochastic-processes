@@ -222,7 +222,8 @@ not a general benchmark of tutoring quality.
 
 `data/evaluation_manifest.json` is the checked dashboard summary. A unit test
 ties every displayed suite count to its versioned case file, while CI reruns
-all suites before a release can pass.
+all suites before a release can pass. Each CI run also retains the JSON
+evaluation reports as downloadable artifacts for 14 days.
 
 The test suite checks reproducibility, theoretical agreement, transition-matrix
 validation, stability conditions, exploratory-model invariants, topic routing,
