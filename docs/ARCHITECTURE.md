@@ -55,6 +55,11 @@ Retrieval is regression-tested separately from end-to-end routing. The
 rank. Keeping this suite separate makes a future neural embedding change
 measurable instead of relying on a subjective UI demonstration.
 
+Teaching behavior has a second independent gate: ten cases cover all six
+explicit misconception rules plus neutral controls. The evaluator requires
+every correction to appear in the answer and every successful tool response
+to include experiment, interpretation, guiding question and source sections.
+
 ## State graph
 
 `AgentState` is the single object passed through seven named nodes:

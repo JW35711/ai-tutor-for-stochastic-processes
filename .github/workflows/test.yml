@@ -21,6 +21,8 @@ jobs:
         run: python3 evals/run_evaluation.py --output /tmp/evaluation_report.json
       - name: Retrieval quality evaluation
         run: python3 evals/run_retrieval_evaluation.py --output /tmp/retrieval_report.json
+      - name: Pedagogy behavior evaluation
+        run: python3 evals/run_pedagogy_evaluation.py --output /tmp/pedagogy_report.json
 
   container-build:
     runs-on: ubuntu-latest

@@ -52,12 +52,15 @@ restart the server and query `/api/profile` to demonstrate persistence.
 python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
 python3 evals/run_retrieval_evaluation.py
+python3 evals/run_pedagogy_evaluation.py
 ```
 
 Explain that the acceptance set contains 30 Chinese and English prompts and
 measures module routing, tool choice, source scope and execution trace. The
 separate 22-case retrieval set reports Hit@3 and MRR. Open `/health` to show the
 seven workflow nodes, active vector backend, request counters and latency.
+The 10-case pedagogy set checks misconception corrections, neutral controls and
+the required teaching-response structure.
 
 ## Honest boundaries
 

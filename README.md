@@ -195,12 +195,15 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
 python3 evals/run_retrieval_evaluation.py
+python3 evals/run_pedagogy_evaluation.py
 ```
 
 The deterministic acceptance suite currently contains 30 single-turn cases,
-5 multi-turn conversations and 22 module-scoped retrieval cases. The checked
-local-hash baseline reaches `Hit@3 = 1.0000` and `MRR = 0.9242` on the
-retrieval set. These figures describe this repository's small regression set,
+5 multi-turn conversations, 22 module-scoped retrieval cases and 10 pedagogy
+cases. The checked local-hash baseline reaches `Hit@3 = 1.0000` and
+`MRR = 0.9242` on the retrieval set. The pedagogy set checks six explicit
+misconceptions, four neutral prompts, correction grounding and answer
+structure. These figures describe this repository's small regression sets,
 not a general benchmark of tutoring quality.
 
 The test suite checks reproducibility, theoretical agreement, transition-matrix
@@ -237,7 +240,7 @@ examples.
 .
 ├── data/                   # Curated source-aware knowledge cards
 ├── docs/                   # Architecture and interview demo script
-├── evals/                  # 30 Chinese/English Agent acceptance cases
+├── evals/                  # Routing, retrieval and pedagogy evaluations
 ├── exercises/              # Additional exercises
 ├── figures/                # Selected thesis figures
 ├── notebooks/              # Modules 0–10
