@@ -629,7 +629,8 @@ class StochasticTutorAgent:
             topic=state.topic,
             module_id=state.module_id,
         )
-        return NodeOutcome(f"{len(state.sources)} source-aware notes")
+        mode = state.sources[0]["retrieval_mode"] if state.sources else "no_results"
+        return NodeOutcome(f"{len(state.sources)} source-aware notes via {mode}")
 
     def _node_plan(self, state: AgentState) -> NodeOutcome:
         default_tool = state.module.tool_key

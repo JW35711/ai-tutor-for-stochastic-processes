@@ -59,6 +59,10 @@ helps with wording variation but is not described as a neural semantic model.
 An OpenAI-compatible embedding backend can batch-index the same entries when
 explicitly configured. A failed hosted configuration falls back to the local
 backend and reports the reason through `/health`.
+If a hosted index succeeds but a later query-vector call fails, retrieval uses
+the compatible sparse score only and labels every result
+`retrieval_mode=sparse_fallback`; it never compares incompatible local and
+hosted vector spaces.
 
 A bounded LRU cache avoids repeated embedding calls for equivalent normalized
 queries. Cached results are deep-copied on both insertion and return so one

@@ -3,6 +3,20 @@ import unittest
 from src.knowledge import KnowledgeBase
 
 
+class QueryFailingEmbedding:
+    name = "query_failing_test"
+    dimension = 2
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def embed_many(self, texts):
+        self.calls += 1
+        if self.calls > 1:
+            raise RuntimeError("query backend unavailable")
+        return [[1.0, 0.0] for _ in texts]
+
+
 class KnowledgeBaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -29,6 +43,9 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertTrue(all("score_breakdown" in item for item in sources))
         self.assertTrue(
             all(item["embedding_backend"] == "local_hash" for item in sources)
+        )
+        self.assertTrue(
+            all(item["retrieval_mode"] == "hybrid" for item in sources)
         )
         self.assertTrue(
             all(
@@ -62,6 +79,21 @@ class KnowledgeBaseTests(unittest.TestCase):
     def test_corpus_fingerprint_is_stable_for_same_material(self) -> None:
         other = KnowledgeBase()
         self.assertEqual(other.corpus_sha256, self.knowledge.corpus_sha256)
+
+    def test_query_embedding_failure_is_labeled_sparse_fallback(self) -> None:
+        knowledge = KnowledgeBase(
+            embedding_backend=QueryFailingEmbedding(),
+            cache_size=0,
+        )
+        sources = knowledge.retrieve("Poisson waiting time", module_id="module01")
+        self.assertTrue(sources)
+        self.assertTrue(
+            all(item["retrieval_mode"] == "sparse_fallback" for item in sources)
+        )
+        self.assertIn(
+            "query backend unavailable",
+            knowledge.stats()["embedding_fallback"],
+        )
 
 
 if __name__ == "__main__":

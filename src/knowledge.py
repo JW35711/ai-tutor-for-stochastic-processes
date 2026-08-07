@@ -203,9 +203,11 @@ class KnowledgeBase:
         normalized_query = " ".join(query.lower().split())
         try:
             query_vector = self.embedding_backend.embed_many([query])[0]
+            retrieval_mode = "hybrid"
         except (RuntimeError, ValueError, TypeError) as error:
             self.embedding_fallback_reason = str(error)
             query_vector = []
+            retrieval_mode = "sparse_fallback"
         scored: list[
             tuple[float, int, dict[str, Any], float, float, float]
         ] = []
@@ -263,6 +265,7 @@ class KnowledgeBase:
                     "bonuses": round(bonus_score, 3),
                 },
                 "embedding_backend": self.embedding_backend.name,
+                "retrieval_mode": retrieval_mode,
                 "corpus_sha256": self.corpus_sha256,
             }
             for (

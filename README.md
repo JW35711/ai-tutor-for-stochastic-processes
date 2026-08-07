@@ -177,6 +177,9 @@ safely falls back to the local vector backend. Hosted indexing is split into
 bounded batches, and every response is checked for row order and vector
 dimension before it enters the index. Embedding responses also have a
 configurable size limit before JSON decoding.
+If only a later query-vector request fails, the retriever safely uses sparse
+scores and exposes `retrieval_mode=sparse_fallback` in sources and workflow
+trace rather than claiming a hybrid result.
 
 Repeated retrievals use a thread-safe in-process LRU cache (256 entries by
 default). `/health` reports its capacity, size, hits and misses. Set
