@@ -10,6 +10,7 @@ without rewriting numerical tools or API responses.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any, Callable
 
 
@@ -20,7 +21,7 @@ class AgentState:
     question: str
     session_id: str
     previous_turn: dict[str, Any] | None = None
-    trace: list[dict[str, str]] = field(default_factory=list)
+    trace: list[dict[str, Any]] = field(default_factory=list)
 
     module_id: str | None = None
     module: Any = None
@@ -74,6 +75,25 @@ class StateGraph:
 
     def invoke(self, state: AgentState) -> AgentState:
         for node in self.nodes:
-            outcome = node.handler(state)
-            state.trace.append({"node": node.name, "detail": outcome.detail})
+            started = perf_counter()
+            try:
+                outcome = node.handler(state)
+            except Exception as error:
+                state.trace.append(
+                    {
+                        "node": node.name,
+                        "detail": f"failed: {type(error).__name__}",
+                        "status": "error",
+                        "duration_ms": round((perf_counter() - started) * 1000, 3),
+                    }
+                )
+                raise
+            state.trace.append(
+                {
+                    "node": node.name,
+                    "detail": outcome.detail,
+                    "status": "ok",
+                    "duration_ms": round((perf_counter() - started) * 1000, 3),
+                }
+            )
         return state

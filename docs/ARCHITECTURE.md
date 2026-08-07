@@ -82,6 +82,11 @@ framework dependencies; its node signatures are deliberately close to hosted
 graph orchestrators so a LangGraph adapter is an integration change rather
 than another rewrite of the tools.
 
+Every trace entry also records `status` and `duration_ms`. If a node raises,
+the failed node and exception type are appended before the error propagates.
+This gives the UI node-level latency and failure evidence without exposing
+private reasoning text.
+
 ## Learner model
 
 The learner profile distinguishes three forms of evidence:

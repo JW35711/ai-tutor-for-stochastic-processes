@@ -80,6 +80,8 @@ class AgentTests(unittest.TestCase):
             response["workflow"]["nodes"],
             [item["node"] for item in response["trace"]],
         )
+        self.assertTrue(all(item["status"] == "ok" for item in response["trace"]))
+        self.assertTrue(all(item["duration_ms"] >= 0 for item in response["trace"]))
 
     def test_grounded_llm_rewrite_is_applied(self) -> None:
         self.agent.llm = FakeLLM(grounded=True)  # type: ignore[assignment]

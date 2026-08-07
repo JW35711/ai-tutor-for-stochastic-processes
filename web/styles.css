@@ -933,6 +933,17 @@ h1 {
   color: var(--primary-strong);
 }
 
+.trace-list small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.57rem;
+}
+
+.trace-list .trace-error strong {
+  color: var(--danger);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

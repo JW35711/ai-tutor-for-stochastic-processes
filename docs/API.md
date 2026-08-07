@@ -20,6 +20,8 @@ numerical result, Notebook sources, seven-node trace, learner profile and
 request ID. `llm_enabled` states whether a provider is configured, while
 `llm_applied` is true only when its rewrite passed numeric and source-anchor
 validation. `session_id` can be omitted on the first turn and then reused.
+Each trace item contains the public node name, a concise detail, `status` and
+`duration_ms` for node-level observability.
 
 ## Concept checks
 

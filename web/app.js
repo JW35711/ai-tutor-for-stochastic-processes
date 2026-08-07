@@ -174,7 +174,10 @@ function renderEvidence(payload) {
 
   trace.innerHTML = payload.trace
     .map((item) => `
-      <li><strong>${escapeHtml(item.node)}</strong> · ${escapeHtml(item.detail)}</li>
+      <li class="${item.status === "error" ? "trace-error" : ""}">
+        <strong>${escapeHtml(item.node)}</strong> · ${escapeHtml(item.detail)}
+        <small>${escapeHtml(item.duration_ms ?? "—")} ms</small>
+      </li>
     `)
     .join("");
 }
