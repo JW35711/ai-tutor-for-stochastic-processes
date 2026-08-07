@@ -1,5 +1,13 @@
 # AI Tutor for Stochastic Processes
 
+[![Agent tests](https://github.com/JW35711/ai-tutor-for-stochastic-processes/actions/workflows/test.yml/badge.svg?branch=codex%2Finterview-agent-v1)](https://github.com/JW35711/ai-tutor-for-stochastic-processes/actions/workflows/test.yml)
+[![Python 3.11–3.12](https://img.shields.io/badge/Python-3.11%E2%80%933.12-3776AB)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-248a62.svg)](LICENSE)
+
+| Course coverage | Executable tools | State nodes | RAG evidence | Acceptance cases |
+| ---: | ---: | ---: | ---: | ---: |
+| 11/11 modules | 15 | 7 | 236 | 67/67 |
+
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
 Engineering Course Development**.
