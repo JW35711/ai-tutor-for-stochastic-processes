@@ -39,6 +39,7 @@ flowchart LR
 | `runtime.py` | Implements rate limiting, request metrics and structured events | HTTP protection remains independent of tutoring logic |
 | `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
+| `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |
 | `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
 | `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
 
@@ -98,6 +99,11 @@ The learner profile distinguishes three forms of evidence:
 The displayed score is labelled *practice evidence*. It is not presented as a
 psychometrically validated estimate of ability. That distinction is important
 in an education product.
+
+The recommendation policy first revisits a practiced module with weak or
+missing evidence, then expands to the next uncovered course module, and finally
+suggests boundary cases when all modules are covered. Every recommendation
+includes a reason code, learner-facing reason and editable suggested question.
 
 ## Multi-turn state
 

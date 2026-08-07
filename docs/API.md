@@ -22,6 +22,8 @@ request ID. `llm_enabled` states whether a provider is configured, while
 validation. `session_id` can be omitted on the first turn and then reused.
 Each trace item contains the public node name, a concise detail, `status` and
 `duration_ms` for node-level observability.
+The response also includes an explainable `recommendation` with its module,
+reason code, learner-facing reason and suggested next question.
 
 ## Concept checks
 

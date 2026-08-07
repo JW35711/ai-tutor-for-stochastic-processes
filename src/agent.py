@@ -13,6 +13,7 @@ from .llm import OpenAICompatibleLLM, preserves_verified_facts
 from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
+from .recommendation import recommend_next
 from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
 from .processes import (
     analyze_markov_chain,
@@ -691,6 +692,7 @@ class StochasticTutorAgent:
         )
         state.profile = self.memory.profile(state.session_id)
         state.learning_note = adaptive_note(state.profile, state.module_id)
+        state.recommendation = recommend_next(state.profile)
         return NodeOutcome(
             f"persisted learner turn {state.profile['turns']} to SQLite"
         )
@@ -776,6 +778,7 @@ class StochasticTutorAgent:
             "memory": state.profile,
             "misconceptions": state.misconceptions,
             "learning_note": state.learning_note,
+            "recommendation": state.recommendation,
             "context": {
                 "module_inherited": state.module_from_context,
                 "parameters_inherited": sorted(state.inherited_parameters),

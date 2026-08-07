@@ -40,6 +40,7 @@ class AgentState:
     misconceptions: list[dict[str, str]] = field(default_factory=list)
     profile: dict[str, Any] = field(default_factory=dict)
     learning_note: str = ""
+    recommendation: dict[str, str] = field(default_factory=dict)
     answer: str = ""
     response: dict[str, Any] = field(default_factory=dict)
 

@@ -13,6 +13,7 @@ const chart = document.querySelector("#chart");
 const learningNote = document.querySelector("#learningNote");
 const learnerProfile = document.querySelector("#learnerProfile");
 const misconceptions = document.querySelector("#misconceptions");
+const nextRecommendation = document.querySelector("#nextRecommendation");
 const quizButton = document.querySelector("#quizButton");
 const quizPanel = document.querySelector("#quizPanel");
 const healthStatus = document.querySelector("#healthStatus");
@@ -106,7 +107,7 @@ function renderChart(series, chartSpec = {}) {
   `;
 }
 
-function renderProfile(memory, note = "") {
+function renderProfile(memory, note = "", recommendation = null) {
   learningNote.textContent = note || "测验和仿真实验会共同形成学习证据。";
   learnerProfile.innerHTML = memory?.modules?.length
     ? memory.modules
@@ -131,6 +132,21 @@ function renderProfile(memory, note = "") {
         .join("")}
     `
     : "";
+
+  if (recommendation) {
+    nextRecommendation.innerHTML = `
+      <span>NEXT PRACTICE</span>
+      <strong>${escapeHtml(recommendation.module_id.toUpperCase())} · ${escapeHtml(recommendation.module_label)}</strong>
+      <p>${escapeHtml(recommendation.reason)}</p>
+      <button type="button">使用建议问题</button>
+    `;
+    nextRecommendation.querySelector("button").addEventListener("click", () => {
+      input.value = recommendation.suggested_question;
+      input.focus();
+    });
+  } else {
+    nextRecommendation.innerHTML = "";
+  }
 }
 
 function renderEvidence(payload) {
@@ -154,7 +170,7 @@ function renderEvidence(payload) {
     `)
     .join("");
 
-  renderProfile(payload.memory, payload.learning_note);
+  renderProfile(payload.memory, payload.learning_note, payload.recommendation);
 
   sources.innerHTML = payload.sources.length
     ? payload.sources
@@ -253,7 +269,11 @@ async function submitQuiz(questionId, answerIndex) {
     feedback.textContent = `${result.correct ? "回答正确。" : "还差一步。"}${result.explanation}`;
     emptyEvidence.classList.add("hidden");
     evidenceContent.classList.remove("hidden");
-    renderProfile(payload.memory, "测验结果已经写入持久化学习档案。下一步可以运行对应仿真验证答案。");
+    renderProfile(
+      payload.memory,
+      "测验结果已经写入持久化学习档案。下一步可以运行对应仿真验证答案。",
+      payload.recommendation,
+    );
   } catch (error) {
     feedback.className = "quiz-feedback incorrect";
     feedback.textContent = `提交失败：${error.message}`;
@@ -326,7 +346,11 @@ async function restoreSession() {
       : "";
     sources.innerHTML = "<p>继续提问后重新检索 Notebook 证据。</p>";
     trace.innerHTML = "<li><strong>memory</strong> · restored persistent session</li>";
-    renderProfile(profile, "已从 SQLite 恢复学习档案和上一轮工具参数。");
+    renderProfile(
+      profile,
+      "已从 SQLite 恢复学习档案和上一轮工具参数。",
+      payload.recommendation,
+    );
   } catch (_) {
     // The service may still be starting; normal chat remains available.
   }

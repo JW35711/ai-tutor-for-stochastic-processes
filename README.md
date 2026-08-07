@@ -92,7 +92,9 @@ For each question, the Agent classifies the topic, retrieves source-aware
 Notebook evidence, validates parameters, chooses a simulation tool, compares
 the empirical result with theory, diagnoses explicit misconceptions, and
 returns a guided explanation with the execution trace. SQLite learner memory
-persists practice and concept-check results across server restarts.
+persists practice and concept-check results across server restarts. A
+transparent recommendation policy uses coverage, practice evidence and quiz
+exposure to propose the next experiment without claiming to measure ability.
 
 ```mermaid
 flowchart LR
@@ -275,6 +277,7 @@ examples.
 │   ├── runtime.py          # Rate limiting, metrics and JSON events
 │   ├── evaluation_manifest.py # Checked dashboard evaluation summary
 │   ├── tool_catalog.py      # Executable tool parameter contracts
+│   ├── recommendation.py   # Explainable next-practice policy
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests

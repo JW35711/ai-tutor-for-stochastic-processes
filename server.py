@@ -21,6 +21,7 @@ from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 from src.tool_catalog import build_tool_catalog
+from src.recommendation import recommend_next
 
 
 ROOT = Path(__file__).resolve().parent
@@ -169,10 +170,12 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     {"error": "session_id is required"}, HTTPStatus.BAD_REQUEST
                 )
             else:
+                profile = AGENT.memory.profile(session_id)
                 self._json(
                     {
-                        "profile": AGENT.memory.profile(session_id),
+                        "profile": profile,
                         "history": AGENT.memory.history(session_id),
+                        "recommendation": recommend_next(profile),
                     }
                 )
         elif path == "/api/quiz":
@@ -244,10 +247,12 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     answer_index=result["answer_index"],
                     correct=result["correct"],
                 )
+                profile = AGENT.memory.profile(session_id)
                 response = {
                     "session_id": session_id,
                     "result": result,
-                    "memory": AGENT.memory.profile(session_id),
+                    "memory": profile,
+                    "recommendation": recommend_next(profile),
                 }
             response["request_id"] = self.request_id
             self._json(response)

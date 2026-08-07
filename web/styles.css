@@ -829,6 +829,48 @@ h1 {
   letter-spacing: 0.08em;
 }
 
+.next-recommendation:not(:empty) {
+  margin-top: 11px;
+  padding: 12px;
+  border: 1px solid #ded9ff;
+  border-radius: 11px;
+  background: var(--primary-tint);
+}
+
+.next-recommendation span,
+.next-recommendation strong {
+  display: block;
+}
+
+.next-recommendation span {
+  color: var(--primary-strong);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.next-recommendation strong {
+  margin-top: 5px;
+  font-size: 0.72rem;
+}
+
+.next-recommendation p {
+  margin: 6px 0 9px;
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.next-recommendation button {
+  padding: 6px 8px;
+  color: white;
+  border: 0;
+  border-radius: 7px;
+  background: var(--primary);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
 .source-item {
   position: relative;
   padding: 10px 10px 10px 15px;
