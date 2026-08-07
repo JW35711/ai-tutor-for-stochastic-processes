@@ -64,6 +64,14 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('id="exportRunButton"', self.html)
         self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)
 
+    def test_dynamic_learning_regions_have_accessible_semantics(self) -> None:
+        self.assertIn('role="log"', self.html)
+        self.assertIn('id="healthStatus" class="health-pill" role="status"', self.html)
+        self.assertIn('maxlength="4000"', self.html)
+        self.assertIn('role="group" aria-labelledby="quizQuestion"', self.javascript)
+        self.assertIn('aria-pressed="false"', self.javascript)
+        self.assertIn("correct-answer", self.javascript)
+
 
 if __name__ == "__main__":
     unittest.main()

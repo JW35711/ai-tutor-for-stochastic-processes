@@ -242,15 +242,16 @@ async function openQuiz() {
     quizPanel.classList.remove("hidden");
     quizPanel.innerHTML = `
       <p class="quiz-module">${escapeHtml(quiz.module_id.toUpperCase())} · CONCEPT CHECK</p>
-      <strong>${escapeHtml(quiz.question)}</strong>
-      <div class="quiz-choices">
-        ${quiz.choices.map((choice, index) => `<button type="button" data-answer="${index}">${String.fromCharCode(65 + index)}. ${escapeHtml(choice)}</button>`).join("")}
+      <h3 id="quizQuestion" tabindex="-1">${escapeHtml(quiz.question)}</h3>
+      <div class="quiz-choices" role="group" aria-labelledby="quizQuestion">
+        ${quiz.choices.map((choice, index) => `<button type="button" data-answer="${index}" aria-pressed="false">${String.fromCharCode(65 + index)}. ${escapeHtml(choice)}</button>`).join("")}
       </div>
-      <p class="quiz-feedback"></p>
+      <p class="quiz-feedback" role="status"></p>
     `;
     quizPanel.querySelectorAll("[data-answer]").forEach((button) => {
       button.addEventListener("click", () => submitQuiz(quiz.id, Number(button.dataset.answer)));
     });
+    quizPanel.querySelector("h3").focus();
   } catch (error) {
     quizPanel.classList.remove("hidden");
     quizPanel.textContent = `测验加载失败：${error.message}`;
@@ -261,7 +262,10 @@ async function openQuiz() {
 
 async function submitQuiz(questionId, answerIndex) {
   const buttons = quizPanel.querySelectorAll("[data-answer]");
-  buttons.forEach((button) => { button.disabled = true; });
+  buttons.forEach((button) => {
+    button.disabled = true;
+    button.setAttribute("aria-pressed", String(Number(button.dataset.answer) === answerIndex));
+  });
   const feedback = quizPanel.querySelector(".quiz-feedback");
   try {
     const response = await fetch("/api/quiz/submit", {
@@ -274,6 +278,14 @@ async function submitQuiz(questionId, answerIndex) {
     sessionId = payload.session_id;
     window.localStorage.setItem("stochasticTutorSession", sessionId);
     const result = payload.result;
+    buttons.forEach((button) => {
+      const index = Number(button.dataset.answer);
+      button.classList.toggle("correct-answer", index === result.correct_index);
+      button.classList.toggle(
+        "incorrect-answer",
+        index === answerIndex && index !== result.correct_index,
+      );
+    });
     feedback.className = `quiz-feedback ${result.correct ? "correct" : "incorrect"}`;
     feedback.textContent = `${result.correct ? "回答正确。" : "还差一步。"}${result.explanation}`;
     emptyEvidence.classList.add("hidden");
@@ -288,7 +300,10 @@ async function submitQuiz(questionId, answerIndex) {
   } catch (error) {
     feedback.className = "quiz-feedback incorrect";
     feedback.textContent = `提交失败：${error.message}`;
-    buttons.forEach((button) => { button.disabled = false; });
+    buttons.forEach((button) => {
+      button.disabled = false;
+      button.setAttribute("aria-pressed", "false");
+    });
   }
 }
 

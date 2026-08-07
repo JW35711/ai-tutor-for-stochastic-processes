@@ -57,7 +57,7 @@
             <strong> Agent Workspace</strong>
           </div>
           <div class="topbar-status">
-            <span id="healthStatus" class="health-pill"><i></i> 正在连接</span>
+            <span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i> 正在连接</span>
             <span id="healthMeta" class="runtime-pill">11 modules</span>
           </div>
         </header>
@@ -130,9 +130,9 @@
                 </div>
                 <button id="quizButton" type="button">当前模块测验</button>
               </div>
-              <div id="quizPanel" class="quiz-panel hidden" aria-live="polite"></div>
+              <div id="quizPanel" class="quiz-panel hidden" role="region" aria-label="当前模块概念测验" aria-live="polite"></div>
 
-              <div id="conversation" class="conversation" aria-live="polite">
+              <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions" aria-atomic="false">
                 <article class="message agent-message">
                   <span class="message-label">AGENT</span>
                   <p>
@@ -147,6 +147,7 @@
                 <textarea
                   id="questionInput"
                   rows="3"
+                  maxlength="4000"
                   placeholder="例如：模拟强度为3、时长为4的泊松过程，并比较理论均值"
                   required
                 ></textarea>
@@ -164,7 +165,7 @@
                 </div>
                 <div class="evidence-actions">
                   <button id="exportRunButton" type="button" disabled>导出 JSON</button>
-                  <span id="verificationBadge" class="verified-badge">WAITING</span>
+                  <span id="verificationBadge" class="verified-badge" role="status">WAITING</span>
                 </div>
               </div>
               <div id="emptyEvidence" class="empty-evidence">

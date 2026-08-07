@@ -563,6 +563,22 @@ h1 {
   border-color: var(--primary);
 }
 
+.quiz-choices button.correct-answer,
+.quiz-choices button.correct-answer:disabled {
+  border-color: #a9d4c2;
+  background: #edf8f3;
+  color: var(--green);
+  opacity: 1;
+}
+
+.quiz-choices button.incorrect-answer,
+.quiz-choices button.incorrect-answer:disabled {
+  border-color: #e9b9b2;
+  background: #fff1ef;
+  color: var(--danger);
+  opacity: 1;
+}
+
 .quiz-feedback {
   margin: 11px 0 0;
   font-size: 0.76rem;
