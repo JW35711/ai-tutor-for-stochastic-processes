@@ -5,125 +5,201 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="A source-aware stochastic-process teaching agent with reproducible simulations."
+      content="A stateful, source-aware stochastic-process teaching agent with executable simulations."
     />
-    <title>Stochastic Tutor Agent</title>
+    <title>StochLab · Teaching Agent</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%23c8ff5a%22/><path d=%22M25 58 Q38 18 50 55 T76 42%22 fill=%22none%22 stroke=%22%230b0e0d%22 stroke-width=%228%22/></svg>"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2224%22 fill=%22%23635bdb%22/><path d=%22M24 59 Q38 22 50 56 T77 40%22 fill=%22none%22 stroke=%22white%22 stroke-width=%228%22/></svg>"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">STOCHASTIC LEARNING COPILOT</p>
-          <h1>把随机过程<br />变成可运行的实验</h1>
-          <p class="intro">
-            教学 Agent 会识别知识点、检索论文材料、选择仿真工具，
-            再把经验结果与理论值放在一起解释。
-          </p>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">S</div>
+          <div>
+            <strong>StochLab</strong>
+            <span>Teaching Agent</span>
+          </div>
         </div>
-        <aside class="status-card">
-          <span class="status-dot"></span>
-          <strong>Stateful Agent online</strong>
-          <small>15 tools · 11/11 modules · persistent multi-turn memory</small>
-        </aside>
-      </header>
 
-      <section class="workspace">
-        <div class="chat-panel">
-          <div class="panel-heading">
+        <nav class="side-nav" aria-label="产品导航">
+          <button class="nav-item active" type="button" data-scroll="tutorLab">
+            <span class="nav-icon">✦</span>
+            <span>教学实验室</span>
+          </button>
+          <button class="nav-item" type="button" data-scroll="learnerProfileSection">
+            <span class="nav-icon">◎</span>
+            <span>学习画像</span>
+          </button>
+          <button class="nav-item" type="button" data-scroll="traceSection">
+            <span class="nav-icon">⌘</span>
+            <span>工作流证据</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="live-dot"></span>
+          <div>
+            <strong>Local first</strong>
+            <small>数值工具离线可用</small>
+          </div>
+        </div>
+        <div class="version">v0.3 · Interview build</div>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <div>
+            <span class="breadcrumb">STOCHLAB /</span>
+            <strong> Agent Workspace</strong>
+          </div>
+          <div class="topbar-status">
+            <span id="healthStatus" class="health-pill"><i></i> 正在连接</span>
+            <span id="healthMeta" class="runtime-pill">11 modules</span>
+          </div>
+        </header>
+
+        <main class="dashboard">
+          <section class="page-intro">
             <div>
-              <p class="kicker">ASK & EXPERIMENT</p>
-              <h2>教学对话</h2>
+              <p class="eyebrow">SOURCE-AWARE STOCHASTIC TUTOR</p>
+              <h1>把随机过程变成<br />可验证的学习实验</h1>
             </div>
-            <button id="resetButton" class="ghost-button">新会话</button>
-          </div>
+            <p class="intro-copy">
+              一个有状态的教学 Agent：识别模型、检索 Notebook、执行仿真、
+              对照理论，并持续记录学生的练习证据和概念误区。
+            </p>
+          </section>
 
-          <div class="examples" aria-label="示例问题">
-            <button data-question="伯努利过程：时间槽数为100、事件概率为0.3、路径数为500">伯努利过程</button>
-            <button data-question="模拟强度为2、时长为5的泊松过程，使用200条路径">泊松过程</button>
-            <button data-question="用500条路径模拟100步随机游走，并比较理论均值">随机游走</button>
-            <button data-question="用500条路径模拟T为1、网格数为200的布朗运动，解释终点方差">布朗运动</button>
-            <button data-question="模拟500步马尔可夫链并比较平稳分布">马尔可夫链</button>
-            <button data-question="连续时间马尔可夫链：故障率为0.25、修复率为0.15、时长为200">CTMC</button>
-            <button data-question="模拟出生死亡过程：出生率为0.35、死亡率为0.3、容量为6、时长为500">出生死亡过程</button>
-            <button data-question="可靠性模型：部件1故障率为0.8、部件2故障率为1.2">可靠性</button>
-            <button data-question="M/M/1 queue：到达率为0.75、服务率为1、时长为2000">M/M/1</button>
-            <button data-question="非齐次泊松过程 thinning：基础强度为2、峰值增量为6、高峰时刻为13">NHPP</button>
-            <button data-question="自避免游走：最大步数为1000、实验次数为500">自避免游走</button>
-            <button data-question="圆上粒子合并：圆周大小为12、粒子数为9、实验次数为200">粒子合并</button>
-            <button data-question="用10000个样本做蒙特卡洛实验估计π">Monte Carlo</button>
-          </div>
-
-          <div class="assessment-bar">
-            <span>先预测，再用仿真验证。</span>
-            <button id="quizButton" type="button">当前模块概念测验</button>
-          </div>
-          <div id="quizPanel" class="quiz-panel hidden" aria-live="polite"></div>
-
-          <div id="conversation" class="conversation" aria-live="polite">
-            <article class="message agent-message">
-              <span class="message-label">AGENT</span>
-              <p>
-                选择一个示例，或者描述你想观察的随机过程。你可以直接指定
-                强度、时长、步数、路径数和随机种子。
-              </p>
+          <section class="kpi-grid" aria-label="系统指标">
+            <article class="kpi-card indigo">
+              <span>MODULE COVERAGE</span>
+              <strong id="moduleCount">11/11</strong>
+              <small>全部课程模块可执行</small>
             </article>
-          </div>
+            <article class="kpi-card cyan">
+              <span>SIMULATION TOOLS</span>
+              <strong id="toolCount">15</strong>
+              <small>数值结果由 Python 计算</small>
+            </article>
+            <article class="kpi-card amber">
+              <span>RAG EVIDENCE</span>
+              <strong id="sourceCount">236</strong>
+              <small>知识卡与 Notebook cells</small>
+            </article>
+            <article class="kpi-card green">
+              <span>EVALUATION</span>
+              <strong>57/57</strong>
+              <small>对话与 RAG 验收案例</small>
+            </article>
+          </section>
 
-          <form id="chatForm" class="composer">
-            <label for="questionInput" class="sr-only">输入问题</label>
-            <textarea
-              id="questionInput"
-              rows="3"
-              placeholder="例如：模拟强度为3、时长为4的泊松过程，并比较理论均值"
-              required
-            ></textarea>
-            <button id="submitButton" type="submit">运行 Agent <span>→</span></button>
-          </form>
-        </div>
+          <section id="tutorLab" class="workspace">
+            <article id="conversationPanel" class="chat-panel panel-card">
+              <div class="panel-heading">
+                <div>
+                  <p class="kicker">TUTOR LAB</p>
+                  <h2>对话与实验</h2>
+                </div>
+                <button id="resetButton" class="ghost-button">新会话</button>
+              </div>
 
-        <aside class="evidence-panel">
-          <div class="panel-heading compact">
-            <div>
-              <p class="kicker">EVIDENCE</p>
-              <h2>工具与证据</h2>
-            </div>
-          </div>
-          <div id="emptyEvidence" class="empty-evidence">
-            <div class="orb"></div>
-            <p>运行一次实验后，这里会显示路径、参数、来源和 Agent 轨迹。</p>
-          </div>
-          <div id="evidenceContent" class="evidence-content hidden">
-            <section>
-              <p class="section-label">SIMULATION</p>
-              <div id="chart" class="chart"></div>
-            </section>
-            <section>
-              <p class="section-label">PARAMETERS</p>
-              <div id="parameters" class="metric-grid"></div>
-            </section>
-            <section>
-              <p class="section-label">LEARNER PROFILE</p>
-              <p id="learningNote" class="learning-note"></p>
-              <div id="learnerProfile" class="profile-list"></div>
-              <div id="misconceptions" class="misconception-list"></div>
-            </section>
-            <section>
-              <p class="section-label">SOURCES</p>
-              <div id="sources" class="source-list"></div>
-            </section>
-            <section>
-              <p class="section-label">AGENT TRACE</p>
-              <ol id="trace" class="trace-list"></ol>
-            </section>
-          </div>
-        </aside>
-      </section>
-    </main>
+              <div class="examples" aria-label="示例问题">
+                <button data-question="伯努利过程：时间槽数为100、事件概率为0.3、路径数为500">伯努利</button>
+                <button data-question="模拟强度为2、时长为5的泊松过程，使用200条路径">泊松</button>
+                <button data-question="用500条路径模拟100步随机游走，并比较理论均值">随机游走</button>
+                <button data-question="用500条路径模拟T为1、网格数为200的布朗运动，解释终点方差">布朗运动</button>
+                <button data-question="模拟500步马尔可夫链并比较平稳分布">马尔可夫链</button>
+                <button data-question="连续时间马尔可夫链：故障率为0.25、修复率为0.15、时长为200">CTMC</button>
+                <button data-question="模拟出生死亡过程：出生率为0.35、死亡率为0.3、容量为6、时长为500">出生死亡</button>
+                <button data-question="可靠性模型：部件1故障率为0.8、部件2故障率为1.2">可靠性</button>
+                <button data-question="M/M/1 queue：到达率为0.75、服务率为1、时长为2000">M/M/1</button>
+                <button data-question="非齐次泊松过程 thinning：基础强度为2、峰值增量为6、高峰时刻为13">NHPP</button>
+                <button data-question="自避免游走：最大步数为1000、实验次数为500">自避免游走</button>
+                <button data-question="圆上粒子合并：圆周大小为12、粒子数为9、实验次数为200">粒子合并</button>
+                <button data-question="用10000个样本做蒙特卡洛实验估计π">Monte Carlo</button>
+              </div>
+
+              <div class="assessment-bar">
+                <div>
+                  <span>CONCEPT CHECK</span>
+                  <strong>先预测，再用仿真验证</strong>
+                </div>
+                <button id="quizButton" type="button">当前模块测验</button>
+              </div>
+              <div id="quizPanel" class="quiz-panel hidden" aria-live="polite"></div>
+
+              <div id="conversation" class="conversation" aria-live="polite">
+                <article class="message agent-message">
+                  <span class="message-label">AGENT</span>
+                  <p>
+                    选择一个示例，或者描述你想观察的随机过程。你可以指定强度、
+                    时长、步数和路径数；下一轮只写需要修改的参数即可。
+                  </p>
+                </article>
+              </div>
+
+              <form id="chatForm" class="composer">
+                <label for="questionInput" class="sr-only">输入问题</label>
+                <textarea
+                  id="questionInput"
+                  rows="3"
+                  placeholder="例如：模拟强度为3、时长为4的泊松过程，并比较理论均值"
+                  required
+                ></textarea>
+                <button id="submitButton" type="submit">
+                  运行 Agent <span>→</span>
+                </button>
+              </form>
+            </article>
+
+            <aside class="evidence-panel panel-card">
+              <div class="panel-heading compact">
+                <div>
+                  <p class="kicker">EVIDENCE PANEL</p>
+                  <h2>结果与依据</h2>
+                </div>
+                <span class="verified-badge">VERIFIED</span>
+              </div>
+              <div id="emptyEvidence" class="empty-evidence">
+                <div class="empty-visual" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <strong>等待一次可执行实验</strong>
+                <p>运行后显示路径、参数、Notebook 来源、学习画像和状态图轨迹。</p>
+              </div>
+              <div id="evidenceContent" class="evidence-content hidden">
+                <section>
+                  <p class="section-label">SIMULATION OUTPUT</p>
+                  <div id="chart" class="chart"></div>
+                </section>
+                <section>
+                  <p class="section-label">PARAMETERS</p>
+                  <div id="parameters" class="metric-grid"></div>
+                </section>
+                <section id="learnerProfileSection">
+                  <p class="section-label">LEARNER PROFILE</p>
+                  <p id="learningNote" class="learning-note"></p>
+                  <div id="learnerProfile" class="profile-list"></div>
+                  <div id="misconceptions" class="misconception-list"></div>
+                </section>
+                <section>
+                  <p class="section-label">RETRIEVED SOURCES</p>
+                  <div id="sources" class="source-list"></div>
+                </section>
+                <section id="traceSection">
+                  <p class="section-label">STATE GRAPH TRACE</p>
+                  <ol id="trace" class="trace-list"></ol>
+                </section>
+              </div>
+            </aside>
+          </section>
+        </main>
+      </div>
+    </div>
     <script src="/app.js" defer></script>
   </body>
 </html>

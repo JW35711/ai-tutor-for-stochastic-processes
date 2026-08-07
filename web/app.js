@@ -14,6 +14,11 @@ const learnerProfile = document.querySelector("#learnerProfile");
 const misconceptions = document.querySelector("#misconceptions");
 const quizButton = document.querySelector("#quizButton");
 const quizPanel = document.querySelector("#quizPanel");
+const healthStatus = document.querySelector("#healthStatus");
+const healthMeta = document.querySelector("#healthMeta");
+const moduleCount = document.querySelector("#moduleCount");
+const toolCount = document.querySelector("#toolCount");
+const sourceCount = document.querySelector("#sourceCount");
 
 let sessionId = window.localStorage.getItem("stochasticTutorSession");
 let activeModuleId = "module01";
@@ -65,7 +70,7 @@ function renderChart(series, chartSpec = {}) {
   const minX = Math.min(...allX);
   const maxX = Math.max(...allX);
   const xSpread = maxX - minX || 1;
-  const colors = ["#c8ff5a", "#7fe8df", "#ff8a5b", "#b6a3ff", "#f9d66f"];
+  const colors = ["#635bdb", "#199aa4", "#d58a28", "#8f84ef", "#248a62"];
   const polylines = series.slice(0, 5).map((item, seriesIndex) => {
     const xValues = item.x?.length === item.values.length
       ? item.x
@@ -88,12 +93,12 @@ function renderChart(series, chartSpec = {}) {
   });
   chart.innerHTML = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Simulation chart">
-      <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="rgba(255,255,255,.18)" />
-      <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="rgba(255,255,255,.18)" />
+      <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#dcd8e5" />
+      <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#dcd8e5" />
       ${polylines.join("")}
-      <text x="${padding}" y="13" fill="#a7aa9e" font-size="10">max ${max.toFixed(3)}</text>
-      <text x="${padding}" y="${height - 3}" fill="#a7aa9e" font-size="10">min ${min.toFixed(3)}</text>
-      <text x="${width - 120}" y="${height - 3}" fill="#a7aa9e" font-size="10">${escapeHtml(chartSpec.x_label || "index")} ${maxX.toFixed(2)}</text>
+      <text x="${padding}" y="13" fill="#8a8795" font-size="10">max ${max.toFixed(3)}</text>
+      <text x="${padding}" y="${height - 3}" fill="#8a8795" font-size="10">min ${min.toFixed(3)}</text>
+      <text x="${width - 120}" y="${height - 3}" fill="#8a8795" font-size="10">${escapeHtml(chartSpec.x_label || "index")} ${maxX.toFixed(2)}</text>
     </svg>
   `;
 }
@@ -146,7 +151,7 @@ function renderEvidence(payload) {
         .map((source) => `
           <div class="source-item">
             <strong>${escapeHtml(source.title)}</strong>
-            <small>${escapeHtml(source.source)}</small>
+            <small>${escapeHtml(source.source)} · ${escapeHtml(source.kind || "course_note")} · score ${escapeHtml(source.score ?? "—")}</small>
           </div>
         `)
         .join("")
@@ -236,6 +241,33 @@ async function submitQuiz(questionId, answerIndex) {
 }
 
 quizButton.addEventListener("click", openQuiz);
+
+async function hydrateHealth() {
+  try {
+    const response = await fetch("/health");
+    const health = await response.json();
+    if (!response.ok) throw new Error("health check failed");
+    healthStatus.classList.add("online");
+    healthStatus.innerHTML = "<i></i> Agent online";
+    const ragBackend = health.knowledge?.embedding_backend || "retrieval ready";
+    healthMeta.textContent = `${health.modules} modules · ${health.tools} tools · ${ragBackend}`;
+    moduleCount.textContent = `${health.modules}/${health.modules}`;
+    toolCount.textContent = health.tools;
+    sourceCount.textContent = health.knowledge?.entries ?? "—";
+  } catch (_) {
+    healthStatus.innerHTML = "<i></i> Agent offline";
+  }
+}
+
+hydrateHealth();
+
+document.querySelectorAll("[data-scroll]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    document.getElementById(button.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
 
 async function restoreSession() {
   if (!sessionId) return;
