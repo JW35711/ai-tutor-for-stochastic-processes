@@ -44,6 +44,7 @@ def evaluate(cases: list[dict[str, Any]]) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as directory:
         memory = LearnerMemory(Path(directory) / "eval.sqlite3")
         agent = StochasticTutorAgent(memory=memory)
+        corpus_sha256 = agent.knowledge.corpus_sha256
         results: list[CaseResult] = []
         for case in cases:
             try:
@@ -92,6 +93,7 @@ def evaluate(cases: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(results)
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "corpus_sha256": corpus_sha256,
         "total": total,
         "passed": passed,
         "pass_rate": round(passed / total, 4) if total else 0.0,

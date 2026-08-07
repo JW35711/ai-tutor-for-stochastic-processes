@@ -60,6 +60,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES, limit: int = 3) -> dict[str, Any]
     return {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "embedding_backend": knowledge.stats()["embedding_backend"],
+        "corpus_sha256": knowledge.corpus_sha256,
         "total": len(cases),
         f"hit_at_{limit}": round(hits / len(cases), 4) if cases else 0.0,
         "mrr": round(sum(reciprocal_ranks) / len(cases), 4) if cases else 0.0,

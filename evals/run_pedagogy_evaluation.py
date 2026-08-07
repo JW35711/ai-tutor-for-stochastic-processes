@@ -31,6 +31,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
         agent = StochasticTutorAgent(
             memory=LearnerMemory(Path(directory) / "pedagogy.sqlite3")
         )
+        corpus_sha256 = agent.knowledge.corpus_sha256
         for case in cases:
             response = agent.answer(case["question"], session_id=case["id"])
             actual_codes = [item["code"] for item in response["misconceptions"]]
@@ -68,6 +69,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
     total = len(cases)
     return {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "corpus_sha256": corpus_sha256,
         "total": total,
         "passed": total - len(failures),
         "pass_rate": round((total - len(failures)) / total, 4) if total else 0.0,

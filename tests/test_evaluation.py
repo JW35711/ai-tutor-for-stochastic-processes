@@ -13,6 +13,7 @@ class EvaluationTests(unittest.TestCase):
         cases = json.loads((ROOT / "evals" / "cases.json").read_text("utf-8"))
         self.assertEqual(len(cases), 30)
         report = evaluate(cases)
+        self.assertRegex(report["corpus_sha256"], r"^[0-9a-f]{64}$")
         self.assertEqual(report["passed"], 30)
         self.assertEqual(report["pass_rate"], 1.0)
 
