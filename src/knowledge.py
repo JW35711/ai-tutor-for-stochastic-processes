@@ -65,14 +65,15 @@ class KnowledgeBase:
             for cell_index, cell in enumerate(notebook.get("cells", [])):
                 if cell.get("cell_type") != "markdown":
                     continue
-                content = self._clean_markdown("".join(cell.get("source", [])))
+                raw_content = "".join(cell.get("source", []))
+                content = self._clean_markdown(raw_content)
                 if len(content) < 100:
                     continue
                 entries.append(
                     {
                         "module_id": module_id,
                         "topic": topic,
-                        "title": self._title(content, cell_index),
+                        "title": self._title(raw_content, content, cell_index),
                         "content": content[:1400],
                         "source": f"notebooks/{path.name}#cell-{cell_index}",
                         "keywords": [],
@@ -90,10 +91,12 @@ class KnowledgeBase:
         return text.strip()
 
     @staticmethod
-    def _title(content: str, cell_index: int) -> str:
-        heading = re.search(r"(?:^|\s)#{1,4}\s+(.+?)(?=\s+#|$)", content)
+    def _title(raw_content: str, content: str, cell_index: int) -> str:
+        heading = re.search(
+            r"^\s*#{1,6}\s+(.+?)\s*$", raw_content, flags=re.MULTILINE
+        )
         if heading:
-            title = heading.group(1).strip(" *#")
+            title = re.sub(r"[*_`]", "", heading.group(1)).strip(" *#")
             return title[:100]
         first_sentence = re.split(r"(?<=[.!?。！？])\s+", content, maxsplit=1)[0]
         if 5 <= len(first_sentence) <= 100:

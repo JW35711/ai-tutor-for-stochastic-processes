@@ -67,6 +67,24 @@ class StochasticTutorAgent:
         "particles": ("particles", "k", "粒子数", "初始粒子"),
     }
 
+    RETRIEVAL_HINTS: dict[str, str] = {
+        "monte_carlo": "Monte Carlo sample mean standard error 蒙特卡洛 样本误差",
+        "bernoulli": "Bernoulli geometric waiting time 伯努利 几何等待时间",
+        "poisson": "homogeneous Poisson process exponential waiting 泊松过程 指数等待",
+        "random_walk": "discrete random walk gambler ruin 离散随机游走 赌徒破产",
+        "continuous_random_walk": "continuous time random walk Poisson jump times 连续时间随机游走",
+        "brownian_motion": "Brownian motion Gaussian increments 布朗运动 高斯增量",
+        "markov_chain": "discrete Markov chain stationary distribution 转移矩阵 平稳分布",
+        "ctmc": "continuous time Markov chain generator holding time 生成矩阵 停留时间",
+        "birth_death": "birth death process stationary distribution 出生死亡过程",
+        "reliability": "reliability survival hazard series parallel 可靠性 生存函数 串联 并联",
+        "buffer": "batch arrival buffer service 批量到达 缓冲区 服务",
+        "mm1_queue": "M/M/1 queue arrival service stability 排队 到达率 服务率 稳定性",
+        "nhpp": "nonhomogeneous Poisson thinning intensity 非齐次泊松 时变强度",
+        "self_avoiding_walk": "growing self avoiding walk trapping visited set 自避免游走 受困",
+        "coalescing_particles": "coalescing particles circle cluster count 粒子合并 圆周 簇数量",
+    }
+
     def __init__(self, memory: LearnerMemory | None = None) -> None:
         self.knowledge = KnowledgeBase()
         self.llm = OpenAICompatibleLLM()
@@ -591,8 +609,13 @@ class StochasticTutorAgent:
             }
         )
 
+        retrieval_query = question
+        if module_from_context and previous_turn and previous_turn["tool"]:
+            retrieval_query += " " + self.RETRIEVAL_HINTS.get(
+                previous_turn["tool"], previous_turn["tool"]
+            )
         sources = self.knowledge.retrieve(
-            question, topic=topic, module_id=module_id
+            retrieval_query, topic=topic, module_id=module_id
         )
         trace.append(
             {"node": "retrieve", "detail": f"{len(sources)} source-aware notes"}

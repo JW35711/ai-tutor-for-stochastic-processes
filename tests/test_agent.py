@@ -86,6 +86,13 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(second["context"]["module_inherited"])
         self.assertIn("horizon", second["context"]["parameters_inherited"])
         self.assertIn("inherited", second["trace"][2]["detail"])
+        self.assertTrue(
+            any(
+                "queue" in (source["title"] + source["content"]).lower()
+                or "排队" in source["content"]
+                for source in second["sources"][1:]
+            )
+        )
 
     def test_follow_up_context_survives_new_agent_instance(self) -> None:
         first = self.agent.answer("泊松过程：强度为3、时长为4、路径数为20")
