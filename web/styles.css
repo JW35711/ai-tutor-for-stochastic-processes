@@ -862,6 +862,30 @@ h1 {
   font-size: 0.61rem;
 }
 
+.source-item details {
+  margin-top: 7px;
+}
+
+.source-item summary {
+  width: fit-content;
+  color: var(--primary-strong);
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.source-item details p {
+  max-height: 120px;
+  overflow: auto;
+  margin: 7px 0 0;
+  padding: 9px;
+  color: var(--ink-soft);
+  border-radius: 8px;
+  background: var(--canvas);
+  font-size: 0.66rem;
+  line-height: 1.55;
+}
+
 .trace-list {
   position: relative;
   margin: 0;

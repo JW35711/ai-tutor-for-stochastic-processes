@@ -163,6 +163,10 @@ function renderEvidence(payload) {
             <strong>${escapeHtml(source.title)}</strong>
             <small>${escapeHtml(source.source)} · ${escapeHtml(source.kind || "course_note")}</small>
             <small>score ${escapeHtml(source.score ?? "—")} · sparse ${escapeHtml(source.score_breakdown?.sparse ?? "—")} · vector ${escapeHtml(source.score_breakdown?.vector ?? "—")}</small>
+            <details>
+              <summary>查看证据摘录</summary>
+              <p>${escapeHtml(source.content || "暂无摘录")}</p>
+            </details>
           </div>
         `)
         .join("")

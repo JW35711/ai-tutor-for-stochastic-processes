@@ -55,6 +55,10 @@ class WebContractTests(unittest.TestCase):
         self.assertNotIn('style="', self.javascript)
         self.assertIn("<progress", self.javascript)
 
+    def test_retrieval_evidence_can_show_grounded_excerpt(self) -> None:
+        self.assertIn("查看证据摘录", self.javascript)
+        self.assertIn("source.content", self.javascript)
+
 
 if __name__ == "__main__":
     unittest.main()
