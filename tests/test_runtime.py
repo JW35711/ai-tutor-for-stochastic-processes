@@ -35,6 +35,21 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(snapshot.errors, 1)
         self.assertEqual(snapshot.rate_limited, 1)
         self.assertEqual(snapshot.average_latency_ms, 30)
+        self.assertEqual(snapshot.recent_p95_latency_ms, 40)
+        self.assertEqual(snapshot.latency_window_samples, 2)
+
+    def test_metrics_p95_uses_bounded_recent_window(self) -> None:
+        metrics = ServiceMetrics(latency_window=3)
+        for latency in (1000, 10, 20, 30):
+            metrics.record(200, latency)
+        snapshot = metrics.snapshot()
+        self.assertEqual(snapshot.requests, 4)
+        self.assertEqual(snapshot.latency_window_samples, 3)
+        self.assertEqual(snapshot.recent_p95_latency_ms, 30)
+
+    def test_metrics_window_must_be_positive(self) -> None:
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            ServiceMetrics(latency_window=0)
 
     def test_concurrent_rate_limit_never_exceeds_budget(self) -> None:
         clock = FakeClock()

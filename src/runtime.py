@@ -81,22 +81,33 @@ class MetricsSnapshot:
     errors: int
     rate_limited: int
     average_latency_ms: float
+    recent_p95_latency_ms: float
+    latency_window_samples: int
 
 
 class ServiceMetrics:
     """Process-local request counters exposed through the health endpoint."""
 
-    def __init__(self) -> None:
+    def __init__(self, latency_window: int = 256) -> None:
+        if (
+            isinstance(latency_window, bool)
+            or not isinstance(latency_window, int)
+            or latency_window < 1
+        ):
+            raise ValueError("latency_window must be a positive integer")
         self._requests = 0
         self._errors = 0
         self._rate_limited = 0
         self._latency_ms = 0.0
+        self._recent_latencies: deque[float] = deque(maxlen=latency_window)
         self._lock = threading.Lock()
 
     def record(self, status: int, latency_ms: float) -> None:
         with self._lock:
             self._requests += 1
-            self._latency_ms += max(0.0, latency_ms)
+            safe_latency = max(0.0, latency_ms)
+            self._latency_ms += safe_latency
+            self._recent_latencies.append(safe_latency)
             if status >= 400:
                 self._errors += 1
             if status == 429:
@@ -105,11 +116,19 @@ class ServiceMetrics:
     def snapshot(self) -> MetricsSnapshot:
         with self._lock:
             average = self._latency_ms / self._requests if self._requests else 0.0
+            ordered = sorted(self._recent_latencies)
+            p95 = (
+                ordered[max(0, math.ceil(0.95 * len(ordered)) - 1)]
+                if ordered
+                else 0.0
+            )
             return MetricsSnapshot(
                 requests=self._requests,
                 errors=self._errors,
                 rate_limited=self._rate_limited,
                 average_latency_ms=round(average, 2),
+                recent_p95_latency_ms=round(p95, 2),
+                latency_window_samples=len(ordered),
             )
 
 
