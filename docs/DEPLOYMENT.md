@@ -23,6 +23,8 @@ docker run --rm -p 8000:8000 \
 The image runs with uid `10001`, writes learner state only below
 `/app/artifacts`, and has an HTTP health check. Never commit `.env` or API
 keys. Use the platform's secret manager for hosted deployments.
+The server handles `SIGTERM`, stops daemon request threads and closes its SQLite
+connection before the container exits.
 
 ## Required persistence
 

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from server import RATE_LIMITER, TutorRequestHandler
+from server import RATE_LIMITER, TutorHTTPServer, TutorRequestHandler
 
 
 class ServerContractTests(unittest.TestCase):
@@ -25,6 +25,10 @@ class ServerContractTests(unittest.TestCase):
         handler.headers = {"X-Request-ID": "contains spaces and is invalid"}
         handler._begin_request()
         self.assertRegex(handler.request_id, r"^[0-9a-f]{32}$")
+
+    def test_server_request_threads_do_not_block_shutdown(self) -> None:
+        self.assertTrue(TutorHTTPServer.daemon_threads)
+        self.assertTrue(TutorHTTPServer.allow_reuse_address)
 
 
 if __name__ == "__main__":

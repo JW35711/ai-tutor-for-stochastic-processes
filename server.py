@@ -7,6 +7,7 @@ import json
 import mimetypes
 import os
 import re
+import signal
 import time
 import uuid
 from dataclasses import asdict
@@ -296,20 +297,42 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         return
 
 
+class TutorHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+
+def _request_shutdown(_signum: int, _frame: object) -> None:
+    raise KeyboardInterrupt
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
-    server = ThreadingHTTPServer((args.host, args.port), TutorRequestHandler)
+    signal.signal(signal.SIGTERM, _request_shutdown)
+    server = TutorHTTPServer((args.host, args.port), TutorRequestHandler)
     print(f"Stochastic Tutor Agent: http://{args.host}:{args.port}")
     print("Press Ctrl+C to stop.")
+    print(
+        structured_event(
+            "service_started",
+            host=args.host,
+            port=args.port,
+            modules=11,
+            tools=len(AGENT.tools),
+        ),
+        flush=True,
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nStopping server.")
     finally:
         server.server_close()
+        AGENT.memory.close()
+        print(structured_event("service_stopped"), flush=True)
 
 
 if __name__ == "__main__":
