@@ -174,6 +174,10 @@ safely falls back to the local vector backend. Hosted indexing is split into
 bounded batches, and every response is checked for row order and vector
 dimension before it enters the index.
 
+Repeated retrievals use a thread-safe in-process LRU cache (256 entries by
+default). `/health` reports its capacity, size, hits and misses. Set
+`RAG_RETRIEVAL_CACHE_SIZE=0` to disable it during backend comparisons.
+
 The Agent also supports contextual follow-ups. After a full request such as
 `M/M/1 queue：到达率为0.75、服务率为1、时长为300`, the learner can simply say
 `再把到达率改成0.8`; the module, queue tool and unchanged parameters are read

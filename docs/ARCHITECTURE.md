@@ -58,6 +58,11 @@ An OpenAI-compatible embedding backend can batch-index the same entries when
 explicitly configured. A failed hosted configuration falls back to the local
 backend and reports the reason through `/health`.
 
+A bounded LRU cache avoids repeated embedding calls for equivalent normalized
+queries. Cached results are deep-copied on both insertion and return so one
+request cannot mutate another request's evidence. Cache counters are exposed
+for operational tuning without logging the query text.
+
 Retrieval is regression-tested separately from end-to-end routing. The
 22-case suite spans all eleven modules and reports Hit@3 and mean reciprocal
 rank. Keeping this suite separate makes a future neural embedding change

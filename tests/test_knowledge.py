@@ -32,6 +32,24 @@ class KnowledgeBaseTests(unittest.TestCase):
         sources = self.knowledge.retrieve("布朗运动方差", module_id="module04")
         self.assertEqual(sources[0]["module_id"], "module04")
 
+    def test_repeated_retrieval_uses_isolated_lru_cache_entries(self) -> None:
+        knowledge = KnowledgeBase(cache_size=2)
+        first = knowledge.retrieve("Poisson waiting time", module_id="module01")
+        first[0]["title"] = "mutated by caller"
+        second = knowledge.retrieve("Poisson waiting time", module_id="module01")
+        self.assertNotEqual(second[0]["title"], "mutated by caller")
+        stats = knowledge.stats()["retrieval_cache"]
+        self.assertEqual(stats["hits"], 1)
+        self.assertEqual(stats["misses"], 1)
+        self.assertEqual(stats["size"], 1)
+
+    def test_zero_cache_capacity_disables_cache(self) -> None:
+        knowledge = KnowledgeBase(cache_size=0)
+        knowledge.retrieve("Brownian path", module_id="module04")
+        knowledge.retrieve("Brownian path", module_id="module04")
+        stats = knowledge.stats()["retrieval_cache"]
+        self.assertEqual(stats, {"capacity": 0, "size": 0, "hits": 0, "misses": 0})
+
 
 if __name__ == "__main__":
     unittest.main()

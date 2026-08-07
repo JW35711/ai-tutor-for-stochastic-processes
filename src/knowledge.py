@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
-from collections import Counter
+from collections import Counter, OrderedDict
+from copy import deepcopy
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from .embeddings import (
@@ -34,8 +37,24 @@ class KnowledgeBase:
         path: Path = DEFAULT_KNOWLEDGE_PATH,
         notebook_root: Path = DEFAULT_NOTEBOOK_ROOT,
         embedding_backend: EmbeddingBackend | None = None,
+        cache_size: int | None = None,
     ) -> None:
         self.path = path
+        resolved_cache_size = (
+            int(os.getenv("RAG_RETRIEVAL_CACHE_SIZE", "256"))
+            if cache_size is None
+            else cache_size
+        )
+        if resolved_cache_size < 0 or resolved_cache_size > 10_000:
+            raise ValueError("retrieval cache size must be between 0 and 10000")
+        self._cache_size = resolved_cache_size
+        self._cache: OrderedDict[
+            tuple[str, str | None, str | None, int],
+            list[dict[str, Any]],
+        ] = OrderedDict()
+        self._cache_hits = 0
+        self._cache_misses = 0
+        self._cache_lock = Lock()
         curated: list[dict[str, Any]] = json.loads(path.read_text("utf-8"))
         self._module_topics = {
             entry["module_id"]: entry["topic"] for entry in curated
@@ -160,6 +179,16 @@ class KnowledgeBase:
         module_id: str | None = None,
         limit: int = 3,
     ) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 10))
+        cache_key = (" ".join(query.casefold().split()), topic, module_id, safe_limit)
+        if self._cache_size:
+            with self._cache_lock:
+                cached = self._cache.get(cache_key)
+                if cached is not None:
+                    self._cache_hits += 1
+                    self._cache.move_to_end(cache_key)
+                    return deepcopy(cached)
+                self._cache_misses += 1
         query_terms = self._terms(query)
         normalized_query = " ".join(query.lower().split())
         try:
@@ -209,7 +238,7 @@ class KnowledgeBase:
                     )
                 )
         scored.sort(reverse=True, key=lambda item: (item[0], item[1]))
-        return [
+        results = [
             {
                 "module_id": entry["module_id"],
                 "topic": entry["topic"],
@@ -232,10 +261,24 @@ class KnowledgeBase:
                 sparse_score,
                 dense_score,
                 bonus_score,
-            ) in scored[: max(1, min(limit, 10))]
+            ) in scored[:safe_limit]
         ]
+        if self._cache_size:
+            with self._cache_lock:
+                self._cache[cache_key] = deepcopy(results)
+                self._cache.move_to_end(cache_key)
+                while len(self._cache) > self._cache_size:
+                    self._cache.popitem(last=False)
+        return results
 
     def stats(self) -> dict[str, Any]:
+        with self._cache_lock:
+            cache_stats = {
+                "capacity": self._cache_size,
+                "size": len(self._cache),
+                "hits": self._cache_hits,
+                "misses": self._cache_misses,
+            }
         return {
             "entries": len(self.entries),
             "curated_cards": sum(entry["kind"] == "curated" for entry in self.entries),
@@ -245,4 +288,5 @@ class KnowledgeBase:
             "embedding_backend": self.embedding_backend.name,
             "embedding_dimension": self.embedding_backend.dimension,
             "embedding_fallback": self.embedding_fallback_reason,
+            "retrieval_cache": cache_stats,
         }
