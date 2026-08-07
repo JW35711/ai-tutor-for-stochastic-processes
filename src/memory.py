@@ -33,8 +33,24 @@ DEFAULT_MEMORY_PATH = (
 class LearnerMemory:
     """Store turns and derive a compact per-module learner profile."""
 
-    def __init__(self, path: Path | str = DEFAULT_MEMORY_PATH) -> None:
+    def __init__(
+        self,
+        path: Path | str = DEFAULT_MEMORY_PATH,
+        max_events_per_session: int | None = None,
+    ) -> None:
         self.path = Path(path)
+        configured_limit = (
+            int(os.getenv("MAX_SESSION_EVENTS", "1000"))
+            if max_events_per_session is None
+            else max_events_per_session
+        )
+        if (
+            isinstance(configured_limit, bool)
+            or not isinstance(configured_limit, int)
+            or configured_limit < 1
+        ):
+            raise ValueError("max_events_per_session must be a positive integer")
+        self.max_events_per_session = configured_limit
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = RLock()
         self._connection = sqlite3.connect(self.path, check_same_thread=False)
@@ -150,6 +166,7 @@ class LearnerMemory:
                     now,
                 ),
             )
+            self._prune_session_events("assessments", session_id)
 
     def record_turn(
         self,
@@ -192,6 +209,22 @@ class LearnerMemory:
                     now,
                 ),
             )
+            self._prune_session_events("turns", session_id)
+
+    def _prune_session_events(self, table: str, session_id: str) -> None:
+        if table not in {"turns", "assessments"}:
+            raise ValueError("unsupported learner event table")
+        # The table name is selected only from the internal allowlist above.
+        self._connection.execute(
+            f"""
+            DELETE FROM {table}
+            WHERE session_id=? AND id NOT IN (
+                SELECT id FROM {table}
+                WHERE session_id=? ORDER BY id DESC LIMIT ?
+            )
+            """,
+            (session_id, session_id, self.max_events_per_session),
+        )
 
     def profile(self, session_id: str) -> dict[str, Any]:
         with self._lock:

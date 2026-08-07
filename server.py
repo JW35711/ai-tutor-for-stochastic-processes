@@ -215,6 +215,9 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "multi_turn_context": True,
                     "learner_data": {
                         "retention_days": MEMORY_RETENTION_DAYS or None,
+                        "max_events_per_type_per_session": (
+                            AGENT.memory.max_events_per_session
+                        ),
                         "purged_sessions_on_startup": PURGED_SESSIONS_ON_STARTUP,
                     },
                     "workflow": {"nodes": list(AGENT.workflow.node_names)},

@@ -40,6 +40,10 @@ whose last update is older than that period and reports the count in `/health`.
 This convenience policy does not replace a reviewed organizational retention
 and backup policy.
 
+`MAX_SESSION_EVENTS=1000` caps stored simulation turns and quiz attempts
+independently for each learner. When a learner reaches the configured cap, the
+oldest event of the same type is removed; other sessions are not affected.
+
 ## Public exposure checklist
 
 Before exposing the application beyond a private demo:

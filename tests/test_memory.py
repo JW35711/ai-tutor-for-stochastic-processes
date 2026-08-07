@@ -132,6 +132,49 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(profile["turns"], 40)
         self.assertEqual(profile["modules"][0]["successful_runs"], 40)
 
+    def test_session_event_cap_prunes_only_oldest_matching_events(self) -> None:
+        capped_path = Path(self.directory.name) / "capped.sqlite3"
+        capped = LearnerMemory(capped_path, max_events_per_session=3)
+        try:
+            for index in range(4):
+                capped.record_turn(
+                    session_id="capped-user",
+                    question=f"turn-{index}",
+                    module_id="module00",
+                    topic="monte_carlo",
+                    tool="monte_carlo",
+                    parameters={"samples": index + 1},
+                    verified=True,
+                    misconceptions=[],
+                )
+                capped.record_assessment(
+                    session_id="capped-user",
+                    question_id=f"q-{index}",
+                    module_id="module00",
+                    answer_index=index % 2,
+                    correct=index % 2 == 0,
+                    bank_sha256="b" * 64,
+                )
+            self.assertEqual(
+                [item["question"] for item in capped.history("capped-user")],
+                ["turn-1", "turn-2", "turn-3"],
+            )
+            self.assertEqual(
+                [
+                    item["question_id"]
+                    for item in capped.assessment_history("capped-user")
+                ],
+                ["q-1", "q-2", "q-3"],
+            )
+        finally:
+            capped.close()
+
+    def test_session_event_cap_must_be_positive_integer(self) -> None:
+        for invalid in (0, -1, True):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    LearnerMemory(":memory:", max_events_per_session=invalid)
+
     def test_retention_purges_only_stale_whole_sessions(self) -> None:
         for session_id in ("stale", "active"):
             self.memory.record_turn(
