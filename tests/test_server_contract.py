@@ -1,4 +1,5 @@
 import unittest
+from io import BytesIO
 from unittest.mock import Mock
 
 from server import (
@@ -87,6 +88,54 @@ class ServerContractTests(unittest.TestCase):
             with self.subTest(invalid=invalid):
                 with self.assertRaises(ValueError):
                     validate_session_id(invalid, required=True)
+
+    def test_json_reader_requires_declared_complete_object_body(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        body = b'{"question":"simulate Brownian motion"}'
+        handler.headers = {
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Length": str(len(body)),
+        }
+        handler.rfile = BytesIO(body)
+        self.assertEqual(
+            handler._read_json_object()["question"],
+            "simulate Brownian motion",
+        )
+
+    def test_json_reader_rejects_wrong_media_type_and_short_body(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        handler.headers = {"Content-Type": "text/plain", "Content-Length": "2"}
+        handler.rfile = BytesIO(b"{}")
+        with self.assertRaisesRegex(ValueError, "Content-Type"):
+            handler._read_json_object()
+
+        handler.headers = {
+            "Content-Type": "application/json",
+            "Content-Length": "20",
+        }
+        handler.rfile = BytesIO(b"{}")
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            handler._read_json_object()
+
+    def test_json_reader_rejects_chunked_or_non_object_payload(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        handler.headers = {
+            "Content-Type": "application/json",
+            "Content-Length": "2",
+            "Transfer-Encoding": "chunked",
+        }
+        handler.rfile = BytesIO(b"{}")
+        with self.assertRaisesRegex(ValueError, "Transfer-Encoding"):
+            handler._read_json_object()
+
+        body = b"[]"
+        handler.headers = {
+            "Content-Type": "application/json",
+            "Content-Length": str(len(body)),
+        }
+        handler.rfile = BytesIO(body)
+        with self.assertRaisesRegex(ValueError, "must be an object"):
+            handler._read_json_object()
 
 
 if __name__ == "__main__":

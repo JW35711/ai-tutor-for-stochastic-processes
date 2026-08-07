@@ -38,6 +38,7 @@ RATE_LIMITER = SlidingWindowRateLimiter(
 )
 METRICS = ServiceMetrics()
 MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
+MAX_JSON_BODY_BYTES = max(1024, int(os.getenv("MAX_JSON_BODY_BYTES", "1000000")))
 MEMORY_RETENTION_DAYS = max(0, int(os.getenv("MEMORY_RETENTION_DAYS", "0")))
 PURGED_SESSIONS_ON_STARTUP = (
     AGENT.memory.purge_stale(MEMORY_RETENTION_DAYS)
@@ -187,6 +188,26 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_json_object(self) -> dict[str, object]:
+        media_type = self.headers.get("Content-Type", "").split(";", 1)[0]
+        if media_type.strip().lower() != "application/json":
+            raise ValueError("Content-Type must be application/json")
+        if self.headers.get("Transfer-Encoding"):
+            raise ValueError("Transfer-Encoding is not supported")
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except (TypeError, ValueError) as error:
+            raise ValueError("invalid request size") from error
+        if length <= 0 or length > MAX_JSON_BODY_BYTES:
+            raise ValueError("invalid request size")
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            raise ValueError("incomplete request body")
+        payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("JSON body must be an object")
+        return payload
+
     def _static(self, request_path: str) -> None:
         relative = "index.html" if request_path in {"", "/"} else unquote(request_path[1:])
         candidate = (WEB_ROOT / relative).resolve()
@@ -310,14 +331,12 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         if not self._allow_api_request():
             return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 1_000_000:
-                raise ValueError("invalid request size")
-            payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            if not isinstance(payload, dict):
-                raise ValueError("JSON body must be an object")
+            payload = self._read_json_object()
             if path == "/api/chat":
-                question = str(payload.get("question", "")).strip()
+                raw_question = payload.get("question")
+                if not isinstance(raw_question, str):
+                    raise ValueError("question must be a string")
+                question = raw_question.strip()
                 if not question:
                     raise ValueError("question is required")
                 if len(question) > MAX_QUESTION_CHARS:
@@ -332,8 +351,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             else:
                 session_id = validate_session_id(payload.get("session_id"))
                 session_id = session_id or str(uuid.uuid4())
+                question_id = payload.get("question_id")
+                if not isinstance(question_id, str):
+                    raise ValueError("question_id must be a string")
                 result = ASSESSMENTS.grade(
-                    str(payload.get("question_id", "")),
+                    question_id,
                     payload.get("answer_index"),
                 )
                 AGENT.memory.record_assessment(

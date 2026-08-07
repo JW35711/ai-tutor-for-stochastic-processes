@@ -68,9 +68,13 @@ Requests over the configured sliding-window limit return status `429`, a
 }
 ```
 
-The default request limits are a 1 MB JSON body, a 4,000-character question
+POST routes require `Content-Type: application/json`, a complete non-chunked
+JSON object and typed string fields rather than implicit coercion. The default
+request limits are a 1 MB JSON body, a 4,000-character question
 and 60 API requests per client per minute. The in-memory limiter is suitable
 for this single-process interview deployment, not a distributed service.
+`MAX_JSON_BODY_BYTES` and `MAX_QUESTION_CHARS` can lower or raise the first two
+limits for a controlled deployment.
 All routes share the same session contract: 1--128 printable characters, with
 omission allowed only when the server can generate a new session.
 
