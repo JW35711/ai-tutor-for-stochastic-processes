@@ -15,8 +15,9 @@ class FakeResponse:
     def __exit__(self, exc_type, exc, traceback) -> None:
         return None
 
-    def read(self) -> bytes:
-        return json.dumps(self.payload).encode("utf-8")
+    def read(self, size: int = -1) -> bytes:
+        body = json.dumps(self.payload).encode("utf-8")
+        return body if size < 0 else body[:size]
 
 
 class EmbeddingTests(unittest.TestCase):
@@ -92,6 +93,20 @@ class EmbeddingTests(unittest.TestCase):
         payload = {"data": [{"index": 4, "embedding": [1.0]}]}
         with patch("urllib.request.urlopen", return_value=FakeResponse(payload)):
             with self.assertRaisesRegex(RuntimeError, "invalid row indices"):
+                backend.embed_many(["one"])
+
+    def test_hosted_backend_rejects_oversized_response(self) -> None:
+        backend = OpenAICompatibleEmbedding(
+            api_key="test-key",
+            model="embedding-test",
+            base_url="https://example.invalid/v1",
+            max_response_bytes=1024,
+        )
+        payload = {
+            "data": [{"index": 0, "embedding": [1.0] * 1000}]
+        }
+        with patch("urllib.request.urlopen", return_value=FakeResponse(payload)):
+            with self.assertRaisesRegex(RuntimeError, "exceeds configured limit"):
                 backend.embed_many(["one"])
 
 

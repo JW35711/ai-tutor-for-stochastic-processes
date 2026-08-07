@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import urllib.error
@@ -16,12 +17,25 @@ class OpenAICompatibleLLM:
         self.api_key = os.getenv("LLM_API_KEY", "")
         self.model = os.getenv("LLM_MODEL", "")
         self.base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+        self.timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+        self.max_response_bytes = int(
+            os.getenv("LLM_MAX_RESPONSE_BYTES", "1000000")
+        )
+        if not math.isfinite(self.timeout) or self.timeout <= 0:
+            raise ValueError("LLM timeout must be positive")
+        if not 1_024 <= self.max_response_bytes <= 20_000_000:
+            raise ValueError("LLM response limit must be between 1024 and 20000000")
 
     @property
     def enabled(self) -> bool:
         return bool(self.api_key and self.model)
 
-    def complete(self, system: str, user: str, timeout: int = 30) -> str | None:
+    def complete(
+        self,
+        system: str,
+        user: str,
+        timeout: float | None = None,
+    ) -> str | None:
         if not self.enabled:
             return None
         request = urllib.request.Request(
@@ -43,8 +57,14 @@ class OpenAICompatibleLLM:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+            with urllib.request.urlopen(
+                request,
+                timeout=self.timeout if timeout is None else timeout,
+            ) as response:
+                body = response.read(self.max_response_bytes + 1)
+            if len(body) > self.max_response_bytes:
+                return None
+            payload = json.loads(body.decode("utf-8"))
             return payload["choices"][0]["message"]["content"].strip()
         except (
             urllib.error.URLError,
@@ -53,6 +73,7 @@ class OpenAICompatibleLLM:
             KeyError,
             IndexError,
             TypeError,
+            UnicodeDecodeError,
             json.JSONDecodeError,
         ):
             return None

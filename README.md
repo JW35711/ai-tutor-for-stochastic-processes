@@ -155,7 +155,9 @@ python3 server.py
 ```
 
 The application remains usable in offline-safe mode when these variables are
-unset.
+unset. Provider calls have configurable timeouts and bounded response bodies;
+an unavailable or oversized LLM response falls back to the verified offline
+answer.
 
 Retrieval also works without a key. By default it combines IDF-weighted sparse
 matching with a deterministic 384-dimensional local hashing vector. To use a
@@ -173,7 +175,8 @@ python3 server.py
 If configuration or initial indexing fails, startup records the reason and
 safely falls back to the local vector backend. Hosted indexing is split into
 bounded batches, and every response is checked for row order and vector
-dimension before it enters the index.
+dimension before it enters the index. Embedding responses also have a
+configurable size limit before JSON decoding.
 
 Repeated retrievals use a thread-safe in-process LRU cache (256 entries by
 default). `/health` reports its capacity, size, hits and misses. Set

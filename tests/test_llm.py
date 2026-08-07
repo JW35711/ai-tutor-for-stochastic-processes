@@ -1,6 +1,21 @@
 import unittest
+from unittest.mock import patch
 
-from src.llm import preserves_verified_facts
+from src.llm import OpenAICompatibleLLM, preserves_verified_facts
+
+
+class ByteResponse:
+    def __init__(self, body: bytes) -> None:
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        return None
+
+    def read(self, size: int = -1) -> bytes:
+        return self.body if size < 0 else self.body[:size]
 
 
 class LLMGuardTests(unittest.TestCase):
@@ -52,6 +67,20 @@ class LLMGuardTests(unittest.TestCase):
                 self.sources,
             )
         )
+
+    def test_provider_response_over_limit_falls_back_offline(self) -> None:
+        environment = {
+            "LLM_API_KEY": "test-key",
+            "LLM_MODEL": "test-model",
+            "LLM_MAX_RESPONSE_BYTES": "1024",
+        }
+        with patch.dict("os.environ", environment, clear=False):
+            client = OpenAICompatibleLLM()
+        with patch(
+            "urllib.request.urlopen",
+            return_value=ByteResponse(b"x" * 1025),
+        ):
+            self.assertIsNone(client.complete("system", "user"))
 
 
 if __name__ == "__main__":

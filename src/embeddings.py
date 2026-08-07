@@ -84,6 +84,7 @@ class OpenAICompatibleEmbedding:
         base_url: str,
         timeout: float = 30.0,
         batch_size: int = 64,
+        max_response_bytes: int = 10_000_000,
     ) -> None:
         if not api_key:
             raise ValueError("embedding API key is required")
@@ -93,11 +94,16 @@ class OpenAICompatibleEmbedding:
             raise ValueError("embedding timeout must be positive")
         if batch_size < 1 or batch_size > 2048:
             raise ValueError("embedding batch size must be between 1 and 2048")
+        if not 1_024 <= max_response_bytes <= 100_000_000:
+            raise ValueError(
+                "embedding response limit must be between 1024 and 100000000"
+            )
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.batch_size = batch_size
+        self.max_response_bytes = max_response_bytes
 
     def embed_many(self, texts: Sequence[str]) -> list[list[float]]:
         if not texts:
@@ -121,8 +127,16 @@ class OpenAICompatibleEmbedding:
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+                body = response.read(self.max_response_bytes + 1)
+            if len(body) > self.max_response_bytes:
+                raise RuntimeError("embedding response exceeds configured limit")
+            payload = json.loads(body.decode("utf-8"))
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+        ) as error:
             raise RuntimeError(f"embedding request failed: {error}") from error
         try:
             rows = sorted(payload.get("data", []), key=lambda item: item["index"])
@@ -158,5 +172,8 @@ def embedding_backend_from_environment() -> EmbeddingBackend:
             base_url=os.getenv("EMBEDDING_BASE_URL", "https://api.openai.com/v1"),
             timeout=float(os.getenv("EMBEDDING_TIMEOUT_SECONDS", "30")),
             batch_size=int(os.getenv("EMBEDDING_BATCH_SIZE", "64")),
+            max_response_bytes=int(
+                os.getenv("EMBEDDING_MAX_RESPONSE_BYTES", "10000000")
+            ),
         )
     raise ValueError(f"unsupported RAG_EMBEDDING_BACKEND: {backend}")
