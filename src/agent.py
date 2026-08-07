@@ -35,6 +35,38 @@ from .processes import (
 class StochasticTutorAgent:
     """Route questions through retrieval, simulation, verification and teaching."""
 
+    PARAMETER_LABELS: dict[str, tuple[str, ...]] = {
+        "samples": ("samples", "样本数", "样本", "实验数"),
+        "seed": ("seed", "随机种子"),
+        "slots": ("slots", "时间槽数", "时隙数", "时间槽"),
+        "probability": ("probability", "event probability", "p", "事件概率", "到达概率"),
+        "paths": ("paths", "路径数", "条路径", "实验数"),
+        "rate": ("lambda", "λ", "rate", "强度", "速率", "跳跃率"),
+        "horizon": ("horizon", "时间范围", "时长", "T"),
+        "steps": ("steps", "步数", "网格数", "时间槽数"),
+        "probability_up": ("probability_up", "p", "向上概率", "正向概率"),
+        "failure_rate": ("failure_rate", "failure rate", "alpha", "故障率"),
+        "repair_rate": ("repair_rate", "repair rate", "beta", "维修率", "修复率"),
+        "birth_rate": ("birth_rate", "birth rate", "lambda", "λ", "出生率"),
+        "death_rate": ("death_rate", "death rate", "mu", "μ", "死亡率"),
+        "capacity": ("capacity", "容量", "最大状态"),
+        "initial_state": ("initial_state", "初始状态"),
+        "failure_rate_1": ("failure_rate_1", "failure rate 1", "lambda1", "λ1", "部件1故障率"),
+        "failure_rate_2": ("failure_rate_2", "failure rate 2", "lambda2", "λ2", "部件2故障率"),
+        "arrival_probability": ("arrival_probability", "arrival probability", "p", "到达概率"),
+        "arrival_rate": ("arrival_rate", "arrival rate", "lambda", "λ", "到达率"),
+        "service_rate": ("service_rate", "service rate", "mu", "μ", "服务率"),
+        "max_state": ("max_state", "显示状态数", "最大状态"),
+        "base_rate": ("base_rate", "base rate", "基础强度", "基础率"),
+        "peak_rate": ("peak_rate", "peak rate", "峰值增量", "峰值强度"),
+        "peak_center": ("peak_center", "peak center", "峰值时刻", "高峰时刻"),
+        "peak_width": ("peak_width", "peak width", "峰值宽度", "高峰宽度"),
+        "max_steps": ("max_steps", "maximum steps", "最大步数", "步数"),
+        "runs": ("runs", "实验次数", "模拟次数"),
+        "circle_size": ("circle_size", "circle size", "m", "圆周大小", "格点数"),
+        "particles": ("particles", "k", "粒子数", "初始粒子"),
+    }
+
     def __init__(self, memory: LearnerMemory | None = None) -> None:
         self.knowledge = KnowledgeBase()
         self.llm = OpenAICompatibleLLM()
@@ -111,7 +143,10 @@ class StochasticTutorAgent:
         text: str, labels: tuple[str, ...], default: float, integer: bool = False
     ) -> float | int:
         for label in labels:
-            pattern = rf"(?:{re.escape(label)})\s*(?:为|=|:|是)?\s*(\d+(?:\.\d+)?)"
+            pattern = (
+                rf"(?:{re.escape(label)})\s*"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*(\d+(?:\.\d+)?)"
+            )
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if not match:
                 reverse_pattern = (
@@ -122,6 +157,23 @@ class StochasticTutorAgent:
                 value = float(match.group(1))
                 return int(value) if integer else value
         return int(default) if integer else float(default)
+
+    @classmethod
+    def _parameter_mentioned(cls, key: str, text: str) -> bool:
+        """Check whether a turn explicitly supplies one parameter value."""
+
+        labels = cls.PARAMETER_LABELS.get(key, (key, key.replace("_", " ")))
+        for label in labels:
+            forward = (
+                rf"(?:{re.escape(label)})\s*"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*\d+(?:\.\d+)?"
+            )
+            reverse = rf"\d+(?:\.\d+)?\s*(?:个|条)?\s*(?:{re.escape(label)})"
+            if re.search(forward, text, flags=re.IGNORECASE) or re.search(
+                reverse, text, flags=re.IGNORECASE
+            ):
+                return True
+        return False
 
     def extract_parameters(self, topic: str, question: str) -> dict[str, Any]:
         seed = self._find_number(question, ("seed", "随机种子"), 42, integer=True)
@@ -513,9 +565,15 @@ class StochasticTutorAgent:
         ):
             raise ValueError("session_id must be a non-empty string of at most 128 characters")
         session_id = session_id or str(uuid.uuid4())
+        previous_history = self.memory.history(session_id, limit=1)
+        previous_turn = previous_history[-1] if previous_history else None
         trace: list[dict[str, str]] = []
 
         module_id = self.classify_module(question)
+        module_from_context = False
+        if module_id is None and previous_turn:
+            module_id = previous_turn["module_id"]
+            module_from_context = True
         if module_id is None:
             raise ValueError(
                 "I could not identify the teaching module. Please name a model or Module 00-10."
@@ -526,7 +584,10 @@ class StochasticTutorAgent:
         trace.append(
             {
                 "node": "classify",
-                "detail": f"Module {module.number:02d}: {module.label}",
+                "detail": (
+                    f"Module {module.number:02d}: {module.label}"
+                    + (" (inherited from previous turn)" if module_from_context else "")
+                ),
             }
         )
 
@@ -556,6 +617,7 @@ class StochasticTutorAgent:
                 module_id=module_id,
                 topic=topic,
                 tool=None,
+                parameters={},
                 verified=False,
                 misconceptions=misconceptions,
             )
@@ -578,10 +640,30 @@ class StochasticTutorAgent:
                 "llm_enabled": self.llm.enabled,
             }
 
+        if (
+            previous_turn
+            and previous_turn["module_id"] == module_id
+            and previous_turn["tool"] in self.tools
+        ):
+            default_tool = previous_turn["tool"]
+
         tool_key = self.resolve_tool(module_id, default_tool, question)
 
         parameters = self.extract_parameters(tool_key, question)
-        trace.append({"node": "plan", "detail": f"call {tool_key} simulation tool"})
+        inherited_parameters: list[str] = []
+        if (
+            previous_turn
+            and previous_turn["module_id"] == module_id
+            and previous_turn["tool"] == tool_key
+        ):
+            for key, previous_value in previous_turn["parameters"].items():
+                if key in parameters and not self._parameter_mentioned(key, question):
+                    parameters[key] = previous_value
+                    inherited_parameters.append(key)
+        plan_detail = f"call {tool_key} simulation tool"
+        if inherited_parameters:
+            plan_detail += "; inherited " + ", ".join(sorted(inherited_parameters))
+        trace.append({"node": "plan", "detail": plan_detail})
 
         try:
             result = self.tools[tool_key](**parameters)
@@ -650,6 +732,7 @@ class StochasticTutorAgent:
             module_id=module_id,
             topic=topic,
             tool=tool_key,
+            parameters=parameters,
             verified=verified,
             misconceptions=misconceptions,
         )
@@ -671,5 +754,9 @@ class StochasticTutorAgent:
             "memory": profile,
             "misconceptions": misconceptions,
             "learning_note": learning_note,
+            "context": {
+                "module_inherited": module_from_context,
+                "parameters_inherited": sorted(inherited_parameters),
+            },
             "llm_enabled": self.llm.enabled,
         }

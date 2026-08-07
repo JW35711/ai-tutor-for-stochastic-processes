@@ -21,6 +21,15 @@ Point out:
 - Notebook cell citations;
 - the visible `classify → retrieve → plan → tool → respond` trace.
 
+Then ask:
+
+> 再把到达率改成0.8
+
+Show that the Agent retains the service rate, horizon and queue tool, changes
+only the arrival rate, and exposes the inherited fields in its trace. This
+context still works after creating a new Agent process because parameters are
+stored in SQLite rather than a Python dictionary.
+
 ## 3. Show misconception diagnosis (60 seconds)
 
 Run:

@@ -72,6 +72,39 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(second["memory"]["covered_modules"], ["module02"])
         self.assertEqual(second["memory"]["modules"][0]["attempts"], 2)
 
+    def test_follow_up_inherits_module_tool_and_unchanged_parameters(self) -> None:
+        first = self.agent.answer(
+            "M/M/1 queue：到达率为0.75、服务率为1、时长为300、路径数为10"
+        )
+        second = self.agent.answer("再把到达率改成0.8", first["session_id"])
+        self.assertEqual(second["module_id"], "module07")
+        self.assertEqual(second["tool"], "simulate_mm1_queue")
+        self.assertEqual(second["parameters"]["arrival_rate"], 0.8)
+        self.assertEqual(second["parameters"]["service_rate"], 1.0)
+        self.assertEqual(second["parameters"]["horizon"], 300.0)
+        self.assertEqual(second["parameters"]["paths"], 10)
+        self.assertTrue(second["context"]["module_inherited"])
+        self.assertIn("horizon", second["context"]["parameters_inherited"])
+        self.assertIn("inherited", second["trace"][2]["detail"])
+
+    def test_follow_up_context_survives_new_agent_instance(self) -> None:
+        first = self.agent.answer("泊松过程：强度为3、时长为4、路径数为20")
+        restarted_agent = StochasticTutorAgent(memory=self.memory)
+        second = restarted_agent.answer("路径数改成50", first["session_id"])
+        self.assertEqual(second["module_id"], "module01")
+        self.assertEqual(second["tool"], "simulate_poisson_process")
+        self.assertEqual(second["parameters"]["rate"], 3.0)
+        self.assertEqual(second["parameters"]["horizon"], 4.0)
+        self.assertEqual(second["parameters"]["paths"], 50)
+
+    def test_explicit_new_topic_does_not_inherit_previous_model(self) -> None:
+        first = self.agent.answer("泊松过程：强度为3、时长为4")
+        second = self.agent.answer("模拟布朗运动，T为2", first["session_id"])
+        self.assertEqual(second["module_id"], "module04")
+        self.assertEqual(second["tool"], "simulate_brownian_motion")
+        self.assertFalse(second["context"]["module_inherited"])
+        self.assertEqual(second["context"]["parameters_inherited"], [])
+
     def test_answer_exposes_diagnosis_and_adaptive_note(self) -> None:
         response = self.agent.answer("布朗运动的方差是根号T，对吗？")
         self.assertEqual(

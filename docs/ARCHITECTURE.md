@@ -28,7 +28,7 @@ flowchart LR
 | `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
 | `pedagogy.py` | Detects explicitly stated misconceptions | Diagnoses are transparent rather than hidden in a prompt |
 | `assessment.py` | Serves and grades module concept checks | Quiz results provide evidence beyond tool execution |
-| `memory.py` | Persists turns, quizzes and per-module progress in SQLite | Learner state survives server restarts |
+| `memory.py` | Persists turns, tool parameters, quizzes and per-module progress in SQLite | Learner state and follow-up context survive server restarts |
 | `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
 | `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
 
@@ -54,6 +54,15 @@ The learner profile distinguishes three forms of evidence:
 The displayed score is labelled *practice evidence*. It is not presented as a
 psychometrically validated estimate of ability. That distinction is important
 in an education product.
+
+## Multi-turn state
+
+Each successful turn stores the routed module, selected tool and validated
+parameters. If the next turn omits the model, the Agent inherits the previous
+module and tool. It carries forward only parameters that the learner did not
+explicitly replace. The `classify` and `plan` trace entries state whether the
+module or individual parameters came from context. SQLite schema migration adds
+the parameter column to existing local profiles without deleting earlier turns.
 
 ## Reliability and safety
 

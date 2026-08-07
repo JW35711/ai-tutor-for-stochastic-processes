@@ -237,6 +237,42 @@ async function submitQuiz(questionId, answerIndex) {
 
 quizButton.addEventListener("click", openQuiz);
 
+async function restoreSession() {
+  if (!sessionId) return;
+  try {
+    const response = await fetch(`/api/profile?session_id=${encodeURIComponent(sessionId)}`);
+    const payload = await response.json();
+    if (!response.ok) return;
+    const profile = payload.profile;
+    if (!profile.turns && !profile.quiz_attempts) {
+      window.localStorage.removeItem("stochasticTutorSession");
+      sessionId = null;
+      return;
+    }
+    const latest = payload.history.at(-1);
+    activeModuleId = latest?.module_id || profile.modules.at(-1)?.module_id || "module01";
+    addMessage(
+      "agent",
+      `已恢复上次学习记录：${profile.turns} 次仿真实验，${profile.quiz_correct}/${profile.quiz_attempts} 道概念题正确。你可以直接继续修改上一轮参数。`,
+    );
+    emptyEvidence.classList.add("hidden");
+    evidenceContent.classList.remove("hidden");
+    chart.innerHTML = "<p>会话已恢复。继续提问后将显示新的仿真路径。</p>";
+    parameters.innerHTML = latest?.parameters
+      ? Object.entries(latest.parameters)
+          .map(([key, value]) => `<div class="metric"><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></div>`)
+          .join("")
+      : "";
+    sources.innerHTML = "<p>继续提问后重新检索 Notebook 证据。</p>";
+    trace.innerHTML = "<li><strong>memory</strong> · restored persistent session</li>";
+    renderProfile(profile, "已从 SQLite 恢复学习档案和上一轮工具参数。");
+  } catch (_) {
+    // The service may still be starting; normal chat remains available.
+  }
+}
+
+restoreSession();
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = input.value.trim();

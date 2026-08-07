@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import sqlite3
 from pathlib import Path
 
 from src.memory import LearnerMemory
@@ -22,6 +23,7 @@ class LearnerMemoryTests(unittest.TestCase):
             module_id="module04",
             topic="brownian_motion",
             tool="brownian_motion",
+            parameters={"horizon": 1.0, "paths": 500},
             verified=True,
             misconceptions=[],
         )
@@ -44,6 +46,7 @@ class LearnerMemoryTests(unittest.TestCase):
                 module_id="module04",
                 topic="brownian_motion",
                 tool="brownian_motion",
+                parameters={"horizon": 1.0},
                 verified=True,
                 misconceptions=[misconception],
             )
@@ -58,11 +61,55 @@ class LearnerMemoryTests(unittest.TestCase):
             module_id="module01",
             topic="poisson",
             tool="poisson",
+            parameters={"rate": 2.0},
             verified=True,
             misconceptions=[],
         )
         self.memory.reset("to-reset")
         self.assertEqual(self.memory.profile("to-reset")["turns"], 0)
+
+    def test_history_restores_structured_tool_parameters(self) -> None:
+        self.memory.record_turn(
+            session_id="context-user",
+            question="模拟泊松过程",
+            module_id="module01",
+            topic="poisson",
+            tool="poisson",
+            parameters={"rate": 3.0, "horizon": 4.0},
+            verified=True,
+            misconceptions=[],
+        )
+        turn = self.memory.history("context-user", limit=1)[0]
+        self.assertEqual(turn["parameters"], {"rate": 3.0, "horizon": 4.0})
+        self.assertTrue(turn["verified"])
+
+    def test_existing_first_version_database_is_migrated_in_place(self) -> None:
+        legacy_path = Path(self.directory.name) / "legacy.sqlite3"
+        connection = sqlite3.connect(legacy_path)
+        connection.execute(
+            """
+            CREATE TABLE turns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                question TEXT NOT NULL,
+                module_id TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                tool TEXT,
+                verified INTEGER NOT NULL,
+                misconceptions TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.commit()
+        connection.close()
+        migrated = LearnerMemory(legacy_path)
+        columns = {
+            row["name"]
+            for row in migrated._connection.execute("PRAGMA table_info(turns)")
+        }
+        self.assertIn("parameters", columns)
+        migrated.close()
 
 
 class PedagogyTests(unittest.TestCase):

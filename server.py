@@ -23,7 +23,7 @@ ASSESSMENTS = AssessmentEngine()
 
 
 class TutorRequestHandler(BaseHTTPRequestHandler):
-    server_version = "StochasticTutor/0.1"
+    server_version = "StochasticTutor/0.2"
 
     def _json(self, payload: object, status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -62,6 +62,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "modules": 11,
                     "tools": len(AGENT.tools),
                     "persistent_memory": True,
+                    "multi_turn_context": True,
                     "knowledge": AGENT.knowledge.stats(),
                 }
             )

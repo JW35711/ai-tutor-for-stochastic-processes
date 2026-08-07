@@ -137,6 +137,11 @@ python3 server.py
 The application remains usable in offline-safe mode when these variables are
 unset.
 
+The Agent also supports contextual follow-ups. After a full request such as
+`M/M/1 queue：到达率为0.75、服务率为1、时长为300`, the learner can simply say
+`再把到达率改成0.8`; the module, queue tool and unchanged parameters are read
+from persistent session history, while the trace lists every inherited field.
+
 The **当前模块概念测验** button adds a graded concept check for each of the 11
 modules. Simulation practice, quiz accuracy and diagnosed misconceptions are
 shown separately in the learner profile; the UI does not claim that tool use
@@ -168,7 +173,9 @@ The test suite checks reproducibility, theoretical agreement, transition-matrix
 validation, stability conditions, exploratory-model invariants, topic routing,
 tool execution, citations, persistent memory, misconception diagnosis and
 assessment grading. The 30-case acceptance set measures module routing, tool
-choice, module-scoped evidence and workflow traces in Chinese and English.
+choice, module-scoped evidence and workflow traces in Chinese and English. A
+second five-conversation suite verifies module, tool and parameter inheritance
+across server-backed follow-up turns.
 
 Additional endpoints:
 

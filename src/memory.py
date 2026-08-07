@@ -52,6 +52,7 @@ class LearnerMemory:
                     module_id TEXT NOT NULL,
                     topic TEXT NOT NULL,
                     tool TEXT,
+                    parameters TEXT NOT NULL DEFAULT '{}',
                     verified INTEGER NOT NULL,
                     misconceptions TEXT NOT NULL DEFAULT '[]',
                     created_at TEXT NOT NULL,
@@ -76,6 +77,16 @@ class LearnerMemory:
                     ON assessments(session_id, id);
                 """
             )
+            # Existing local demos may have created the first schema version.
+            # Add new columns in place so a server upgrade never loses history.
+            columns = {
+                row["name"]
+                for row in self._connection.execute("PRAGMA table_info(turns)").fetchall()
+            }
+            if "parameters" not in columns:
+                self._connection.execute(
+                    "ALTER TABLE turns ADD COLUMN parameters TEXT NOT NULL DEFAULT '{}'"
+                )
 
     def record_assessment(
         self,
@@ -114,6 +125,7 @@ class LearnerMemory:
         module_id: str,
         topic: str,
         tool: str | None,
+        parameters: dict[str, Any] | None,
         verified: bool,
         misconceptions: list[dict[str, str]],
     ) -> None:
@@ -130,9 +142,9 @@ class LearnerMemory:
             self._connection.execute(
                 """
                 INSERT INTO turns(
-                    session_id, question, module_id, topic, tool, verified,
-                    misconceptions, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    session_id, question, module_id, topic, tool, parameters,
+                    verified, misconceptions, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
@@ -140,6 +152,7 @@ class LearnerMemory:
                     module_id,
                     topic,
                     tool,
+                    json.dumps(parameters or {}, ensure_ascii=False),
                     int(verified),
                     json.dumps(misconceptions, ensure_ascii=False),
                     now,
@@ -244,12 +257,18 @@ class LearnerMemory:
         with self._lock:
             rows = self._connection.execute(
                 """
-                SELECT question, module_id, topic, tool, verified, created_at
+                SELECT question, module_id, topic, tool, parameters, verified, created_at
                 FROM turns WHERE session_id=? ORDER BY id DESC LIMIT ?
                 """,
                 (session_id, safe_limit),
             ).fetchall()
-        return [dict(row) for row in reversed(rows)]
+        history: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            item = dict(row)
+            item["parameters"] = json.loads(item["parameters"])
+            item["verified"] = bool(item["verified"])
+            history.append(item)
+        return history
 
     def reset(self, session_id: str) -> None:
         with self._lock, self._connection:

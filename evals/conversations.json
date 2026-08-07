@@ -1,0 +1,7 @@
+[
+  {"id":"followup_poisson","turns":["泊松过程：强度为3、时长为4、路径数为20","路径数改成50"],"expected_module":"module01","expected_tool":"simulate_poisson_process","expected_parameters":{"rate":3.0,"horizon":4.0,"paths":50}},
+  {"id":"followup_mm1","turns":["M/M/1 queue：到达率为0.75、服务率为1、时长为300","再把到达率改成0.8"],"expected_module":"module07","expected_tool":"simulate_mm1_queue","expected_parameters":{"arrival_rate":0.8,"service_rate":1.0,"horizon":300.0}},
+  {"id":"followup_brownian","turns":["布朗运动：T为2、网格数为200、路径数为100","网格数改为400"],"expected_module":"module04","expected_tool":"simulate_brownian_motion","expected_parameters":{"horizon":2.0,"steps":400,"paths":100}},
+  {"id":"followup_nhpp","turns":["非齐次泊松过程 thinning：基础强度为2、峰值增量为6、高峰时刻为13","高峰时刻调整为16"],"expected_module":"module08","expected_tool":"simulate_nhpp_thinning","expected_parameters":{"base_rate":2.0,"peak_rate":6.0,"peak_center":16.0}},
+  {"id":"followup_saw","turns":["自避免游走：最大步数为300、实验次数为80","实验次数改成120"],"expected_module":"module09","expected_tool":"simulate_self_avoiding_walk","expected_parameters":{"max_steps":300,"runs":120}}
+]
