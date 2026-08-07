@@ -1,8 +1,21 @@
+import json
 import unittest
 
 from src.agent import StochasticTutorAgent
 from src.memory import LearnerMemory
 from src.module_registry import module_catalog
+
+
+class FakeLLM:
+    enabled = True
+
+    def __init__(self, grounded: bool) -> None:
+        self.grounded = grounded
+
+    def complete(self, system: str, user: str) -> str:
+        if not self.grounded:
+            return "一个没有保留数值和来源的改写。"
+        return json.loads(user)["draft"] + "\n\n这段文字已通过锚点校验。"
 
 
 class AgentTests(unittest.TestCase):
@@ -67,6 +80,21 @@ class AgentTests(unittest.TestCase):
             response["workflow"]["nodes"],
             [item["node"] for item in response["trace"]],
         )
+
+    def test_grounded_llm_rewrite_is_applied(self) -> None:
+        self.agent.llm = FakeLLM(grounded=True)  # type: ignore[assignment]
+        response = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
+        self.assertTrue(response["llm_enabled"])
+        self.assertTrue(response["llm_applied"])
+        self.assertIn("已通过锚点校验", response["answer"])
+
+    def test_ungrounded_llm_rewrite_falls_back(self) -> None:
+        self.agent.llm = FakeLLM(grounded=False)  # type: ignore[assignment]
+        response = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
+        self.assertTrue(response["llm_enabled"])
+        self.assertFalse(response["llm_applied"])
+        self.assertIn("### 先看实验结果", response["answer"])
+        self.assertIn("rejected ungrounded", response["trace"][-1]["detail"])
 
     def test_rejects_invalid_session_identifier(self) -> None:
         with self.assertRaisesRegex(ValueError, "session_id"):

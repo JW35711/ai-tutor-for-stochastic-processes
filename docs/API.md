@@ -17,7 +17,9 @@ framework. All JSON is UTF-8. Successful and error responses include
 
 The response contains the selected module and tool, validated parameters,
 numerical result, Notebook sources, seven-node trace, learner profile and
-request ID. `session_id` can be omitted on the first turn and then reused.
+request ID. `llm_enabled` states whether a provider is configured, while
+`llm_applied` is true only when its rewrite passed numeric and source-anchor
+validation. `session_id` can be omitted on the first turn and then reused.
 
 ## Concept checks
 

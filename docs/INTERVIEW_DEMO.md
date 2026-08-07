@@ -70,6 +70,10 @@ the required teaching-response structure.
 - The practice score is a product heuristic, not a validated educational test.
 - A hosted LLM is optional and is not allowed to overwrite verified numbers.
 
+If asked how that last boundary is enforced, point to `llm_applied`: a hosted
+rewrite is discarded unless it preserves every numeric and Notebook-source
+anchor from the deterministic answer.
+
 These boundaries give a clear next-step discussion: learned reranking,
 LLM-as-judge evaluation with human calibration, richer quiz banks, and a
 deployed multi-user identity layer.

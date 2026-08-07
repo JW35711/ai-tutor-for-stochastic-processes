@@ -44,22 +44,31 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         )
         self.request_started = time.monotonic()
         self.response_status = int(HTTPStatus.INTERNAL_SERVER_ERROR)
+        self.response_started = False
+        self.error_type: str | None = None
         self.rate_limit_remaining: int | None = None
 
     def _end_request(self) -> None:
         latency_ms = (time.monotonic() - self.request_started) * 1000
         METRICS.record(self.response_status, latency_ms)
-        print(
-            structured_event(
-                "http_request",
-                request_id=self.request_id,
-                method=self.command,
-                path=urlparse(self.path).path,
-                status=self.response_status,
-                latency_ms=round(latency_ms, 2),
-            ),
-            flush=True,
-        )
+        fields = {
+            "request_id": self.request_id,
+            "method": self.command,
+            "path": urlparse(self.path).path,
+            "status": self.response_status,
+            "latency_ms": round(latency_ms, 2),
+        }
+        if self.error_type:
+            fields["error_type"] = self.error_type
+        print(structured_event("http_request", **fields), flush=True)
+
+    def _internal_error(self, error: Exception) -> None:
+        self.error_type = type(error).__name__
+        if not self.response_started:
+            self._json(
+                {"error": "internal server error", "request_id": self.request_id},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     def _common_headers(self) -> None:
         self.send_header("X-Request-ID", self.request_id)
@@ -84,6 +93,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
     ) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.response_status = int(status)
+        self.response_started = True
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -106,6 +116,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         body = candidate.read_bytes()
         content_type, _ = mimetypes.guess_type(candidate.name)
         self.response_status = int(HTTPStatus.OK)
+        self.response_started = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
@@ -117,6 +128,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self._begin_request()
         try:
             self._do_get()
+        except Exception as error:
+            self._internal_error(error)
         finally:
             self._end_request()
 
@@ -134,6 +147,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "multi_turn_context": True,
                     "workflow": {"nodes": list(AGENT.workflow.node_names)},
                     "knowledge": AGENT.knowledge.stats(),
+                    "llm": {
+                        "enabled": AGENT.llm.enabled,
+                        "mode": "verified_rewrite",
+                    },
                     "runtime": asdict(METRICS.snapshot()),
                 }
             )
@@ -165,6 +182,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self._begin_request()
         try:
             self._do_post()
+        except Exception as error:
+            self._internal_error(error)
         finally:
             self._end_request()
 
@@ -228,16 +247,13 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._json(response)
         except (ValueError, json.JSONDecodeError) as error:
             self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
-        except Exception:
-            self._json(
-                {"error": "internal server error"},
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
 
     def do_DELETE(self) -> None:  # noqa: N802
         self._begin_request()
         try:
             self._do_delete()
+        except Exception as error:
+            self._internal_error(error)
         finally:
             self._end_request()
 

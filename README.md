@@ -107,7 +107,10 @@ adapter.
 
 Numerical computation is performed by Python, not by the language model. An
 optional OpenAI-compatible model can improve the wording, but it receives the
-verified numerical result and is instructed not to alter numbers or sources.
+verified numerical result and is not trusted to alter numbers or sources. A
+rewrite is applied only if every numeric anchor and exact Notebook locator from
+the verified draft survives; otherwise the Agent automatically returns the
+offline answer.
 
 ### Run the Agent
 

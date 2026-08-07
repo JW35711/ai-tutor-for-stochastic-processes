@@ -9,7 +9,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .knowledge import KnowledgeBase
-from .llm import OpenAICompatibleLLM
+from .llm import OpenAICompatibleLLM, preserves_verified_facts
 from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
@@ -740,13 +740,23 @@ class StochasticTutorAgent:
             },
             ensure_ascii=False,
         )
-        polished = self.llm.complete(
+        candidate = self.llm.complete(
             (
                 "You are a Socratic mathematics tutor. Preserve every numerical "
                 "result and source exactly. Explain in concise Chinese, distinguish "
                 "simulation from theory, and end with one guiding question."
             ),
             llm_prompt,
+        )
+        polished = (
+            candidate
+            if candidate
+            and preserves_verified_facts(
+                candidate,
+                deterministic_answer,
+                state.sources,
+            )
+            else None
         )
         state.answer = polished or deterministic_answer
         state.response = {
@@ -771,8 +781,13 @@ class StochasticTutorAgent:
                 "parameters_inherited": sorted(state.inherited_parameters),
             },
             "llm_enabled": self.llm.enabled,
+            "llm_applied": bool(polished),
         }
-        return NodeOutcome("LLM-polished answer" if polished else "offline safe answer")
+        if polished:
+            return NodeOutcome("verified LLM-polished answer")
+        if candidate:
+            return NodeOutcome("rejected ungrounded LLM rewrite; offline safe answer")
+        return NodeOutcome("offline safe answer")
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         if not isinstance(question, str) or not question.strip():
