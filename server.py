@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from src.assessment import AssessmentEngine
 from src.agent import StochasticTutorAgent
+from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 
@@ -25,6 +26,7 @@ ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
 AGENT = StochasticTutorAgent()
 ASSESSMENTS = AssessmentEngine()
+EVALUATION = load_evaluation_manifest()
 RATE_LIMITER = SlidingWindowRateLimiter(
     limit=max(1, int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "60")))
 )
@@ -151,6 +153,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "enabled": AGENT.llm.enabled,
                         "mode": "verified_rewrite",
                     },
+                    "evaluation": EVALUATION,
                     "runtime": asdict(METRICS.snapshot()),
                 }
             )

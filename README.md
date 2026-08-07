@@ -212,6 +212,10 @@ misconceptions, four neutral prompts, correction grounding and answer
 structure. These figures describe this repository's small regression sets,
 not a general benchmark of tutoring quality.
 
+`data/evaluation_manifest.json` is the checked dashboard summary. A unit test
+ties every displayed suite count to its versioned case file, while CI reruns
+all suites before a release can pass.
+
 The test suite checks reproducibility, theoretical agreement, transition-matrix
 validation, stability conditions, exploratory-model invariants, topic routing,
 tool execution, citations, persistent memory, misconception diagnosis and
@@ -259,6 +263,7 @@ examples.
 │   ├── workflow.py         # Typed seven-node state graph
 │   ├── embeddings.py       # Local and optional hosted vector backends
 │   ├── runtime.py          # Rate limiting, metrics and JSON events
+│   ├── evaluation_manifest.py # Checked dashboard evaluation summary
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests

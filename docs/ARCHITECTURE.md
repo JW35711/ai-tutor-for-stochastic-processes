@@ -37,6 +37,7 @@ flowchart LR
 | `assessment.py` | Serves and grades module concept checks | Quiz results provide evidence beyond tool execution |
 | `memory.py` | Persists turns, tool parameters, quizzes and per-module progress in SQLite | Learner state and follow-up context survive server restarts |
 | `runtime.py` | Implements rate limiting, request metrics and structured events | HTTP protection remains independent of tutoring logic |
+| `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
 | `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
 

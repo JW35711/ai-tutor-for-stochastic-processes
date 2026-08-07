@@ -53,4 +53,6 @@ for this single-process interview deployment, not a distributed service.
 
 `GET /health` reports module and tool coverage, the declared workflow nodes,
 knowledge-index statistics, embedding backend/fallback state and process-local
-request metrics. It does not expose API keys, prompts or learner records.
+request metrics. It also returns the checked evaluation manifest used by the
+dashboard, including retrieval Hit@3 and MRR. It does not expose API keys,
+prompts or learner records.

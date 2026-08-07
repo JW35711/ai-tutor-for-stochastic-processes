@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "total": 67,
+  "passed": 67,
+  "suites": [
+    {"id": "single_turn", "cases": 30, "passed": 30},
+    {"id": "multi_turn", "cases": 5, "passed": 5},
+    {"id": "retrieval", "cases": 22, "passed": 22, "hit_at_3": 1.0, "mrr": 0.9242},
+    {"id": "pedagogy", "cases": 10, "passed": 10, "structured_answer_rate": 1.0}
+  ]
+}

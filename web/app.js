@@ -19,6 +19,8 @@ const healthMeta = document.querySelector("#healthMeta");
 const moduleCount = document.querySelector("#moduleCount");
 const toolCount = document.querySelector("#toolCount");
 const sourceCount = document.querySelector("#sourceCount");
+const evaluationCount = document.querySelector("#evaluationCount");
+const evaluationMeta = document.querySelector("#evaluationMeta");
 
 let sessionId = window.localStorage.getItem("stochasticTutorSession");
 let activeModuleId = "module01";
@@ -254,6 +256,13 @@ async function hydrateHealth() {
     moduleCount.textContent = `${health.modules}/${health.modules}`;
     toolCount.textContent = health.tools;
     sourceCount.textContent = health.knowledge?.entries ?? "—";
+    if (health.evaluation) {
+      evaluationCount.textContent = `${health.evaluation.passed}/${health.evaluation.total}`;
+      const retrieval = health.evaluation.suites?.find((suite) => suite.id === "retrieval");
+      evaluationMeta.textContent = retrieval
+        ? `RAG Hit@3 ${Math.round(retrieval.hit_at_3 * 100)}% · MRR ${retrieval.mrr}`
+        : "对话、RAG 与教学验收";
+    }
   } catch (_) {
     healthStatus.innerHTML = "<i></i> Agent offline";
   }
