@@ -152,11 +152,14 @@ export RAG_EMBEDDING_BACKEND="openai_compatible"
 export EMBEDDING_API_KEY="your-key"
 export EMBEDDING_MODEL="your-embedding-model"
 export EMBEDDING_BASE_URL="https://your-provider.example/v1"
+export EMBEDDING_BATCH_SIZE="64"
 python3 server.py
 ```
 
 If configuration or initial indexing fails, startup records the reason and
-safely falls back to the local vector backend.
+safely falls back to the local vector backend. Hosted indexing is split into
+bounded batches, and every response is checked for row order and vector
+dimension before it enters the index.
 
 The Agent also supports contextual follow-ups. After a full request such as
 `M/M/1 queue：到达率为0.75、服务率为1、时长为300`, the learner can simply say

@@ -60,6 +60,40 @@ class EmbeddingTests(unittest.TestCase):
         self.assertEqual(request_body["input"], ["first", "second"])
         self.assertEqual(request_body["model"], "embedding-test")
 
+    def test_hosted_backend_splits_large_inputs_into_batches(self) -> None:
+        backend = OpenAICompatibleEmbedding(
+            api_key="test-key",
+            model="embedding-test",
+            base_url="https://example.invalid/v1",
+            batch_size=2,
+        )
+        payloads = [
+            {"data": [
+                {"index": 0, "embedding": [1.0, 0.0]},
+                {"index": 1, "embedding": [0.0, 1.0]},
+            ]},
+            {"data": [{"index": 0, "embedding": [1.0, 1.0]}]},
+        ]
+        with patch(
+            "urllib.request.urlopen",
+            side_effect=[FakeResponse(payload) for payload in payloads],
+        ) as call:
+            vectors = backend.embed_many(["one", "two", "three"])
+        self.assertEqual(call.call_count, 2)
+        self.assertEqual(len(vectors), 3)
+        self.assertAlmostEqual(sum(value * value for value in vectors[-1]), 1.0)
+
+    def test_hosted_backend_rejects_invalid_row_indices(self) -> None:
+        backend = OpenAICompatibleEmbedding(
+            api_key="test-key",
+            model="embedding-test",
+            base_url="https://example.invalid/v1",
+        )
+        payload = {"data": [{"index": 4, "embedding": [1.0]}]}
+        with patch("urllib.request.urlopen", return_value=FakeResponse(payload)):
+            with self.assertRaisesRegex(RuntimeError, "invalid row indices"):
+                backend.embed_many(["one"])
+
 
 if __name__ == "__main__":
     unittest.main()

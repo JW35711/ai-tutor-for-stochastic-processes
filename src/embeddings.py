@@ -83,19 +83,31 @@ class OpenAICompatibleEmbedding:
         model: str,
         base_url: str,
         timeout: float = 30.0,
+        batch_size: int = 64,
     ) -> None:
         if not api_key:
             raise ValueError("embedding API key is required")
         if not model:
             raise ValueError("embedding model is required")
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("embedding timeout must be positive")
+        if batch_size < 1 or batch_size > 2048:
+            raise ValueError("embedding batch size must be between 1 and 2048")
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.batch_size = batch_size
 
     def embed_many(self, texts: Sequence[str]) -> list[list[float]]:
         if not texts:
             return []
+        vectors: list[list[float]] = []
+        for offset in range(0, len(texts), self.batch_size):
+            vectors.extend(self._embed_batch(texts[offset : offset + self.batch_size]))
+        return vectors
+
+    def _embed_batch(self, texts: Sequence[str]) -> list[list[float]]:
         request = urllib.request.Request(
             f"{self.base_url}/embeddings",
             data=json.dumps(
@@ -112,12 +124,25 @@ class OpenAICompatibleEmbedding:
                 payload = json.loads(response.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
             raise RuntimeError(f"embedding request failed: {error}") from error
-        rows = sorted(payload.get("data", []), key=lambda item: item["index"])
+        try:
+            rows = sorted(payload.get("data", []), key=lambda item: item["index"])
+        except (AttributeError, KeyError, TypeError) as error:
+            raise RuntimeError("embedding endpoint returned malformed data") from error
         if len(rows) != len(texts):
             raise RuntimeError("embedding endpoint returned an unexpected row count")
-        vectors = [normalize(row["embedding"]) for row in rows]
+        if [row.get("index") for row in rows] != list(range(len(texts))):
+            raise RuntimeError("embedding endpoint returned invalid row indices")
+        try:
+            vectors = [normalize(row["embedding"]) for row in rows]
+        except (KeyError, TypeError, ValueError) as error:
+            raise RuntimeError("embedding endpoint returned malformed vectors") from error
         if vectors:
-            self.dimension = len(vectors[0])
+            dimension = len(vectors[0])
+            if dimension < 1 or any(len(vector) != dimension for vector in vectors):
+                raise RuntimeError("embedding vectors have inconsistent dimensions")
+            if self.dimension not in {0, dimension}:
+                raise RuntimeError("embedding dimension changed between batches")
+            self.dimension = dimension
         return vectors
 
 
@@ -131,5 +156,7 @@ def embedding_backend_from_environment() -> EmbeddingBackend:
             api_key=os.getenv("EMBEDDING_API_KEY", ""),
             model=os.getenv("EMBEDDING_MODEL", ""),
             base_url=os.getenv("EMBEDDING_BASE_URL", "https://api.openai.com/v1"),
+            timeout=float(os.getenv("EMBEDDING_TIMEOUT_SECONDS", "30")),
+            batch_size=int(os.getenv("EMBEDDING_BATCH_SIZE", "64")),
         )
     raise ValueError(f"unsupported RAG_EMBEDDING_BACKEND: {backend}")
