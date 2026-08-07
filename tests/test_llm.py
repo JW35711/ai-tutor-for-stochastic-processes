@@ -40,6 +40,19 @@ class LLMGuardTests(unittest.TestCase):
             )
         )
 
+    def test_incidental_numbers_outside_result_summary_are_not_anchors(self) -> None:
+        candidate = (
+            "经验均值 1.25。\n"
+            "notebooks/04_Random_Walk_Part3.ipynb#cell-4"
+        )
+        self.assertTrue(
+            preserves_verified_facts(
+                candidate,
+                "经验均值 1.25。",
+                self.sources,
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

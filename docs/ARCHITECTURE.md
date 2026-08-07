@@ -4,10 +4,12 @@ The project separates probabilistic computation from language generation. The
 Python tools own all numerical results; an optional language model may only
 rewrite the verified explanation.
 
-The rewrite boundary is enforced after generation: every number and exact
-Notebook source locator in the deterministic draft must remain present. A
-candidate that drops or changes an anchor is discarded, and the offline draft
-is returned. Prompt instructions are therefore not the only grounding control.
+The rewrite boundary is enforced after generation: every number in the
+verified tool-result summary and every exact Notebook source locator must
+remain present. Numbers that merely occur inside a retrieved teaching excerpt
+are not confused with numerical outputs. A candidate that drops or changes a
+required anchor is discarded, and the offline draft is returned. Prompt
+instructions are therefore not the only grounding control.
 
 ```mermaid
 flowchart LR

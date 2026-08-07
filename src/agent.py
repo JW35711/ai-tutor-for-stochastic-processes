@@ -713,6 +713,7 @@ class StochasticTutorAgent:
             raise RuntimeError("response state is incomplete")
         if state.verified:
             explanation = self._summary(state.tool_key, state.result)
+            verified_anchor_text = explanation
             source_text = (
                 state.sources[0]["content"]
                 if state.sources
@@ -731,6 +732,7 @@ class StochasticTutorAgent:
                 f"参数校验没有通过：{state.result['error']}。请修改参数后再运行，"
                 "我不会用不合法的参数生成看似合理的图。"
             )
+            verified_anchor_text = deterministic_answer
 
         if state.misconceptions:
             corrections = "\n".join(
@@ -766,7 +768,7 @@ class StochasticTutorAgent:
             if candidate
             and preserves_verified_facts(
                 candidate,
-                deterministic_answer,
+                verified_anchor_text,
                 state.sources,
             )
             else None

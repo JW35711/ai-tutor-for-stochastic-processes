@@ -60,7 +60,7 @@ class OpenAICompatibleLLM:
 
 def preserves_verified_facts(
     candidate: str,
-    verified_draft: str,
+    verified_result_text: str,
     sources: list[dict[str, object]],
 ) -> bool:
     """Accept a rewrite only when every numeric and source anchor survives.
@@ -72,7 +72,11 @@ def preserves_verified_facts(
     if not isinstance(candidate, str) or not candidate.strip():
         return False
     numeric_anchors = set(
-        re.findall(r"(?<![A-Za-z])[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?", verified_draft, re.I)
+        re.findall(
+            r"(?<![A-Za-z])[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?",
+            verified_result_text,
+            re.I,
+        )
     )
     source_anchors = {
         str(source.get("source", ""))
