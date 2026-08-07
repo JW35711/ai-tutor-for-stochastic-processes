@@ -3,6 +3,9 @@
 The local server exposes a versioned response contract without requiring a
 framework. All JSON is UTF-8. Successful and error responses include
 `X-Request-ID` and `X-API-Version: 1`.
+Errors keep a human-readable string in `error` for the browser and also return
+a stable `error_code` plus `request_id` for programmatic handling and log
+correlation.
 
 ## Chat
 

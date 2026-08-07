@@ -53,7 +53,26 @@ class ServerContractTests(unittest.TestCase):
             RATE_LIMITER.limit = original_limit
         args = handler._json.call_args.args
         self.assertEqual(args[1].value, 429)
+        self.assertEqual(args[0]["error_code"], "rate_limited")
+        self.assertEqual(args[0]["request_id"], "rate-test")
         self.assertIn("Retry-After", args[2])
+
+    def test_error_envelope_is_traceable_and_keeps_string_message(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        handler.request_id = "request-error-1"
+        handler._json = Mock()
+        handler._error("bad input", 400, "invalid_request")
+        payload, status, headers = handler._json.call_args.args
+        self.assertEqual(
+            payload,
+            {
+                "error": "bad input",
+                "error_code": "invalid_request",
+                "request_id": "request-error-1",
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertIsNone(headers)
 
     def test_session_id_contract_is_shared_across_api_routes(self) -> None:
         self.assertEqual(validate_session_id(" learner-1 "), "learner-1")

@@ -94,12 +94,15 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         print(structured_event("http_request", **fields), flush=True)
 
     def _internal_error(self, error: Exception) -> None:
-        self.error_type = type(error).__name__
         if not self.response_started:
-            self._json(
-                {"error": "internal server error", "request_id": self.request_id},
+            self._error(
+                "internal server error",
                 HTTPStatus.INTERNAL_SERVER_ERROR,
+                code="internal_error",
             )
+        # Preserve the concrete exception class in logs without exposing it to
+        # the caller. The public envelope intentionally stays provider-neutral.
+        self.error_type = type(error).__name__
 
     def _common_headers(self) -> None:
         self.send_header("X-Request-ID", self.request_id)
@@ -121,12 +124,32 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.rate_limit_remaining = remaining
         if allowed:
             return True
-        self._json(
-            {"error": "rate limit exceeded", "request_id": self.request_id},
+        self._error(
+            "rate limit exceeded",
             HTTPStatus.TOO_MANY_REQUESTS,
-            {"Retry-After": str(retry_after)},
+            code="rate_limited",
+            extra_headers={"Retry-After": str(retry_after)},
         )
         return False
+
+    def _error(
+        self,
+        message: str,
+        status: HTTPStatus,
+        code: str,
+        extra_headers: dict[str, str] | None = None,
+    ) -> None:
+        """Return one traceable, backwards-compatible error envelope."""
+        self.error_type = code
+        self._json(
+            {
+                "error": message,
+                "error_code": code,
+                "request_id": self.request_id,
+            },
+            status,
+            extra_headers,
+        )
 
     def _json(
         self,
@@ -151,10 +174,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         relative = "index.html" if request_path in {"", "/"} else unquote(request_path[1:])
         candidate = (WEB_ROOT / relative).resolve()
         if WEB_ROOT.resolve() not in candidate.parents and candidate != WEB_ROOT.resolve():
-            self._json({"error": "invalid path"}, HTTPStatus.BAD_REQUEST)
+            self._error("invalid path", HTTPStatus.BAD_REQUEST, "invalid_path")
             return
         if not candidate.is_file():
-            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         body = candidate.read_bytes()
         content_type, _ = mimetypes.guess_type(candidate.name)
@@ -217,9 +240,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             try:
                 session_id = validate_session_id(session_id, required=True)
             except ValueError as error:
-                self._json(
-                    {"error": str(error)}, HTTPStatus.BAD_REQUEST
-                )
+                self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
             else:
                 assert session_id is not None
                 profile = AGENT.memory.profile(session_id)
@@ -235,7 +256,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             try:
                 self._json({"quiz": ASSESSMENTS.question(module_id)})
             except ValueError as error:
-                self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_module")
         else:
             self._static(path)
 
@@ -251,7 +272,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
     def _do_post(self) -> None:
         path = urlparse(self.path).path
         if path not in {"/api/chat", "/api/quiz/submit"}:
-            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         if not self._allow_api_request():
             return
@@ -299,7 +320,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             response["request_id"] = self.request_id
             self._json(response)
         except (ValueError, json.JSONDecodeError) as error:
-            self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+            self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_request")
 
     def do_DELETE(self) -> None:  # noqa: N802
         self._begin_request()
@@ -316,7 +337,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             return
         prefix = "/api/sessions/"
         if not path.startswith(prefix):
-            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         raw_session_id = unquote(path[len(prefix) :])
         try:
@@ -324,7 +345,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             if session_id and "/" in session_id:
                 raise ValueError("session_id path cannot contain a slash")
         except ValueError as error:
-            self._json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+            self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
             return
         assert session_id is not None
         AGENT.memory.reset(session_id)
