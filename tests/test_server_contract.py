@@ -137,6 +137,35 @@ class ServerContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be an object"):
             handler._read_json_object()
 
+    def test_static_assets_support_etag_revalidation(self) -> None:
+        first = object.__new__(TutorRequestHandler)
+        first.headers = {}
+        first.request_id = "static-first"
+        first.rate_limit_remaining = None
+        first.response_started = False
+        first.send_response = Mock()
+        first.send_header = Mock()
+        first.end_headers = Mock()
+        first.wfile = BytesIO()
+        first._static("/app.js")
+        headers = dict(call.args for call in first.send_header.call_args_list)
+        self.assertRegex(headers["ETag"], r'^"[0-9a-f]{64}"$')
+        self.assertEqual(headers["Cache-Control"], "no-cache")
+        self.assertGreater(len(first.wfile.getvalue()), 0)
+
+        cached = object.__new__(TutorRequestHandler)
+        cached.headers = {"If-None-Match": headers["ETag"]}
+        cached.request_id = "static-cached"
+        cached.rate_limit_remaining = None
+        cached.response_started = False
+        cached.send_response = Mock()
+        cached.send_header = Mock()
+        cached.end_headers = Mock()
+        cached.wfile = BytesIO()
+        cached._static("/app.js")
+        self.assertEqual(cached.response_status, 304)
+        self.assertEqual(cached.wfile.getvalue(), b"")
+
 
 if __name__ == "__main__":
     unittest.main()

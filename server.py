@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import mimetypes
 import os
@@ -218,12 +219,24 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         body = candidate.read_bytes()
+        etag = f'"{hashlib.sha256(body).hexdigest()}"'
+        if self.headers.get("If-None-Match") == etag:
+            self.response_status = int(HTTPStatus.NOT_MODIFIED)
+            self.response_started = True
+            self.send_response(HTTPStatus.NOT_MODIFIED)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "no-cache")
+            self._common_headers()
+            self.end_headers()
+            return
         content_type, _ = mimetypes.guess_type(candidate.name)
         self.response_status = int(HTTPStatus.OK)
         self.response_started = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("ETag", etag)
+        self.send_header("Cache-Control", "no-cache")
         self._common_headers()
         self.end_headers()
         self.wfile.write(body)

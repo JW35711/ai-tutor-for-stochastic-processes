@@ -6,6 +6,8 @@ framework. All JSON is UTF-8. Successful and error responses include
 Errors keep a human-readable string in `error` for the browser and also return
 a stable `error_code` plus `request_id` for programmatic handling and log
 correlation.
+Static UI assets return a SHA-256 `ETag` with `Cache-Control: no-cache`, so
+browsers revalidate changed files and reuse unchanged bytes through `304`.
 
 ## Chat
 
