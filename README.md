@@ -259,7 +259,7 @@ Additional endpoints:
 | `DELETE /api/sessions/{id}` | Reset one learner session |
 
 Every response includes `X-Request-ID`, `X-API-Version` and basic browser
-security headers. POST endpoints use a per-process sliding-window limit
+security headers. API endpoints use a per-process sliding-window limit
 (60 requests per client per minute by default), and request completion is
 written as one privacy-conscious JSON log event without the learner's question
 text. Configure `API_RATE_LIMIT_PER_MINUTE` and `MAX_QUESTION_CHARS` through

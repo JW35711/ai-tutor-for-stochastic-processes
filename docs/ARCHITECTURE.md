@@ -140,8 +140,8 @@ consistent across request threads.
 - LLM use is optional; offline mode supports every simulation and assessment.
 - Third-party reference PDFs are excluded from version control.
 - Each API response carries a request ID and browser security headers.
-- POST requests are bounded by body size, question length and a per-client
-  sliding-window rate limit.
+- All API requests use a per-client sliding-window rate limit. POST requests
+  are additionally bounded by body size and question length.
 - Logs contain route, status and latency, but not the learner's question text.
 
 Runtime counters are deliberately process-local, matching the current

@@ -33,6 +33,22 @@ class ServerContractTests(unittest.TestCase):
     def test_dashboard_evaluation_matches_live_corpus(self) -> None:
         self.assertTrue(EVALUATION["corpus_match"])
 
+    def test_api_rate_limit_helper_returns_retry_metadata(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        handler.client_address = ("contract-test-client", 1234)
+        handler.request_id = "rate-test"
+        handler._json = Mock()
+        original_limit = RATE_LIMITER.limit
+        try:
+            RATE_LIMITER.limit = 1
+            self.assertTrue(handler._allow_api_request())
+            self.assertFalse(handler._allow_api_request())
+        finally:
+            RATE_LIMITER.limit = original_limit
+        args = handler._json.call_args.args
+        self.assertEqual(args[1].value, 429)
+        self.assertIn("Retry-After", args[2])
+
 
 if __name__ == "__main__":
     unittest.main()

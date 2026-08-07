@@ -99,6 +99,18 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self.send_header("X-RateLimit-Limit", str(RATE_LIMITER.limit))
             self.send_header("X-RateLimit-Remaining", str(self.rate_limit_remaining))
 
+    def _allow_api_request(self) -> bool:
+        allowed, remaining, retry_after = RATE_LIMITER.allow(self.client_address[0])
+        self.rate_limit_remaining = remaining
+        if allowed:
+            return True
+        self._json(
+            {"error": "rate limit exceeded", "request_id": self.request_id},
+            HTTPStatus.TOO_MANY_REQUESTS,
+            {"Retry-After": str(retry_after)},
+        )
+        return False
+
     def _json(
         self,
         payload: object,
@@ -150,6 +162,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
     def _do_get(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path
+        if path.startswith("/api/") and not self._allow_api_request():
+            return
         if path == "/health":
             self._json(
                 {
@@ -215,14 +229,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         if path not in {"/api/chat", "/api/quiz/submit"}:
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
-        allowed, remaining, retry_after = RATE_LIMITER.allow(self.client_address[0])
-        self.rate_limit_remaining = remaining
-        if not allowed:
-            self._json(
-                {"error": "rate limit exceeded", "request_id": self.request_id},
-                HTTPStatus.TOO_MANY_REQUESTS,
-                {"Retry-After": str(retry_after)},
-            )
+        if not self._allow_api_request():
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -284,6 +291,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
 
     def _do_delete(self) -> None:
         path = urlparse(self.path).path
+        if path.startswith("/api/") and not self._allow_api_request():
+            return
         prefix = "/api/sessions/"
         if not path.startswith(prefix):
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
