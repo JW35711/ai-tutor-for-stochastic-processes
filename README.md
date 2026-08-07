@@ -174,8 +174,14 @@ The Agent server itself uses only the Python standard library:
 
 ```bash
 docker build -t stochastic-tutor-agent .
-docker run --rm -p 8000:8000 stochastic-tutor-agent
+docker run --rm -p 8000:8000 \
+  -v stochastic-tutor-data:/app/artifacts \
+  stochastic-tutor-agent
 ```
+
+The container runs as an unprivileged user, persists SQLite learner state in a
+named volume and includes a `/health` probe. See
+[Deployment](docs/DEPLOYMENT.md) for configuration and production boundaries.
 
 ### Agent API and tests
 
@@ -266,6 +272,7 @@ their theoretical reference values.
 
 See [Architecture](docs/ARCHITECTURE.md) for component boundaries and
 [Five-minute interview demo](docs/INTERVIEW_DEMO.md) for a concise walkthrough.
+Deployment notes are in [Deployment](docs/DEPLOYMENT.md).
 
 ## Current Agent limitations
 

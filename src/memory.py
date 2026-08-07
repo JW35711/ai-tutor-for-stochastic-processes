@@ -8,6 +8,7 @@ learning state survive a server restart.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,7 +17,16 @@ from typing import Any
 
 
 DEFAULT_MEMORY_PATH = (
-    Path(__file__).resolve().parent.parent / "artifacts" / "tutor_memory.sqlite3"
+    Path(
+        os.getenv(
+            "TUTOR_MEMORY_PATH",
+            str(
+                Path(__file__).resolve().parent.parent
+                / "artifacts"
+                / "tutor_memory.sqlite3"
+            ),
+        )
+    )
 )
 
 
