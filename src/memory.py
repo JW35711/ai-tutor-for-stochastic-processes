@@ -83,6 +83,7 @@ class LearnerMemory:
                     module_id TEXT NOT NULL,
                     answer_index INTEGER NOT NULL,
                     correct INTEGER NOT NULL,
+                    bank_sha256 TEXT,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY(session_id) REFERENCES sessions(session_id)
                 );
@@ -101,6 +102,16 @@ class LearnerMemory:
                 self._connection.execute(
                     "ALTER TABLE turns ADD COLUMN parameters TEXT NOT NULL DEFAULT '{}'"
                 )
+            assessment_columns = {
+                row["name"]
+                for row in self._connection.execute(
+                    "PRAGMA table_info(assessments)"
+                ).fetchall()
+            }
+            if "bank_sha256" not in assessment_columns:
+                self._connection.execute(
+                    "ALTER TABLE assessments ADD COLUMN bank_sha256 TEXT"
+                )
 
     def record_assessment(
         self,
@@ -110,6 +121,7 @@ class LearnerMemory:
         module_id: str,
         answer_index: int,
         correct: bool,
+        bank_sha256: str | None = None,
     ) -> None:
         now = self._now()
         with self._lock, self._connection:
@@ -125,10 +137,18 @@ class LearnerMemory:
                 """
                 INSERT INTO assessments(
                     session_id, question_id, module_id, answer_index, correct,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    bank_sha256, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (session_id, question_id, module_id, answer_index, int(correct), now),
+                (
+                    session_id,
+                    question_id,
+                    module_id,
+                    answer_index,
+                    int(correct),
+                    bank_sha256,
+                    now,
+                ),
             )
 
     def record_turn(
@@ -283,6 +303,28 @@ class LearnerMemory:
             item["verified"] = bool(item["verified"])
             history.append(item)
         return history
+
+    def assessment_history(
+        self, session_id: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        """Return recent quiz attempts with their content-version provenance."""
+
+        safe_limit = max(1, min(int(limit), 100))
+        with self._lock:
+            rows = self._connection.execute(
+                """
+                SELECT question_id, module_id, answer_index, correct,
+                       bank_sha256, created_at
+                FROM assessments WHERE session_id=? ORDER BY id DESC LIMIT ?
+                """,
+                (session_id, safe_limit),
+            ).fetchall()
+        attempts: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            item = dict(row)
+            item["correct"] = bool(item["correct"])
+            attempts.append(item)
+        return attempts
 
     def reset(self, session_id: str) -> None:
         with self._lock, self._connection:

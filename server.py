@@ -248,6 +248,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     {
                         "profile": profile,
                         "history": AGENT.memory.history(session_id),
+                        "assessments": AGENT.memory.assessment_history(session_id),
                         "recommendation": recommend_next(profile),
                     }
                 )
@@ -309,6 +310,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     module_id=result["module_id"],
                     answer_index=result["answer_index"],
                     correct=result["correct"],
+                    bank_sha256=result["bank_sha256"],
                 )
                 profile = AGENT.memory.profile(session_id)
                 response = {

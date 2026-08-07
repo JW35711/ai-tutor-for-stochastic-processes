@@ -98,6 +98,21 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(turn["parameters"], {"rate": 3.0, "horizon": 4.0})
         self.assertTrue(turn["verified"])
 
+    def test_assessment_history_preserves_quiz_bank_version(self) -> None:
+        bank_sha256 = "a" * 64
+        self.memory.record_assessment(
+            session_id="quiz-history-user",
+            question_id="q04",
+            module_id="module04",
+            answer_index=2,
+            correct=True,
+            bank_sha256=bank_sha256,
+        )
+        attempt = self.memory.assessment_history("quiz-history-user", limit=1)[0]
+        self.assertEqual(attempt["bank_sha256"], bank_sha256)
+        self.assertEqual(attempt["answer_index"], 2)
+        self.assertTrue(attempt["correct"])
+
     def test_concurrent_turns_are_serialized_without_loss(self) -> None:
         def record(index: int) -> None:
             self.memory.record_turn(
@@ -168,6 +183,11 @@ class LearnerMemoryTests(unittest.TestCase):
             for row in migrated._connection.execute("PRAGMA table_info(turns)")
         }
         self.assertIn("parameters", columns)
+        assessment_columns = {
+            row["name"]
+            for row in migrated._connection.execute("PRAGMA table_info(assessments)")
+        }
+        self.assertIn("bank_sha256", assessment_columns)
         migrated.close()
 
 

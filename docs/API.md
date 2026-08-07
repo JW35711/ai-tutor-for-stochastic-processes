@@ -46,18 +46,24 @@ reason code, learner-facing reason and suggested next question.
 
 ## Profile and reset
 
-- `GET /api/profile?session_id=...` returns persistent progress and history.
+`GET /api/profile?session_id=...` returns the learner profile, simulation
+history, quiz-attempt history and next recommendation. Each new quiz attempt
+stores the `bank_sha256` of the exact assessment content used; rows created by
+older releases may return `null` for that field after the in-place migration.
+
 - `DELETE /api/sessions/{id}` clears only that learner session.
 
 ## Errors and limits
 
-Malformed or invalid requests return status `400` and an `error` string.
+Malformed or invalid requests return status `400`, an `error` string and a
+stable `error_code`.
 Requests over the configured sliding-window limit return status `429`, a
 `Retry-After` header and the generated `request_id`:
 
 ```json
 {
   "error": "rate limit exceeded",
+  "error_code": "rate_limited",
   "request_id": "5ce20d1658b84ad3b60601d5f0279b3d"
 }
 ```
