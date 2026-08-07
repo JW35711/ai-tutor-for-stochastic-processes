@@ -34,6 +34,12 @@ RATE_LIMITER = SlidingWindowRateLimiter(
 )
 METRICS = ServiceMetrics()
 MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
+MEMORY_RETENTION_DAYS = max(0, int(os.getenv("MEMORY_RETENTION_DAYS", "0")))
+PURGED_SESSIONS_ON_STARTUP = (
+    AGENT.memory.purge_stale(MEMORY_RETENTION_DAYS)
+    if MEMORY_RETENTION_DAYS
+    else 0
+)
 
 
 class TutorRequestHandler(BaseHTTPRequestHandler):
@@ -149,6 +155,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "tools": len(AGENT.tools),
                     "persistent_memory": True,
                     "multi_turn_context": True,
+                    "learner_data": {
+                        "retention_days": MEMORY_RETENTION_DAYS or None,
+                        "purged_sessions_on_startup": PURGED_SESSIONS_ON_STARTUP,
+                    },
                     "workflow": {"nodes": list(AGENT.workflow.node_names)},
                     "knowledge": AGENT.knowledge.stats(),
                     "llm": {

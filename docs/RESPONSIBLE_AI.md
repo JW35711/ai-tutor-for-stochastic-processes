@@ -47,6 +47,10 @@ between users or instances. Model and embedding providers may have separate
 data policies; enabling them is an operator decision, not a requirement for
 the offline application.
 
+The demo supports an optional `MEMORY_RETENTION_DAYS` startup purge. It deletes
+complete stale sessions rather than partial turns, is disabled by default, and
+is visible through the health response.
+
 ## Abuse and prompt-injection boundary
 
 A learner question cannot choose an arbitrary Python name, shell command, file

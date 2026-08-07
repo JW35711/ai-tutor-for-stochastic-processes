@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -289,6 +289,36 @@ class LearnerMemory:
             self._connection.execute(
                 "DELETE FROM sessions WHERE session_id=?", (session_id,)
             )
+
+    def purge_stale(self, retention_days: int) -> int:
+        """Delete whole sessions older than the configured retention period."""
+
+        if (
+            isinstance(retention_days, bool)
+            or not isinstance(retention_days, int)
+            or retention_days < 1
+        ):
+            raise ValueError("retention_days must be a positive integer")
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=retention_days)
+        ).isoformat(timespec="seconds")
+        with self._lock, self._connection:
+            rows = self._connection.execute(
+                "SELECT session_id FROM sessions WHERE updated_at < ?",
+                (cutoff,),
+            ).fetchall()
+            session_ids = [row["session_id"] for row in rows]
+            for session_id in session_ids:
+                self._connection.execute(
+                    "DELETE FROM turns WHERE session_id=?", (session_id,)
+                )
+                self._connection.execute(
+                    "DELETE FROM assessments WHERE session_id=?", (session_id,)
+                )
+                self._connection.execute(
+                    "DELETE FROM sessions WHERE session_id=?", (session_id,)
+                )
+        return len(session_ids)
 
     def close(self) -> None:
         with self._lock:

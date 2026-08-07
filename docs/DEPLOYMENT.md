@@ -32,6 +32,12 @@ independent containers against the same SQLite file over a network filesystem.
 For horizontal scaling, replace learner memory with a transactional service
 database and move the rate limiter to a shared store.
 
+`MEMORY_RETENTION_DAYS=0` keeps local sessions until the learner resets them.
+For a hosted demo, set a positive day count; startup then removes whole sessions
+whose last update is older than that period and reports the count in `/health`.
+This convenience policy does not replace a reviewed organizational retention
+and backup policy.
+
 ## Public exposure checklist
 
 Before exposing the application beyond a private demo:

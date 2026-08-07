@@ -103,6 +103,31 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(profile["turns"], 40)
         self.assertEqual(profile["modules"][0]["successful_runs"], 40)
 
+    def test_retention_purges_only_stale_whole_sessions(self) -> None:
+        for session_id in ("stale", "active"):
+            self.memory.record_turn(
+                session_id=session_id,
+                question="模拟布朗运动",
+                module_id="module04",
+                topic="brownian_motion",
+                tool="brownian_motion",
+                parameters={"horizon": 1.0},
+                verified=True,
+                misconceptions=[],
+            )
+        with self.memory._lock, self.memory._connection:
+            self.memory._connection.execute(
+                "UPDATE sessions SET updated_at=? WHERE session_id=?",
+                ("2000-01-01T00:00:00+00:00", "stale"),
+            )
+        self.assertEqual(self.memory.purge_stale(30), 1)
+        self.assertEqual(self.memory.profile("stale")["turns"], 0)
+        self.assertEqual(self.memory.profile("active")["turns"], 1)
+
+    def test_retention_rejects_disabled_or_invalid_values(self) -> None:
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            self.memory.purge_stale(0)
+
     def test_existing_first_version_database_is_migrated_in_place(self) -> None:
         legacy_path = Path(self.directory.name) / "legacy.sqlite3"
         connection = sqlite3.connect(legacy_path)
