@@ -230,6 +230,7 @@ Additional endpoints:
 | --- | --- |
 | `GET /health` | Tool, module, workflow, memory and knowledge-index status |
 | `GET /api/topics` | Public catalogue for Modules 00–10 |
+| `GET /api/tools` | 15 tool descriptions and JSON-ready parameter contracts |
 | `POST /api/chat` | Full retrieval and simulation Agent turn |
 | `GET /api/profile?session_id=...` | Persistent learner profile and history |
 | `GET /api/quiz?module_id=module04` | Concept check without leaking the answer |
@@ -264,6 +265,7 @@ examples.
 │   ├── embeddings.py       # Local and optional hosted vector backends
 │   ├── runtime.py          # Rate limiting, metrics and JSON events
 │   ├── evaluation_manifest.py # Checked dashboard evaluation summary
+│   ├── tool_catalog.py      # Executable tool parameter contracts
 │   ├── llm.py              # Optional compatible LLM client
 │   └── processes/          # Reusable simulation tools
 ├── tests/                  # Numerical and Agent tests

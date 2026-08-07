@@ -27,6 +27,12 @@ validation. `session_id` can be omitted on the first turn and then reused.
 - `POST /api/quiz/submit` accepts `question_id`, zero-based `answer_index` and
   an optional `session_id`.
 
+## Discovery
+
+- `GET /api/topics` lists Modules 00--10 and their Notebook ownership.
+- `GET /api/tools` lists all 15 executable tools, their module IDs, function
+  names, descriptions and JSON-ready parameter types/defaults.
+
 ## Profile and reset
 
 - `GET /api/profile?session_id=...` returns persistent progress and history.

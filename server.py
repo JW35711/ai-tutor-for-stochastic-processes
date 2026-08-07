@@ -20,6 +20,7 @@ from src.agent import StochasticTutorAgent
 from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
+from src.tool_catalog import build_tool_catalog
 
 
 ROOT = Path(__file__).resolve().parent
@@ -159,6 +160,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             )
         elif path == "/api/topics":
             self._json({"modules": module_catalog()})
+        elif path == "/api/tools":
+            self._json({"tools": build_tool_catalog(AGENT.tools)})
         elif path == "/api/profile":
             session_id = parse_qs(parsed.query).get("session_id", [""])[0]
             if not session_id:
