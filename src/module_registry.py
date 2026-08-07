@@ -168,7 +168,10 @@ MODULES: tuple[ModuleSpec, ...] = (
             "survival function",
             "生存函数",
             "buffer model",
+            "buffer",
             "缓冲区模型",
+            "缓冲区",
+            "批量到达",
             "m/m/1",
             "mm1",
             "queue stability",
@@ -176,6 +179,7 @@ MODULES: tuple[ModuleSpec, ...] = (
             "hazard rate",
             "失效率",
         ),
+        "reliability",
     ),
     ModuleSpec(
         "module08",
@@ -191,9 +195,12 @@ MODULES: tuple[ModuleSpec, ...] = (
             "时变强度",
             "thinning algorithm",
             "thinning method",
+            "thinning",
             "稀疏化算法",
+            "稀疏化",
             "接受拒绝法",
         ),
+        "nhpp",
     ),
     ModuleSpec(
         "module09",
@@ -213,6 +220,7 @@ MODULES: tuple[ModuleSpec, ...] = (
             "blocked sites",
             "阻塞位置",
         ),
+        "self_avoiding_walk",
     ),
     ModuleSpec(
         "module10",
@@ -232,6 +240,7 @@ MODULES: tuple[ModuleSpec, ...] = (
             "cluster count",
             "簇数量",
         ),
+        "coalescing_particles",
     ),
 )
 
@@ -252,8 +261,8 @@ def classify_module(question: str) -> str | None:
     for module in MODULES:
         matched = [keyword for keyword in module.keywords if keyword in lowered]
         if matched:
-            score = sum(10 + len(keyword) for keyword in matched)
             longest = max(len(keyword) for keyword in matched)
+            score = 100 * longest + sum(10 + len(keyword) for keyword in matched)
             scored.append((score, longest, module.module_id))
     if not scored:
         return None

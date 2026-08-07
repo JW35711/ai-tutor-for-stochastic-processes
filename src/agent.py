@@ -13,12 +13,19 @@ from .llm import OpenAICompatibleLLM
 from .module_registry import MODULE_BY_ID, classify_module
 from .processes import (
     analyze_markov_chain,
+    analyze_reliability_system,
     run_monte_carlo_pi,
+    simulate_batch_buffer,
+    simulate_bernoulli_process,
     simulate_brownian_motion,
     simulate_birth_death_process,
+    simulate_coalescing_particles,
     simulate_continuous_random_walk,
+    simulate_mm1_queue,
+    simulate_nhpp_thinning,
     simulate_poisson_process,
     simulate_random_walk,
+    simulate_self_avoiding_walk,
     simulate_two_state_ctmc,
 )
 
@@ -32,6 +39,7 @@ class StochasticTutorAgent:
         self.sessions: dict[str, list[dict[str, str]]] = {}
         self.tools: dict[str, Callable[..., dict[str, Any]]] = {
             "monte_carlo": run_monte_carlo_pi,
+            "bernoulli": simulate_bernoulli_process,
             "poisson": simulate_poisson_process,
             "random_walk": simulate_random_walk,
             "continuous_random_walk": simulate_continuous_random_walk,
@@ -39,6 +47,12 @@ class StochasticTutorAgent:
             "markov_chain": analyze_markov_chain,
             "ctmc": simulate_two_state_ctmc,
             "birth_death": simulate_birth_death_process,
+            "reliability": analyze_reliability_system,
+            "buffer": simulate_batch_buffer,
+            "mm1_queue": simulate_mm1_queue,
+            "nhpp": simulate_nhpp_thinning,
+            "self_avoiding_walk": simulate_self_avoiding_walk,
+            "coalescing_particles": simulate_coalescing_particles,
         }
 
     @staticmethod
@@ -57,6 +71,18 @@ class StochasticTutorAgent:
         """Select a module-specific tool variant from the student's wording."""
 
         lowered = question.lower().replace("‑", "-").replace("–", "-")
+        if module_id == "module01" and any(
+            keyword in lowered
+            for keyword in (
+                "bernoulli",
+                "伯努利",
+                "geometric waiting",
+                "geometric distribution",
+                "几何等待",
+                "几何分布",
+            )
+        ):
+            return "bernoulli"
         if module_id == "module06" and any(
             keyword in lowered
             for keyword in (
@@ -68,6 +94,14 @@ class StochasticTutorAgent:
             )
         ):
             return "birth_death"
+        if module_id == "module07":
+            if any(
+                keyword in lowered
+                for keyword in ("m/m/1", "mm1", "queue", "排队", "队列")
+            ):
+                return "mm1_queue"
+            if any(keyword in lowered for keyword in ("buffer", "缓冲区", "缓存")):
+                return "buffer"
         return default_tool
 
     @staticmethod
@@ -77,6 +111,11 @@ class StochasticTutorAgent:
         for label in labels:
             pattern = rf"(?:{re.escape(label)})\s*(?:为|=|:|是)?\s*(\d+(?:\.\d+)?)"
             match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                reverse_pattern = (
+                    rf"(\d+(?:\.\d+)?)\s*(?:个|条)?\s*(?:{re.escape(label)})"
+                )
+                match = re.search(reverse_pattern, text, flags=re.IGNORECASE)
             if match:
                 value = float(match.group(1))
                 return int(value) if integer else value
@@ -91,6 +130,21 @@ class StochasticTutorAgent:
                 ),
                 "seed": seed,
             }
+        if topic == "bernoulli":
+            return {
+                "slots": self._find_number(
+                    question, ("slots", "时间槽数", "时隙数", "时间槽"), 100, integer=True
+                ),
+                "probability": self._find_number(
+                    question,
+                    ("probability", "event probability", "p", "事件概率", "到达概率"),
+                    0.3,
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径", "实验数"), 500, integer=True
+                ),
+                "seed": seed,
+            }
         if topic == "poisson":
             return {
                 "rate": self._find_number(
@@ -100,7 +154,7 @@ class StochasticTutorAgent:
                     question, ("horizon", "时间范围", "时长", "T"), 5.0
                 ),
                 "paths": self._find_number(
-                    question, ("paths", "路径数", "条路径"), 20, integer=True
+                    question, ("paths", "路径数", "条路径"), 200, integer=True
                 ),
                 "seed": seed,
             }
@@ -113,7 +167,7 @@ class StochasticTutorAgent:
                     question, ("p", "向上概率", "正向概率"), 0.5
                 ),
                 "paths": self._find_number(
-                    question, ("paths", "路径数", "条路径"), 20, integer=True
+                    question, ("paths", "路径数", "条路径"), 500, integer=True
                 ),
                 "seed": seed,
             }
@@ -129,7 +183,7 @@ class StochasticTutorAgent:
                     question, ("p", "向上概率", "正向概率"), 0.5
                 ),
                 "paths": self._find_number(
-                    question, ("paths", "路径数", "条路径"), 20, integer=True
+                    question, ("paths", "路径数", "条路径"), 500, integer=True
                 ),
                 "seed": seed,
             }
@@ -142,7 +196,7 @@ class StochasticTutorAgent:
                     question, ("steps", "步数", "网格数"), 200, integer=True
                 ),
                 "paths": self._find_number(
-                    question, ("paths", "路径数", "条路径"), 12, integer=True
+                    question, ("paths", "路径数", "条路径"), 500, integer=True
                 ),
                 "seed": seed,
             }
@@ -195,6 +249,107 @@ class StochasticTutorAgent:
                 ),
                 "seed": seed,
             }
+        if topic == "reliability":
+            return {
+                "failure_rate_1": self._find_number(
+                    question,
+                    ("failure_rate_1", "failure rate 1", "lambda1", "λ1", "部件1故障率"),
+                    0.8,
+                ),
+                "failure_rate_2": self._find_number(
+                    question,
+                    ("failure_rate_2", "failure rate 2", "lambda2", "λ2", "部件2故障率"),
+                    1.2,
+                ),
+                "horizon": self._find_number(
+                    question, ("horizon", "时长", "时间范围", "T"), 6.0
+                ),
+                "samples": self._find_number(
+                    question, ("samples", "样本数", "实验数"), 5000, integer=True
+                ),
+                "points": 120,
+                "seed": seed,
+            }
+        if topic == "buffer":
+            return {
+                "steps": self._find_number(
+                    question, ("steps", "步数", "时间槽数"), 120, integer=True
+                ),
+                "arrival_probability": self._find_number(
+                    question, ("arrival_probability", "arrival probability", "p", "到达概率"), 0.6
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径"), 200, integer=True
+                ),
+                "seed": seed,
+            }
+        if topic == "mm1_queue":
+            return {
+                "arrival_rate": self._find_number(
+                    question, ("arrival_rate", "arrival rate", "lambda", "λ", "到达率"), 0.9
+                ),
+                "service_rate": self._find_number(
+                    question, ("service_rate", "service rate", "mu", "μ", "服务率"), 1.0
+                ),
+                "horizon": self._find_number(
+                    question, ("horizon", "时长", "时间范围", "T"), 2000.0
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径"), 20, integer=True
+                ),
+                "max_state": self._find_number(
+                    question, ("max_state", "显示状态数", "最大状态"), 50, integer=True
+                ),
+                "seed": seed,
+            }
+        if topic == "nhpp":
+            return {
+                "horizon": self._find_number(
+                    question, ("horizon", "时长", "时间范围", "T"), 24.0
+                ),
+                "base_rate": self._find_number(
+                    question, ("base_rate", "base rate", "基础强度", "基础率"), 2.0
+                ),
+                "peak_rate": self._find_number(
+                    question, ("peak_rate", "peak rate", "峰值增量", "峰值强度"), 6.0
+                ),
+                "peak_center": self._find_number(
+                    question, ("peak_center", "peak center", "峰值时刻", "高峰时刻"), 13.0
+                ),
+                "peak_width": self._find_number(
+                    question, ("peak_width", "peak width", "峰值宽度", "高峰宽度"), 4.0
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径", "实验数"), 200, integer=True
+                ),
+                "seed": seed,
+            }
+        if topic == "self_avoiding_walk":
+            return {
+                "max_steps": self._find_number(
+                    question, ("max_steps", "maximum steps", "最大步数", "步数"), 1000, integer=True
+                ),
+                "runs": self._find_number(
+                    question, ("runs", "实验次数", "模拟次数"), 1000, integer=True
+                ),
+                "seed": seed,
+            }
+        if topic == "coalescing_particles":
+            return {
+                "circle_size": self._find_number(
+                    question, ("circle_size", "circle size", "m", "圆周大小", "格点数"), 12, integer=True
+                ),
+                "particles": self._find_number(
+                    question, ("particles", "k", "粒子数", "初始粒子"), 9, integer=True
+                ),
+                "runs": self._find_number(
+                    question, ("runs", "实验次数", "模拟次数"), 500, integer=True
+                ),
+                "max_steps": self._find_number(
+                    question, ("max_steps", "maximum steps", "最大步数"), 10000, integer=True
+                ),
+                "seed": seed,
+            }
         return {
             "steps": self._find_number(
                 question, ("steps", "步数", "步"), 500, integer=True
@@ -212,6 +367,15 @@ class StochasticTutorAgent:
                 f"使用 {result['parameters']['samples']} 个样本得到 π≈"
                 f"{result['estimate']}，与理论值 {result['theoretical']} 的绝对误差为 "
                 f"{result['absolute_error']}。"
+            )
+        if topic == "bernoulli":
+            return (
+                f"终点计数的经验均值为 {result['empirical_count_mean']}，"
+                f"理论均值 np 为 {result['theoretical_count_mean']}；经验方差为 "
+                f"{result['empirical_count_variance']}，理论方差为 "
+                f"{result['theoretical_count_variance']}。首次到达的经验平均等待"
+                f"时间为 {result['empirical_waiting_mean']}，几何分布理论值"
+                f"1/p为 {result['theoretical_waiting_mean']}。"
             )
         if topic == "poisson":
             return (
@@ -265,7 +429,77 @@ class StochasticTutorAgent:
                 f"理论值为 {result['theoretical_mean_state']}。有限观测时长和"
                 "固定初始状态会带来过渡偏差。"
             )
+        if topic == "reliability":
+            return (
+                f"串联系统经验平均寿命为 "
+                f"{result['empirical_series_mean_lifetime']}，理论值为 "
+                f"{result['theoretical_series_mean_lifetime']}；并联系统经验"
+                f"平均寿命为 {result['empirical_parallel_mean_lifetime']}，"
+                f"理论值为 {result['theoretical_parallel_mean_lifetime']}。"
+            )
+        if topic == "buffer":
+            return (
+                f"每个时间槽的经验平均到达数为 "
+                f"{result['empirical_arrivals_per_slot']}，理论值为 "
+                f"{result['theoretical_arrivals_per_slot']}；忙时理论漂移为 "
+                f"{result['theoretical_drift_when_busy']}，经验平均最终 buffer "
+                f"大小为 {result['empirical_mean_final_buffer']}。"
+            )
+        if topic == "mm1_queue":
+            if result["stable"]:
+                return (
+                    f"交通强度 ρ={result['traffic_intensity']}<1，队列稳定。"
+                    f"经验平均客户数为 {result['empirical_mean_customers']}，"
+                    f"理论值 ρ/(1-ρ) 为 {result['theoretical_mean_customers']}，"
+                    f"展示状态上的L1误差为 {result['displayed_state_l1_error']}。"
+                )
+            return (
+                f"交通强度 ρ={result['traffic_intensity']}≥1，不存在稳定的"
+                f"几何平稳分布；有限时间仿真中的经验平均客户数"
+                f"为 {result['empirical_mean_customers']}。"
+            )
+        if topic == "nhpp":
+            return (
+                f"Thinning 生成 {result['candidate_count']} 个候选事件，"
+                f"接受率为 {result['acceptance_rate']}。最终计数的经验"
+                f"均值为 {result['empirical_mean_count']}，强度积分给出的"
+                f"理论均值为 {result['theoretical_mean_count']}，绝对误差为 "
+                f"{result['absolute_error']}。"
+            )
+        if topic == "self_avoiding_walk":
+            return (
+                f"{result['trapped_runs']} / {result['parameters']['runs']} 条路径"
+                f"在数值上限前真正受困，受困率为 "
+                f"{result['trapping_rate']}，平均停止长度为 "
+                f"{result['average_stopping_length']}。示例路径的自避性和"
+                f"最近邻移动校验分别为 {result['sample_self_avoiding']} 和 "
+                f"{result['sample_nearest_neighbour']}。"
+            )
+        if topic == "coalescing_particles":
+            return (
+                f"{result['completed_runs']} / {result['parameters']['runs']} 次实验"
+                f"在上限前合并为一个簇，平均合并时间为 "
+                f"{result['average_coalescence_time']}，中位数为 "
+                f"{result['median_coalescence_time']}。示例路径的簇数量单调不增"
+                f"校验为 {result['sample_cluster_count_monotone']}。"
+            )
         raise ValueError(f"unsupported summary topic: {topic}")
+
+    @staticmethod
+    def _guiding_question(topic: str) -> str:
+        questions = {
+            "bernoulli": "如果降低单个时间槽的到达概率，计数和首次等待时间会怎样变化？",
+            "reliability": "为什么并联系统的寿命是部件寿命的最大值，而串联系统是最小值？",
+            "buffer": "当每槽平均到达数超过服务能力1时，buffer路径会呈现什么长期趋势？",
+            "mm1_queue": "当到达率逐渐接近服务率时，理论平均客户数为什么会快速增大？",
+            "nhpp": "如果把高峰时刻向后移动，总事件数和事件时刻分布会分别如何变化？",
+            "self_avoiding_walk": "为什么只知道当前位置不足以确定自避游走的下一步分布？",
+            "coalescing_particles": "增大圆周格点数但保持初始粒子数不变，合并时间可能怎样变化？",
+        }
+        return questions.get(
+            topic,
+            "如果把样本量或路径数扩大4倍，你预计经验误差会怎样变化？",
+        )
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         if not question.strip():
@@ -352,7 +586,7 @@ class StochasticTutorAgent:
             deterministic_answer = (
                 f"### 先看实验结果\n{explanation}\n\n"
                 f"### 如何理解\n{sources[0]['content'] if sources else '本题使用可复现仿真与理论参考值进行比较。'}\n\n"
-                f"### 给你的思考题\n如果把样本量或路径数扩大4倍，你预计经验误差会怎样变化？"
+                f"### 给你的思考题\n{self._guiding_question(tool_key)}"
             )
             if citation_text:
                 deterministic_answer += f"\n\n来源：{citation_text}"

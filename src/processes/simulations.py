@@ -73,7 +73,7 @@ def run_monte_carlo_pi(samples: int = 5_000, seed: int = 42) -> dict[str, Any]:
 def simulate_poisson_process(
     rate: float = 2.0,
     horizon: float = 5.0,
-    paths: int = 8,
+    paths: int = 200,
     seed: int = 42,
 ) -> dict[str, Any]:
     """Simulate homogeneous Poisson processes using exponential waiting times."""
@@ -130,7 +130,7 @@ def simulate_poisson_process(
 def simulate_random_walk(
     steps: int = 100,
     probability_up: float = 0.5,
-    paths: int = 20,
+    paths: int = 500,
     seed: int = 42,
 ) -> dict[str, Any]:
     """Simulate one-dimensional random walks with increments in {-1, +1}."""
@@ -182,7 +182,7 @@ def simulate_continuous_random_walk(
     rate: float = 1.0,
     horizon: float = 10.0,
     probability_up: float = 0.5,
-    paths: int = 20,
+    paths: int = 500,
     seed: int = 42,
 ) -> dict[str, Any]:
     """Simulate X(t)=S_{N(t)} with Poisson jump times and signed jumps."""
@@ -258,7 +258,7 @@ def simulate_continuous_random_walk(
 def simulate_brownian_motion(
     horizon: float = 1.0,
     steps: int = 200,
-    paths: int = 12,
+    paths: int = 500,
     seed: int = 42,
 ) -> dict[str, Any]:
     """Simulate standard Brownian motion with Gaussian increments."""

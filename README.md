@@ -65,16 +65,20 @@ random-seed policy and submission checklist.
 
 ## AI teaching-agent extension
 
-The current Agent prototype turns seven of the eleven thesis modules into
-executable tools:
+The current Agent prototype turns all eleven thesis modules into executable
+tools:
 
 - Monte Carlo estimation;
-- homogeneous Poisson processes;
+- Bernoulli and homogeneous Poisson processes;
 - one-dimensional random walks;
 - continuous-time random walks;
 - standard Brownian motion;
 - finite-state Markov chains;
-- continuous-time Markov chains and finite birth-death processes.
+- continuous-time Markov chains and finite birth-death processes;
+- reliability systems, discrete buffers and M/M/1 queues;
+- nonhomogeneous Poisson processes by thinning;
+- growing self-avoiding walks;
+- coalescing particles on a circle.
 
 For each question, the Agent classifies the topic, retrieves a source-aware
 course note, validates parameters, chooses a simulation tool, compares the
@@ -106,12 +110,16 @@ python3 server.py
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000), then try:
 
-- `模拟强度为2、时长为5的泊松过程，使用20条路径`
-- `用50条路径模拟100步随机游走，并比较理论均值`
-- `模拟T为1、网格数为200的布朗运动，解释终点方差`
+- `模拟强度为2、时长为5的泊松过程，使用200条路径`
+- `用500条路径模拟100步随机游走，并比较理论均值`
+- `用500条路径模拟T为1、网格数为200的布朗运动，解释终点方差`
 - `模拟500步马尔可夫链并比较平稳分布`
 - `连续时间马尔可夫链：故障率为0.25、修复率为0.15、时长为200`
 - `模拟出生死亡过程：出生率为0.35、死亡率为0.3、容量为6、时长为500`
+- `M/M/1 queue：到达率为0.75、服务率为1、时长为2000`
+- `非齐次泊松过程 thinning：基础强度为2、峰值增量为6、高峰时刻为13`
+- `自避免游走：最大步数为1000、实验次数为500`
+- `圆上粒子合并：圆周大小为12、粒子数为9、实验次数为200`
 - `用10000个样本做蒙特卡洛实验估计π`
 
 To enable an OpenAI-compatible model:
@@ -139,7 +147,8 @@ python3 -m unittest discover -s tests -v
 ```
 
 The test suite checks reproducibility, theoretical agreement, transition-matrix
-validation, topic routing, tool execution, citations and session memory.
+validation, stability conditions, exploratory-model invariants, topic routing,
+tool execution, citations and session memory.
 
 ## Repository structure
 

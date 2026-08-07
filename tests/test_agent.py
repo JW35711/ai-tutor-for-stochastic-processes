@@ -1,6 +1,7 @@
 import unittest
 
 from src.agent import StochasticTutorAgent
+from src.module_registry import module_catalog
 
 
 class AgentTests(unittest.TestCase):
@@ -43,11 +44,17 @@ class AgentTests(unittest.TestCase):
     def test_answer_contains_tool_source_and_trace(self) -> None:
         response = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
         self.assertEqual(response["tool"], "run_monte_carlo_pi")
+        self.assertEqual(response["parameters"]["samples"], 2000)
         self.assertTrue(response["sources"])
         self.assertEqual(
             [item["node"] for item in response["trace"]],
             ["classify", "retrieve", "plan", "tool", "respond"],
         )
+
+    def test_reads_number_before_path_unit(self) -> None:
+        response = self.agent.answer("用300条路径模拟100步随机游走")
+        self.assertEqual(response["parameters"]["paths"], 300)
+        self.assertEqual(response["parameters"]["steps"], 100)
 
     def test_session_memory_counts_turns(self) -> None:
         first = self.agent.answer("模拟100步随机游走")
@@ -55,12 +62,8 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(second["memory"]["turns"], 2)
         self.assertEqual(second["memory"]["modules"], ["module02", "module02"])
 
-    def test_pending_module_returns_source_without_wrong_tool(self) -> None:
-        response = self.agent.answer("解释非齐次泊松过程的 thinning algorithm")
-        self.assertEqual(response["module_id"], "module08")
-        self.assertIsNone(response["tool"])
-        self.assertEqual(response["result"]["status"], "tool_pending")
-        self.assertTrue(response["sources"])
+    def test_all_modules_report_executable_tool_coverage(self) -> None:
+        self.assertTrue(all(module["tool_ready"] for module in module_catalog()))
 
     def test_module03_executes_continuous_random_walk_tool(self) -> None:
         response = self.agent.answer(
@@ -94,6 +97,45 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(response["tool"], "simulate_birth_death_process")
         self.assertEqual(response["parameters"]["capacity"], 6)
         self.assertEqual(len(response["result"]["stationary_distribution"]), 7)
+
+    def test_module01_selects_bernoulli_variant(self) -> None:
+        response = self.agent.answer("伯努利过程：时间槽数为80、事件概率为0.25")
+        self.assertEqual(response["module_id"], "module01")
+        self.assertEqual(response["tool"], "simulate_bernoulli_process")
+        self.assertEqual(response["parameters"]["probability"], 0.25)
+
+    def test_module07_selects_reliability_buffer_and_queue_variants(self) -> None:
+        cases = {
+            "可靠性模型中的串联和并联系统": "analyze_reliability_system",
+            "批量到达 buffer：到达概率为0.6": "simulate_batch_buffer",
+            "M/M/1 queue：到达率为0.75、服务率为1": "simulate_mm1_queue",
+        }
+        for question, expected_tool in cases.items():
+            with self.subTest(question=question):
+                response = self.agent.answer(question)
+                self.assertEqual(response["module_id"], "module07")
+                self.assertEqual(response["tool"], expected_tool)
+
+    def test_modules08_to10_execute_exploratory_tools(self) -> None:
+        cases = {
+            "非齐次泊松过程 thinning：基础强度为2": (
+                "module08",
+                "simulate_nhpp_thinning",
+            ),
+            "自避免游走：最大步数为1000、实验次数为100": (
+                "module09",
+                "simulate_self_avoiding_walk",
+            ),
+            "圆上粒子合并：圆周大小为12、粒子数为9、实验次数为100": (
+                "module10",
+                "simulate_coalescing_particles",
+            ),
+        }
+        for question, (module_id, tool) in cases.items():
+            with self.subTest(question=question):
+                response = self.agent.answer(question)
+                self.assertEqual(response["module_id"], module_id)
+                self.assertEqual(response["tool"], tool)
 
 
 if __name__ == "__main__":
