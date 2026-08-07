@@ -76,6 +76,25 @@ class AgentTests(unittest.TestCase):
             {"module03"},
         )
 
+    def test_module06_executes_two_state_ctmc_tool(self) -> None:
+        response = self.agent.answer(
+            "连续时间马尔可夫链：故障率为0.25、修复率为0.15、时长为80"
+        )
+        self.assertEqual(response["module_id"], "module06")
+        self.assertEqual(response["tool"], "simulate_two_state_ctmc")
+        self.assertEqual(response["parameters"]["failure_rate"], 0.25)
+        self.assertEqual(response["parameters"]["repair_rate"], 0.15)
+        self.assertEqual(response["result"]["stationary_distribution"], [0.375, 0.625])
+
+    def test_module06_selects_birth_death_variant(self) -> None:
+        response = self.agent.answer(
+            "模拟出生死亡过程：出生率为0.35、死亡率为0.3、容量为6、路径数为100"
+        )
+        self.assertEqual(response["module_id"], "module06")
+        self.assertEqual(response["tool"], "simulate_birth_death_process")
+        self.assertEqual(response["parameters"]["capacity"], 6)
+        self.assertEqual(len(response["result"]["stationary_distribution"]), 7)
+
 
 if __name__ == "__main__":
     unittest.main()

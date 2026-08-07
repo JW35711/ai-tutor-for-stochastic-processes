@@ -4,16 +4,20 @@ from .simulations import (
     analyze_markov_chain,
     run_monte_carlo_pi,
     simulate_brownian_motion,
+    simulate_birth_death_process,
     simulate_continuous_random_walk,
     simulate_poisson_process,
     simulate_random_walk,
+    simulate_two_state_ctmc,
 )
 
 __all__ = [
     "analyze_markov_chain",
     "run_monte_carlo_pi",
     "simulate_brownian_motion",
+    "simulate_birth_death_process",
     "simulate_continuous_random_walk",
     "simulate_poisson_process",
     "simulate_random_walk",
+    "simulate_two_state_ctmc",
 ]

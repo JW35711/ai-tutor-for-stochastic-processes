@@ -65,13 +65,16 @@ random-seed policy and submission checklist.
 
 ## AI teaching-agent extension
 
-The first Agent MVP turns five thesis topics into executable tools:
+The current Agent prototype turns seven of the eleven thesis modules into
+executable tools:
 
 - Monte Carlo estimation;
 - homogeneous Poisson processes;
 - one-dimensional random walks;
+- continuous-time random walks;
 - standard Brownian motion;
-- finite-state Markov chains.
+- finite-state Markov chains;
+- continuous-time Markov chains and finite birth-death processes.
 
 For each question, the Agent classifies the topic, retrieves a source-aware
 course note, validates parameters, chooses a simulation tool, compares the
@@ -107,6 +110,8 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000), then try:
 - `用50条路径模拟100步随机游走，并比较理论均值`
 - `模拟T为1、网格数为200的布朗运动，解释终点方差`
 - `模拟500步马尔可夫链并比较平稳分布`
+- `连续时间马尔可夫链：故障率为0.25、修复率为0.15、时长为200`
+- `模拟出生死亡过程：出生率为0.35、死亡率为0.3、容量为6、时长为500`
 - `用10000个样本做蒙特卡洛实验估计π`
 
 To enable an OpenAI-compatible model:

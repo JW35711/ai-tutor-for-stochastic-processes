@@ -26,7 +26,7 @@ class ModuleRegistryTests(unittest.TestCase):
     def test_public_catalog_reports_tool_coverage(self) -> None:
         catalog = module_catalog()
         self.assertEqual(len(catalog), 11)
-        self.assertEqual(sum(bool(item["tool_ready"]) for item in catalog), 6)
+        self.assertEqual(sum(bool(item["tool_ready"]) for item in catalog), 7)
         self.assertTrue(all("keywords" not in item for item in catalog))
 
 

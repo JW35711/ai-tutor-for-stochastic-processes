@@ -39,7 +39,7 @@ function addMessage(type, text) {
   conversation.scrollTop = conversation.scrollHeight;
 }
 
-function renderChart(series) {
+function renderChart(series, chartSpec = {}) {
   if (!series?.length || !series[0].values?.length) {
     chart.innerHTML = "<p>本次结果没有可绘制的路径。</p>";
     return;
@@ -51,12 +51,29 @@ function renderChart(series) {
   const min = Math.min(...allValues);
   const max = Math.max(...allValues);
   const spread = max - min || 1;
-  const maxLength = Math.max(...series.map((item) => item.values.length));
+  const allX = series.flatMap((item) =>
+    item.x?.length === item.values.length
+      ? item.x
+      : item.values.map((_, index) => index),
+  );
+  const minX = Math.min(...allX);
+  const maxX = Math.max(...allX);
+  const xSpread = maxX - minX || 1;
   const colors = ["#c8ff5a", "#7fe8df", "#ff8a5b", "#b6a3ff", "#f9d66f"];
   const polylines = series.slice(0, 5).map((item, seriesIndex) => {
-    const points = item.values
-      .map((value, index) => {
-        const x = padding + (index / Math.max(item.values.length - 1, 1)) * (width - padding * 2);
+    const xValues = item.x?.length === item.values.length
+      ? item.x
+      : item.values.map((_, index) => index);
+    const coordinates = [];
+    item.values.forEach((value, index) => {
+      if (chartSpec.step === "post" && index > 0) {
+        coordinates.push([xValues[index], item.values[index - 1]]);
+      }
+      coordinates.push([xValues[index], value]);
+    });
+    const points = coordinates
+      .map(([xValue, value]) => {
+        const x = padding + ((xValue - minX) / xSpread) * (width - padding * 2);
         const y = height - padding - ((value - min) / spread) * (height - padding * 2);
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       })
@@ -70,7 +87,7 @@ function renderChart(series) {
       ${polylines.join("")}
       <text x="${padding}" y="13" fill="#a7aa9e" font-size="10">max ${max.toFixed(3)}</text>
       <text x="${padding}" y="${height - 3}" fill="#a7aa9e" font-size="10">min ${min.toFixed(3)}</text>
-      <text x="${width - 95}" y="${height - 3}" fill="#a7aa9e" font-size="10">${maxLength} points</text>
+      <text x="${width - 120}" y="${height - 3}" fill="#a7aa9e" font-size="10">${escapeHtml(chartSpec.x_label || "index")} ${maxX.toFixed(2)}</text>
     </svg>
   `;
 }
@@ -78,7 +95,7 @@ function renderChart(series) {
 function renderEvidence(payload) {
   emptyEvidence.classList.add("hidden");
   evidenceContent.classList.remove("hidden");
-  renderChart(payload.result?.series);
+  renderChart(payload.result?.series, payload.result?.chart);
 
   parameters.innerHTML = Object.entries(payload.parameters)
     .map(([key, value]) => `

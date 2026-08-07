@@ -5,9 +5,11 @@ from src.processes import (
     analyze_markov_chain,
     run_monte_carlo_pi,
     simulate_brownian_motion,
+    simulate_birth_death_process,
     simulate_continuous_random_walk,
     simulate_poisson_process,
     simulate_random_walk,
+    simulate_two_state_ctmc,
 )
 
 
@@ -69,6 +71,50 @@ class SimulationToolTests(unittest.TestCase):
     def test_invalid_probability_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             simulate_random_walk(probability_up=1.2)
+
+    def test_two_state_ctmc_matches_holding_time_and_stationary_theory(self) -> None:
+        result = simulate_two_state_ctmc(
+            failure_rate=0.25,
+            repair_rate=0.15,
+            horizon=160.0,
+            paths=800,
+            seed=13,
+        )
+        self.assertEqual(result["stationary_distribution"], [0.375, 0.625])
+        self.assertLess(result["l1_error"], 0.04)
+        self.assertLess(
+            abs(result["empirical_mean_holding_times"][0] - 4.0), 0.2
+        )
+        self.assertLess(
+            abs(result["empirical_mean_holding_times"][1] - 20.0 / 3.0),
+            0.3,
+        )
+        self.assertEqual(result["chart"]["step"], "post")
+
+    def test_birth_death_process_matches_stationary_distribution(self) -> None:
+        result = simulate_birth_death_process(
+            birth_rate=0.35,
+            death_rate=0.30,
+            capacity=6,
+            horizon=500.0,
+            paths=800,
+            seed=14,
+        )
+        stationary = result["stationary_distribution"]
+        self.assertTrue(math.isclose(sum(stationary), 1.0, abs_tol=1e-5))
+        self.assertTrue(
+            math.isclose(
+                stationary[1] / stationary[0],
+                0.35 / 0.30,
+                rel_tol=1e-5,
+            )
+        )
+        self.assertLess(result["l1_error"], 0.05)
+        self.assertEqual(len(result["generator_matrix"]), 7)
+
+    def test_birth_death_rejects_state_outside_capacity(self) -> None:
+        with self.assertRaises(ValueError):
+            simulate_birth_death_process(capacity=3, initial_state=4)
 
 
 if __name__ == "__main__":

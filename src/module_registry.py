@@ -150,6 +150,7 @@ MODULES: tuple[ModuleSpec, ...] = (
             "停留时间",
             "ctmc",
         ),
+        "ctmc",
     ),
     ModuleSpec(
         "module07",

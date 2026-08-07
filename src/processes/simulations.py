@@ -393,3 +393,235 @@ def analyze_markov_chain(
         "series": [{"name": "state path", "values": _compress_series(path)}],
         "chart": {"x_label": "step", "y_label": "state"},
     }
+
+
+def _step_series(
+    times: Sequence[float], states: Sequence[int], horizon: float, name: str
+) -> dict[str, Any]:
+    """Return a compact right-continuous state path ending at the horizon."""
+
+    x_values = [float(value) for value in times]
+    y_values = [int(value) for value in states]
+    if x_values[-1] < horizon:
+        x_values.append(horizon)
+        y_values.append(y_values[-1])
+    return {
+        "name": name,
+        "x": _compress_series(x_values),
+        "values": _compress_series(y_values),
+    }
+
+
+def _mean_or_none(values: Sequence[float]) -> float | None:
+    if not values:
+        return None
+    return round(sum(values) / len(values), 6)
+
+
+def simulate_two_state_ctmc(
+    failure_rate: float = 0.25,
+    repair_rate: float = 0.15,
+    horizon: float = 200.0,
+    paths: int = 200,
+    initial_state: int = 0,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Simulate a working/repair CTMC and compare holding-time theory."""
+
+    failure_rate = _positive_float(failure_rate, "failure_rate", 100.0)
+    repair_rate = _positive_float(repair_rate, "repair_rate", 100.0)
+    horizon = _positive_float(horizon, "horizon", 1_000.0)
+    paths = _positive_int(paths, "paths", 2_000)
+    if isinstance(initial_state, bool) or initial_state not in {0, 1}:
+        raise ValueError("initial_state must be 0 (working) or 1 (repair)")
+    if max(failure_rate, repair_rate) * horizon * paths > 2_000_000:
+        raise ValueError("requested CTMC experiment is too large")
+
+    rng = random.Random(seed)
+    occupancy = [0.0, 0.0]
+    holding_times: list[list[float]] = [[], []]
+    sample_series: list[dict[str, Any]] = []
+    transition_count = 0
+
+    for path_index in range(paths):
+        time = 0.0
+        state = initial_state
+        times = [time]
+        states = [state]
+        while time < horizon:
+            leaving_rate = failure_rate if state == 0 else repair_rate
+            holding_time = rng.expovariate(leaving_rate)
+            next_time = min(time + holding_time, horizon)
+            occupancy[state] += next_time - time
+            if time + holding_time > horizon:
+                time = horizon
+                break
+
+            holding_times[state].append(holding_time)
+            time = next_time
+            state = 1 - state
+            transition_count += 1
+            times.append(time)
+            states.append(state)
+
+        if path_index < 5:
+            sample_series.append(
+                _step_series(times, states, horizon, f"path {path_index + 1}")
+            )
+
+    total_time = horizon * paths
+    empirical = [value / total_time for value in occupancy]
+    denominator = failure_rate + repair_rate
+    stationary = [repair_rate / denominator, failure_rate / denominator]
+    theoretical_holding = [1.0 / failure_rate, 1.0 / repair_rate]
+    empirical_holding = [_mean_or_none(values) for values in holding_times]
+
+    return {
+        "topic": "ctmc",
+        "model": "two_state_machine",
+        "parameters": {
+            "failure_rate": failure_rate,
+            "repair_rate": repair_rate,
+            "horizon": horizon,
+            "paths": paths,
+            "initial_state": initial_state,
+            "seed": seed,
+        },
+        "generator_matrix": [
+            [-failure_rate, failure_rate],
+            [repair_rate, -repair_rate],
+        ],
+        "empirical_state_probabilities": [round(value, 6) for value in empirical],
+        "stationary_distribution": [round(value, 6) for value in stationary],
+        "l1_error": round(
+            sum(abs(a - b) for a, b in zip(empirical, stationary, strict=True)),
+            6,
+        ),
+        "empirical_mean_holding_times": empirical_holding,
+        "theoretical_mean_holding_times": [
+            round(value, 6) for value in theoretical_holding
+        ],
+        "transition_count": transition_count,
+        "series": sample_series,
+        "chart": {"x_label": "time", "y_label": "state", "step": "post"},
+    }
+
+
+def _birth_death_stationary(
+    birth_rate: float, death_rate: float, capacity: int
+) -> list[float]:
+    weights = [1.0]
+    ratio = birth_rate / death_rate
+    for _ in range(capacity):
+        weights.append(weights[-1] * ratio)
+    normalizer = sum(weights)
+    return [weight / normalizer for weight in weights]
+
+
+def simulate_birth_death_process(
+    birth_rate: float = 0.35,
+    death_rate: float = 0.30,
+    capacity: int = 6,
+    horizon: float = 500.0,
+    paths: int = 200,
+    initial_state: int = 2,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Simulate a finite birth-death CTMC with constant interior rates."""
+
+    birth_rate = _positive_float(birth_rate, "birth_rate", 100.0)
+    death_rate = _positive_float(death_rate, "death_rate", 100.0)
+    capacity = _positive_int(capacity, "capacity", 100)
+    horizon = _positive_float(horizon, "horizon", 1_000.0)
+    paths = _positive_int(paths, "paths", 2_000)
+    if (
+        isinstance(initial_state, bool)
+        or not isinstance(initial_state, int)
+        or not 0 <= initial_state <= capacity
+    ):
+        raise ValueError("initial_state must be between 0 and capacity")
+    if (birth_rate + death_rate) * horizon * paths > 2_000_000:
+        raise ValueError("requested birth-death experiment is too large")
+
+    rng = random.Random(seed)
+    occupancy = [0.0] * (capacity + 1)
+    sample_series: list[dict[str, Any]] = []
+    birth_count = 0
+    death_count = 0
+
+    for path_index in range(paths):
+        time = 0.0
+        state = initial_state
+        times = [time]
+        states = [state]
+        while time < horizon:
+            up_rate = birth_rate if state < capacity else 0.0
+            down_rate = death_rate if state > 0 else 0.0
+            leaving_rate = up_rate + down_rate
+            holding_time = rng.expovariate(leaving_rate)
+            next_time = min(time + holding_time, horizon)
+            occupancy[state] += next_time - time
+            if time + holding_time > horizon:
+                time = horizon
+                break
+
+            time = next_time
+            if rng.random() < up_rate / leaving_rate:
+                state += 1
+                birth_count += 1
+            else:
+                state -= 1
+                death_count += 1
+            times.append(time)
+            states.append(state)
+
+        if path_index < 5:
+            sample_series.append(
+                _step_series(times, states, horizon, f"path {path_index + 1}")
+            )
+
+    total_time = horizon * paths
+    empirical = [value / total_time for value in occupancy]
+    stationary = _birth_death_stationary(birth_rate, death_rate, capacity)
+    generator: list[list[float]] = []
+    for state in range(capacity + 1):
+        row = [0.0] * (capacity + 1)
+        if state < capacity:
+            row[state + 1] = birth_rate
+        if state > 0:
+            row[state - 1] = death_rate
+        row[state] = -sum(row)
+        generator.append(row)
+
+    empirical_mean = sum(
+        state * probability for state, probability in enumerate(empirical)
+    )
+    theoretical_mean = sum(
+        state * probability for state, probability in enumerate(stationary)
+    )
+    return {
+        "topic": "birth_death",
+        "model": "finite_birth_death",
+        "parameters": {
+            "birth_rate": birth_rate,
+            "death_rate": death_rate,
+            "capacity": capacity,
+            "horizon": horizon,
+            "paths": paths,
+            "initial_state": initial_state,
+            "seed": seed,
+        },
+        "generator_matrix": generator,
+        "empirical_state_probabilities": [round(value, 6) for value in empirical],
+        "stationary_distribution": [round(value, 6) for value in stationary],
+        "empirical_mean_state": round(empirical_mean, 6),
+        "theoretical_mean_state": round(theoretical_mean, 6),
+        "l1_error": round(
+            sum(abs(a - b) for a, b in zip(empirical, stationary, strict=True)),
+            6,
+        ),
+        "birth_count": birth_count,
+        "death_count": death_count,
+        "series": sample_series,
+        "chart": {"x_label": "time", "y_label": "state", "step": "post"},
+    }

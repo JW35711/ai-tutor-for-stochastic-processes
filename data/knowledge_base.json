@@ -51,7 +51,7 @@
     "module_id": "module06",
     "topic": "continuous_markov_chain",
     "title": "Continuous-time Markov chains and birth-death processes",
-    "content": "Module 06 研究在随机时刻改变状态的连续时间 Markov chain。生成矩阵 Q 的非对角元素是跳跃率，负的对角元素给出离开率，因此一个状态的 holding time 为指数分布。模块通过工作与维修机器、birth-death process、气体粒子模型和 buffer 模型连接路径、停留时间、状态频率与满足 πQ=0 的平稳分布。",
+    "content": "Module 06 研究在随机时刻改变状态的连续时间 Markov chain。生成矩阵 Q 的非对角元素是跳跃率，负的对角元素给出离开率，因此一个状态的 holding time 服从指数分布。模块通过工作与维修机器、三状态切换模型、birth-death process 和有限容量 gas station model，连接样本路径、停留时间、时间占比与满足 πQ=0 的平稳分布。",
     "source": "notebooks/06_Markov_Chain_Part2.ipynb",
     "keywords": ["连续时间马尔可夫链", "ctmc", "生成矩阵", "generator matrix", "holding time", "停留时间", "birth death", "出生死亡过程"]
   },

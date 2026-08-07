@@ -15,9 +15,11 @@ from .processes import (
     analyze_markov_chain,
     run_monte_carlo_pi,
     simulate_brownian_motion,
+    simulate_birth_death_process,
     simulate_continuous_random_walk,
     simulate_poisson_process,
     simulate_random_walk,
+    simulate_two_state_ctmc,
 )
 
 
@@ -35,6 +37,8 @@ class StochasticTutorAgent:
             "continuous_random_walk": simulate_continuous_random_walk,
             "brownian_motion": simulate_brownian_motion,
             "markov_chain": analyze_markov_chain,
+            "ctmc": simulate_two_state_ctmc,
+            "birth_death": simulate_birth_death_process,
         }
 
     @staticmethod
@@ -47,6 +51,24 @@ class StochasticTutorAgent:
     @staticmethod
     def classify_module(question: str) -> str | None:
         return classify_module(question)
+
+    @staticmethod
+    def resolve_tool(module_id: str, default_tool: str, question: str) -> str:
+        """Select a module-specific tool variant from the student's wording."""
+
+        lowered = question.lower().replace("‑", "-").replace("–", "-")
+        if module_id == "module06" and any(
+            keyword in lowered
+            for keyword in (
+                "birth death",
+                "birth-death",
+                "birth–death",
+                "出生死亡",
+                "生灭过程",
+            )
+        ):
+            return "birth_death"
+        return default_tool
 
     @staticmethod
     def _find_number(
@@ -124,6 +146,55 @@ class StochasticTutorAgent:
                 ),
                 "seed": seed,
             }
+        if topic == "ctmc":
+            return {
+                "failure_rate": self._find_number(
+                    question,
+                    ("failure_rate", "failure rate", "alpha", "故障率"),
+                    0.25,
+                ),
+                "repair_rate": self._find_number(
+                    question,
+                    ("repair_rate", "repair rate", "beta", "维修率", "修复率"),
+                    0.15,
+                ),
+                "horizon": self._find_number(
+                    question, ("horizon", "时间范围", "时长", "T"), 200.0
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径"), 200, integer=True
+                ),
+                "initial_state": self._find_number(
+                    question, ("initial_state", "初始状态"), 0, integer=True
+                ),
+                "seed": seed,
+            }
+        if topic == "birth_death":
+            return {
+                "birth_rate": self._find_number(
+                    question,
+                    ("birth_rate", "birth rate", "lambda", "λ", "出生率"),
+                    0.35,
+                ),
+                "death_rate": self._find_number(
+                    question,
+                    ("death_rate", "death rate", "mu", "μ", "死亡率"),
+                    0.30,
+                ),
+                "capacity": self._find_number(
+                    question, ("capacity", "容量", "最大状态"), 6, integer=True
+                ),
+                "horizon": self._find_number(
+                    question, ("horizon", "时间范围", "时长", "T"), 500.0
+                ),
+                "paths": self._find_number(
+                    question, ("paths", "路径数", "条路径"), 200, integer=True
+                ),
+                "initial_state": self._find_number(
+                    question, ("initial_state", "初始状态"), 2, integer=True
+                ),
+                "seed": seed,
+            }
         return {
             "steps": self._find_number(
                 question, ("steps", "步数", "步"), 500, integer=True
@@ -170,10 +241,31 @@ class StochasticTutorAgent:
                 f"{result['empirical_terminal_variance']}；标准布朗运动在T时刻的"
                 f"理论均值为0、方差为T={result['theoretical_terminal_variance']}。"
             )
-        return (
-            f"经验状态频率为 {result['empirical_frequencies']}，平稳分布为 "
-            f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
-        )
+        if topic == "markov_chain":
+            return (
+                f"经验状态频率为 {result['empirical_frequencies']}，平稳分布为 "
+                f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
+            )
+        if topic == "ctmc":
+            return (
+                f"经验时间占比为 {result['empirical_state_probabilities']}，"
+                f"由 πQ=0 得到的平稳分布为 "
+                f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
+                f"两个状态的经验平均停留时间为 "
+                f"{result['empirical_mean_holding_times']}，理论值为 "
+                f"{result['theoretical_mean_holding_times']}。有限观测时长和固定"
+                "初始状态会带来过渡偏差。"
+            )
+        if topic == "birth_death":
+            return (
+                f"状态经验时间占比为 "
+                f"{result['empirical_state_probabilities']}，理论平稳分布为 "
+                f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
+                f"经验平均状态为 {result['empirical_mean_state']}，"
+                f"理论值为 {result['theoretical_mean_state']}。有限观测时长和"
+                "固定初始状态会带来过渡偏差。"
+            )
+        raise ValueError(f"unsupported summary topic: {topic}")
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         if not question.strip():
@@ -202,8 +294,8 @@ class StochasticTutorAgent:
             {"node": "retrieve", "detail": f"{len(sources)} source-aware notes"}
         )
 
-        tool_key = module.tool_key
-        if tool_key is None:
+        default_tool = module.tool_key
+        if default_tool is None:
             trace.append(
                 {
                     "node": "plan",
@@ -239,6 +331,8 @@ class StochasticTutorAgent:
                 },
                 "llm_enabled": self.llm.enabled,
             }
+
+        tool_key = self.resolve_tool(module_id, default_tool, question)
 
         parameters = self.extract_parameters(tool_key, question)
         trace.append({"node": "plan", "detail": f"call {tool_key} simulation tool"})
