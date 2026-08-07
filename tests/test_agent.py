@@ -109,6 +109,20 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(response["parameters"]["paths"], 300)
         self.assertEqual(response["parameters"]["steps"], 100)
 
+    def test_signed_invalid_rate_reaches_tool_validation(self) -> None:
+        response = self.agent.answer("泊松过程：强度为-2、时长为5")
+        self.assertEqual(response["parameters"]["rate"], -2.0)
+        self.assertIn("error", response["result"])
+        self.assertIn("rate", response["result"]["error"])
+
+    def test_scientific_notation_is_parsed(self) -> None:
+        response = self.agent.answer("泊松过程：强度=2e-1、时长=5")
+        self.assertEqual(response["parameters"]["rate"], 0.2)
+
+    def test_fractional_resource_count_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be an integer"):
+            self.agent.answer("泊松过程：强度为2、路径数为2.5")
+
     def test_session_memory_counts_turns(self) -> None:
         first = self.agent.answer("模拟100步随机游走")
         second = self.agent.answer("再模拟200步随机游走", first["session_id"])

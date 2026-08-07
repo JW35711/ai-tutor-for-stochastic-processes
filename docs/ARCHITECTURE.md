@@ -134,6 +134,8 @@ consistent across request threads.
 ## Reliability and safety
 
 - Invalid model parameters fail before a chart is generated.
+- Signed and scientific-notation inputs are parsed rather than silently
+  replaced by defaults; fractional counts fail integer validation.
 - M/M/1 stability is checked before a stationary distribution is discussed.
 - Numerical functions receive explicit seeds for reproducible tests.
 - Normal notebook use remains unseeded, matching the thesis teaching design.

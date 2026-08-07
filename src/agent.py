@@ -37,6 +37,8 @@ from .processes import (
 class StochasticTutorAgent:
     """Route questions through retrieval, simulation, verification and teaching."""
 
+    NUMBER_PATTERN = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
+
     PARAMETER_LABELS: dict[str, tuple[str, ...]] = {
         "samples": ("samples", "样本数", "样本", "实验数"),
         "seed": ("seed", "随机种子"),
@@ -176,17 +178,23 @@ class StochasticTutorAgent:
         for label in labels:
             pattern = (
                 rf"(?:{re.escape(label)})\s*"
-                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*(\d+(?:\.\d+)?)"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*"
+                rf"({StochasticTutorAgent.NUMBER_PATTERN})"
             )
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if not match:
                 reverse_pattern = (
-                    rf"(\d+(?:\.\d+)?)\s*(?:个|条)?\s*(?:{re.escape(label)})"
+                    rf"({StochasticTutorAgent.NUMBER_PATTERN})\s*"
+                    rf"(?:个|条)?\s*(?:{re.escape(label)})"
                 )
                 match = re.search(reverse_pattern, text, flags=re.IGNORECASE)
             if match:
                 value = float(match.group(1))
-                return int(value) if integer else value
+                if integer:
+                    if not value.is_integer():
+                        raise ValueError(f"{label} must be an integer")
+                    return int(value)
+                return value
         return int(default) if integer else float(default)
 
     @classmethod
@@ -197,9 +205,12 @@ class StochasticTutorAgent:
         for label in labels:
             forward = (
                 rf"(?:{re.escape(label)})\s*"
-                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*\d+(?:\.\d+)?"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*"
+                rf"{cls.NUMBER_PATTERN}"
             )
-            reverse = rf"\d+(?:\.\d+)?\s*(?:个|条)?\s*(?:{re.escape(label)})"
+            reverse = (
+                rf"{cls.NUMBER_PATTERN}\s*(?:个|条)?\s*(?:{re.escape(label)})"
+            )
             if re.search(forward, text, flags=re.IGNORECASE) or re.search(
                 reverse, text, flags=re.IGNORECASE
             ):
