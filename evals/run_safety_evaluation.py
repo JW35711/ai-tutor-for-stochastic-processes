@@ -26,6 +26,7 @@ DEFAULT_CASES = Path(__file__).with_name("safety_cases.json")
 def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
     cases: list[dict[str, Any]] = json.loads(cases_path.read_text("utf-8"))
     failures: list[dict[str, Any]] = []
+    case_results: list[dict[str, Any]] = []
     with tempfile.TemporaryDirectory() as directory:
         memory = LearnerMemory(Path(directory) / "safety.sqlite3")
         agent = StochasticTutorAgent(memory=memory)
@@ -52,6 +53,12 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
                                     "expected_result", {}
                                 ).items()
                             ),
+                            "answer": all(
+                                forbidden not in response["answer"]
+                                for forbidden in case.get(
+                                    "answer_not_contains", []
+                                )
+                            ),
                         }
                         if not all(checks.values()):
                             failure = {
@@ -69,6 +76,15 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
                             "reason": "unexpected exception",
                             "error": str(error),
                         }
+                case_results.append(
+                    {
+                        "id": case["id"],
+                        "passed": failure is None,
+                        "expected_exception": case.get("expected_exception"),
+                        "expected_module": case.get("expected_module"),
+                        "expected_tool": case.get("expected_tool"),
+                    }
+                )
                 if failure:
                     failures.append({"id": case["id"], **failure})
         finally:
@@ -83,6 +99,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
         "total": total,
         "passed": passed,
         "pass_rate": round(passed / total, 4) if total else 0.0,
+        "case_results": case_results,
         "failures": failures,
     }
 

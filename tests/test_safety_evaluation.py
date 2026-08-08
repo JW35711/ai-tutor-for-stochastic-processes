@@ -6,9 +6,11 @@ from evals.run_safety_evaluation import evaluate
 class SafetyEvaluationTests(unittest.TestCase):
     def test_all_bounded_agent_safety_cases_pass(self) -> None:
         report = evaluate()
-        self.assertEqual(report["total"], 10)
+        self.assertEqual(report["total"], 20)
         self.assertEqual(report["passed"], report["total"])
         self.assertEqual(report["failures"], [])
+        self.assertEqual(len(report["case_results"]), 20)
+        self.assertTrue(all(item["passed"] for item in report["case_results"]))
         self.assertRegex(report["cases_sha256"], r"^[0-9a-f]{64}$")
 
 
