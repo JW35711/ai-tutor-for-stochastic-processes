@@ -66,6 +66,18 @@ class KnowledgeBaseTests(unittest.TestCase):
         sources = self.knowledge.retrieve("布朗运动方差", module_id="module04")
         self.assertEqual(sources[0]["module_id"], "module04")
 
+    def test_chinese_concept_expansion_targets_english_notebook_cell(self) -> None:
+        sources = self.knowledge.retrieve(
+            "如何用模拟检验几何等待时间的无记忆性",
+            module_id="module01",
+        )
+        self.assertIn("memoryless property", sources[0]["content"].lower())
+        self.assertIn("memoryless property", sources[0]["query_expansions"][0])
+        self.assertGreater(
+            sources[0]["score_breakdown"]["title_sparse"],
+            0,
+        )
+
     def test_repeated_retrieval_uses_isolated_lru_cache_entries(self) -> None:
         knowledge = KnowledgeBase(cache_size=2)
         first = knowledge.retrieve("Poisson waiting time", module_id="module01")

@@ -59,7 +59,7 @@ python3 evals/run_latency_benchmark.py --repetitions 2
 
 Explain that the acceptance set contains 30 Chinese and English prompts and
 measures module routing, tool choice, source scope and execution trace. The
-separate 22-case retrieval set reports Hit@3 and MRR. Open `/health` to show the
+separate 44-case bilingual retrieval set reports Hit@3 and MRR. Open `/health` to show the
 seven workflow nodes, active vector backend, request counters and latency.
 The 10-case pedagogy set checks misconception corrections, neutral controls and
 the required teaching-response structure.

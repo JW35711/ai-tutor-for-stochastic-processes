@@ -62,6 +62,8 @@ class WebContractTests(unittest.TestCase):
     def test_retrieval_evidence_can_show_grounded_excerpt(self) -> None:
         self.assertIn("查看证据摘录", self.javascript)
         self.assertIn("source.content", self.javascript)
+        self.assertIn("source.query_expansions", self.javascript)
+        self.assertIn("title_sparse", self.javascript)
 
     def test_run_evidence_can_be_exported_after_execution(self) -> None:
         self.assertIn('id="exportRunButton"', self.html)

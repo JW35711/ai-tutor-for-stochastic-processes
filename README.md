@@ -6,7 +6,7 @@
 
 | Course coverage | Executable tools | State nodes | RAG evidence | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 15 | 7 | 236 | 77/77 |
+| 11/11 modules | 15 | 7 | 236 | 99/99 |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -245,7 +245,7 @@ python3 evals/run_latency_benchmark.py --repetitions 2
 ```
 
 The deterministic acceptance suite currently contains 30 single-turn cases,
-5 multi-turn conversations, 22 module-scoped retrieval cases and 10 pedagogy
+5 multi-turn conversations, 44 module-scoped retrieval cases and 10 pedagogy
 cases. The checked local-hash baseline reaches `Hit@3 = 1.0000` and
 `MRR = 1.0000` on the retrieval set. The report preserves every case's rank,
 matched relevance phrase and returned source locators. The pedagogy set checks

@@ -55,8 +55,14 @@ At startup, the retriever loads 11 curated knowledge cards and extracts
 Markdown teaching cells from all 11 notebooks. It combines IDF-weighted sparse
 terms, Chinese character bigrams and trigrams, and cosine similarity over a
 vector index. Results are restricted to the routed module and expose sparse,
-vector and bonus score components, the backend name, source type and exact
-`#cell-N` locator.
+title, vector and bonus score components, the backend name, source type and
+exact `#cell-N` locator.
+
+For Chinese course questions, a small reviewed concept map appends transparent
+English retrieval hints for terms such as holding time, memorylessness, hazard
+rate and absorption time. Every returned source includes the applied expansion
+list. Title overlap receives a fixed, separately reported boost, so a specific
+Notebook section can outrank a broad module summary without a hidden reranker.
 
 The default 384-dimensional hash vectorizer is deterministic and offline. It
 helps with wording variation but is not described as a neural semantic model.
@@ -82,9 +88,10 @@ and the health response, making content changes observable without publishing
 the local reference PDFs.
 
 Retrieval is regression-tested separately from end-to-end routing. The
-22-case suite spans all eleven modules and reports Hit@3 and mean reciprocal
-rank. Keeping this suite separate makes a future neural embedding change
-measurable instead of relying on a subjective UI demonstration.
+44-case suite spans all eleven modules, English and Chinese queries, and reports
+Hit@3 and mean reciprocal rank. Keeping this suite separate makes a future
+neural embedding change measurable instead of relying on a subjective UI
+demonstration. Each report includes per-case ranks and matched relevance text.
 
 Teaching behavior has a second independent gate: ten cases cover all six
 explicit misconception rules plus neutral controls. The evaluator requires

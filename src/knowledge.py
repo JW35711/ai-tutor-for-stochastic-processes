@@ -35,6 +35,38 @@ class KnowledgeBase:
     notebook cell used in a response.
     """
 
+    QUERY_TRANSLATIONS: tuple[tuple[str, str], ...] = (
+        (
+            "样本量",
+            "sample size repetitions increasing N convergence fluctuations standard error",
+        ),
+        (
+            "无记忆",
+            "memoryless property geometric waiting time first event simulation",
+        ),
+        ("终点位置", "distribution final position number of right steps"),
+        ("跳跃率", "effect of the jump rate lambda different values"),
+        ("固定时刻", "fixed time distribution not a sample path B(T)"),
+        (
+            "吸收马尔可夫链",
+            "absorbing Markov chain gambler ruin histogram distribution of absorption times over many simulations boundary",
+        ),
+        ("停留时间", "holding time exponential distribution generator"),
+        ("风险率", "hazard rate constant exponential distribution life length"),
+        (
+            "平均累计事件数",
+            "many simulations mean count average count integrated intensity",
+        ),
+        (
+            "已访问格点",
+            "visited set same lattice site Markov property self avoidance",
+        ),
+        (
+            "簇数量",
+            "cluster count coalescence does not occur at every step stay same decrease",
+        ),
+    )
+
     def __init__(
         self,
         path: Path = DEFAULT_KNOWLEDGE_PATH,
@@ -103,6 +135,9 @@ class KnowledgeBase:
             corpus_digest.update(b"\0")
         self.corpus_sha256 = corpus_digest.hexdigest()
         self._term_sets = [self._terms(text) for text in self._entry_texts]
+        self._title_term_sets = [
+            self._terms(entry["title"]) for entry in self.entries
+        ]
         document_frequency: Counter[str] = Counter()
         for terms in self._term_sets:
             document_frequency.update(terms)
@@ -263,6 +298,17 @@ class KnowledgeBase:
             ]
         )
 
+    @classmethod
+    def _expand_query(cls, query: str) -> tuple[str, list[str]]:
+        """Append explicit bilingual concepts while preserving the raw query."""
+
+        expansions = [
+            english
+            for chinese, english in cls.QUERY_TRANSLATIONS
+            if chinese in query
+        ]
+        return " ".join([query, *expansions]), expansions
+
     def retrieve(
         self,
         query: str,
@@ -280,16 +326,18 @@ class KnowledgeBase:
                     self._cache.move_to_end(cache_key)
                     return deepcopy(cached)
                 self._cache_misses += 1
-        query_terms = self._terms(query)
+        expanded_query, query_expansions = self._expand_query(query)
+        query_terms = self._terms(expanded_query)
         normalized_query = " ".join(query.lower().split())
-        query_vector, retrieval_mode = self._query_vector(query)
+        query_vector, retrieval_mode = self._query_vector(expanded_query)
         scored: list[
-            tuple[float, int, dict[str, Any], float, float, float]
+            tuple[float, int, dict[str, Any], float, float, float, float]
         ] = []
-        for index, (entry, entry_terms, entry_vector) in enumerate(
+        for index, (entry, entry_terms, title_terms, entry_vector) in enumerate(
             zip(
                 self.entries,
                 self._term_sets,
+                self._title_term_sets,
                 self._entry_vectors,
                 strict=True,
             )
@@ -298,6 +346,9 @@ class KnowledgeBase:
                 continue
             overlap = query_terms & entry_terms
             sparse_score = sum(self._idf.get(term, 1.0) for term in overlap)
+            title_sparse_score = sum(
+                self._idf.get(term, 1.0) for term in query_terms & title_terms
+            )
             topic_bonus = 6.0 if topic and entry["topic"] == topic else 0.0
             curated_bonus = 2.5 if entry["kind"] == "curated" else 0.0
             phrase_bonus = (
@@ -312,7 +363,12 @@ class KnowledgeBase:
                 else 0.0
             )
             bonus_score = topic_bonus + curated_bonus + phrase_bonus
-            score = sparse_score + 5.0 * dense_score + bonus_score
+            score = (
+                sparse_score
+                + 2.0 * title_sparse_score
+                + 5.0 * dense_score
+                + bonus_score
+            )
             if score > 0:
                 scored.append(
                     (
@@ -320,6 +376,7 @@ class KnowledgeBase:
                         -index,
                         entry,
                         sparse_score,
+                        title_sparse_score,
                         dense_score,
                         bonus_score,
                     )
@@ -336,11 +393,13 @@ class KnowledgeBase:
                 "score": round(score, 3),
                 "score_breakdown": {
                     "sparse": round(sparse_score, 3),
+                    "title_sparse": round(title_sparse_score, 3),
                     "vector": round(dense_score, 4),
                     "bonuses": round(bonus_score, 3),
                 },
                 "embedding_backend": self.embedding_backend.name,
                 "retrieval_mode": retrieval_mode,
+                "query_expansions": query_expansions,
                 "corpus_sha256": self.corpus_sha256,
             }
             for (
@@ -348,6 +407,7 @@ class KnowledgeBase:
                 _,
                 entry,
                 sparse_score,
+                title_sparse_score,
                 dense_score,
                 bonus_score,
             ) in scored[:safe_limit]
@@ -397,4 +457,5 @@ class KnowledgeBase:
             "embedding_circuit": embedding_circuit,
             "corpus_sha256": self.corpus_sha256,
             "retrieval_cache": cache_stats,
+            "query_translation_rules": len(self.QUERY_TRANSLATIONS),
         }

@@ -239,7 +239,8 @@ function renderEvidence(payload) {
           <div class="source-item">
             <strong>${escapeHtml(source.title)}</strong>
             <small>${escapeHtml(source.source)} · ${escapeHtml(source.kind || "course_note")}</small>
-            <small>${escapeHtml(source.retrieval_mode || "retrieval")} · score ${escapeHtml(source.score ?? "—")} · sparse ${escapeHtml(source.score_breakdown?.sparse ?? "—")} · vector ${escapeHtml(source.score_breakdown?.vector ?? "—")}</small>
+            <small>${escapeHtml(source.retrieval_mode || "retrieval")} · score ${escapeHtml(source.score ?? "—")} · sparse ${escapeHtml(source.score_breakdown?.sparse ?? "—")} · title ${escapeHtml(source.score_breakdown?.title_sparse ?? "—")} · vector ${escapeHtml(source.score_breakdown?.vector ?? "—")}</small>
+            ${source.query_expansions?.length ? `<small>query expansion · ${escapeHtml(source.query_expansions.join(" · "))}</small>` : ""}
             <details>
               <summary>查看证据摘录</summary>
               <p>${escapeHtml(source.content || "暂无摘录")}</p>
