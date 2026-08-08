@@ -180,6 +180,9 @@ with corpus and quiz-bank provenance before deleting the session.
   exposes an all-time average and bounded recent p95.
 - `/live` reports process liveness; `/ready` checks memory, catalogs, knowledge,
   assessment and evaluation versions before the service receives traffic.
+- Browser-side chat, assessment and reset writes are mutually exclusive. All
+  fetches have explicit abort deadlines, surface the server request ID on API
+  errors, and refresh the provider fallback state after an Agent run.
 - `/openapi.json` describes the human-documented API as OpenAPI 3.1.
 - Logs contain route, status and latency, but not the learner's question text.
 

@@ -31,6 +31,53 @@ const appVersion = document.querySelector("#appVersion");
 let sessionId = window.localStorage.getItem("stochasticTutorSession");
 let activeModuleId = "module01";
 let latestRunPayload = null;
+let mutationInFlight = false;
+
+function setMutationState(isBusy, label = "运行中…") {
+  mutationInFlight = isBusy;
+  form.setAttribute("aria-busy", String(isBusy));
+  submitButton.disabled = isBusy;
+  quizButton.disabled = isBusy;
+  resetButton.disabled = isBusy;
+  if (isBusy) {
+    submitButton.textContent = label;
+  } else {
+    submitButton.innerHTML = "运行 Agent <span>→</span>";
+  }
+}
+
+function beginMutation(label) {
+  if (mutationInFlight) return false;
+  setMutationState(true, label);
+  return true;
+}
+
+async function fetchJson(url, options = {}, timeoutMs = 45_000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    let payload;
+    try {
+      payload = await response.json();
+    } catch (_) {
+      throw new Error(`服务返回了无法解析的响应（HTTP ${response.status}）`);
+    }
+    if (!response.ok) {
+      const requestId = payload.request_id || response.headers.get("X-Request-ID");
+      const suffix = requestId ? `（请求 ${requestId.slice(0, 8)}）` : "";
+      throw new Error(`${payload.error || `HTTP ${response.status}`}${suffix}`);
+    }
+    return payload;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error(`请求超过 ${Math.round(timeoutMs / 1000)} 秒，已停止等待`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -213,17 +260,14 @@ function renderEvidence(payload) {
 }
 
 async function askAgent(question) {
+  if (!beginMutation("运行中…")) return;
   addMessage("user", question);
-  submitButton.disabled = true;
-  submitButton.textContent = "运行中…";
   try {
-    const response = await fetch("/api/chat", {
+    const payload = await fetchJson("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, session_id: sessionId }),
     });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "请求失败");
     sessionId = payload.session_id;
     activeModuleId = payload.module_id;
     window.localStorage.setItem("stochasticTutorSession", sessionId);
@@ -233,17 +277,20 @@ async function askAgent(question) {
   } catch (error) {
     addMessage("agent", `运行失败：${error.message}`);
   } finally {
-    submitButton.disabled = false;
-    submitButton.innerHTML = "运行 Agent <span>→</span>";
+    setMutationState(false);
+    hydrateHealth();
   }
 }
 
 async function openQuiz() {
+  if (mutationInFlight) return;
   quizButton.disabled = true;
   try {
-    const response = await fetch(`/api/quiz?module_id=${encodeURIComponent(activeModuleId)}`);
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "无法加载测验");
+    const payload = await fetchJson(
+      `/api/quiz?module_id=${encodeURIComponent(activeModuleId)}`,
+      {},
+      15_000,
+    );
     const quiz = payload.quiz;
     quizPanel.classList.remove("hidden");
     quizPanel.innerHTML = `
@@ -262,11 +309,12 @@ async function openQuiz() {
     quizPanel.classList.remove("hidden");
     quizPanel.textContent = `测验加载失败：${error.message}`;
   } finally {
-    quizButton.disabled = false;
+    quizButton.disabled = mutationInFlight;
   }
 }
 
 async function submitQuiz(questionId, answerIndex) {
+  if (!beginMutation("保存测验…")) return;
   const buttons = quizPanel.querySelectorAll("[data-answer]");
   buttons.forEach((button) => {
     button.disabled = true;
@@ -274,13 +322,11 @@ async function submitQuiz(questionId, answerIndex) {
   });
   const feedback = quizPanel.querySelector(".quiz-feedback");
   try {
-    const response = await fetch("/api/quiz/submit", {
+    const payload = await fetchJson("/api/quiz/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question_id: questionId, answer_index: answerIndex, session_id: sessionId }),
     });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "提交失败");
     sessionId = payload.session_id;
     window.localStorage.setItem("stochasticTutorSession", sessionId);
     exportProfileButton.disabled = false;
@@ -311,6 +357,8 @@ async function submitQuiz(questionId, answerIndex) {
       button.disabled = false;
       button.setAttribute("aria-pressed", "false");
     });
+  } finally {
+    setMutationState(false);
   }
 }
 
@@ -318,11 +366,15 @@ quizButton.addEventListener("click", openQuiz);
 
 async function hydrateHealth() {
   try {
-    const response = await fetch("/health");
-    const health = await response.json();
-    if (!response.ok) throw new Error("health check failed");
+    const health = await fetchJson("/health", {}, 5_000);
+    const ragCircuit = health.knowledge?.embedding_circuit?.state;
+    const llmCircuit = health.llm?.provider_circuit?.state;
+    const degraded = ragCircuit === "open" || llmCircuit === "open";
     healthStatus.classList.add("online");
-    healthStatus.innerHTML = "<i></i> Agent online";
+    healthStatus.classList.toggle("degraded", degraded);
+    healthStatus.innerHTML = degraded
+      ? "<i></i> Agent online · fallback"
+      : "<i></i> Agent online";
     const ragBackend = health.knowledge?.embedding_backend || "retrieval ready";
     healthMeta.textContent = `${health.modules} modules · ${health.tools} tools · ${ragBackend}`;
     appVersion.textContent = `v${health.version || "0.4.0"} · Interview build`;
@@ -340,6 +392,7 @@ async function hydrateHealth() {
         : "课程内容已变化，需要重跑评测";
     }
   } catch (_) {
+    healthStatus.classList.remove("online", "degraded");
     healthStatus.innerHTML = "<i></i> Agent offline";
   }
 }
@@ -357,9 +410,11 @@ document.querySelectorAll("[data-scroll]").forEach((button) => {
 async function restoreSession() {
   if (!sessionId) return;
   try {
-    const response = await fetch(`/api/profile?session_id=${encodeURIComponent(sessionId)}`);
-    const payload = await response.json();
-    if (!response.ok) return;
+    const payload = await fetchJson(
+      `/api/profile?session_id=${encodeURIComponent(sessionId)}`,
+      {},
+      15_000,
+    );
     const profile = payload.profile;
     if (!profile.turns && !profile.quiz_attempts) {
       window.localStorage.removeItem("stochasticTutorSession");
@@ -406,8 +461,10 @@ function downloadJson(payload, filename) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 exportRunButton.addEventListener("click", () => {
@@ -423,11 +480,11 @@ exportProfileButton.addEventListener("click", async () => {
   if (!sessionId) return;
   exportProfileButton.disabled = true;
   try {
-    const response = await fetch(
+    const payload = await fetchJson(
       `/api/sessions/${encodeURIComponent(sessionId)}/export`,
+      {},
+      15_000,
     );
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "导出失败");
     const safeSessionLabel = sessionId
       .replace(/[^A-Za-z0-9_-]/g, "")
       .slice(0, 8) || "session";
@@ -441,6 +498,7 @@ exportProfileButton.addEventListener("click", async () => {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (mutationInFlight) return;
   const question = input.value.trim();
   if (!question) return;
   input.value = "";
@@ -455,21 +513,20 @@ document.querySelectorAll("[data-question]").forEach((button) => {
 });
 
 resetButton.addEventListener("click", async () => {
-  resetButton.disabled = true;
+  if (!beginMutation("重置中…")) return;
   if (sessionId) {
     try {
-      const response = await fetch(
+      await fetchJson(
         `/api/sessions/${encodeURIComponent(sessionId)}`,
         { method: "DELETE" },
+        15_000,
       );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "服务端删除失败");
     } catch (error) {
       addMessage(
         "agent",
         `学习记录尚未删除：${error.message}。会话标识仍保留，请稍后重试。`,
       );
-      resetButton.disabled = false;
+      setMutationState(false);
       return;
     }
   }
@@ -489,6 +546,6 @@ resetButton.addEventListener("click", async () => {
   exportRunButton.disabled = true;
   exportProfileButton.disabled = true;
   quizPanel.classList.add("hidden");
-  resetButton.disabled = false;
+  setMutationState(false);
   input.focus();
 });

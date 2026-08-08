@@ -75,14 +75,20 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("safeSessionLabel", self.javascript)
 
     def test_failed_server_deletion_does_not_orphan_learner_data(self) -> None:
+        fetch_helper = self.javascript.split(
+            "async function fetchJson",
+            maxsplit=1,
+        )[1].split("function escapeHtml", maxsplit=1)[0]
         reset_handler = self.javascript.split(
             'resetButton.addEventListener("click"',
             maxsplit=1,
         )[1]
-        self.assertIn("if (!response.ok)", reset_handler)
+        self.assertIn("if (!response.ok)", fetch_helper)
+        self.assertIn("await fetchJson", reset_handler)
+        self.assertIn("catch (error)", reset_handler)
         self.assertIn("会话标识仍保留", reset_handler)
         self.assertLess(
-            reset_handler.index("if (!response.ok)"),
+            reset_handler.index("catch (error)"),
             reset_handler.index("sessionId = null"),
         )
 
@@ -93,6 +99,19 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('role="group" aria-labelledby="quizQuestion"', self.javascript)
         self.assertIn('aria-pressed="false"', self.javascript)
         self.assertIn("correct-answer", self.javascript)
+
+    def test_writes_are_mutually_exclusive_and_requests_are_bounded(self) -> None:
+        self.assertIn("let mutationInFlight = false", self.javascript)
+        self.assertIn("if (!beginMutation", self.javascript)
+        self.assertIn("new AbortController()", self.javascript)
+        self.assertIn("controller.abort()", self.javascript)
+        self.assertIn('response.headers.get("X-Request-ID")', self.javascript)
+        self.assertIn('form.setAttribute("aria-busy"', self.javascript)
+
+    def test_provider_fallback_is_visible_in_health_status(self) -> None:
+        self.assertIn("embedding_circuit?.state", self.javascript)
+        self.assertIn("provider_circuit?.state", self.javascript)
+        self.assertIn("Agent online · fallback", self.javascript)
 
 
 if __name__ == "__main__":

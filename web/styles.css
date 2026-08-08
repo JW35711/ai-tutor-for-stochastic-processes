@@ -257,6 +257,10 @@ button {
   background: #45b582;
 }
 
+.health-pill.degraded i {
+  background: var(--amber);
+}
+
 .dashboard {
   flex: 1;
   overflow: auto;
