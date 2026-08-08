@@ -103,7 +103,7 @@ class LLMGuardTests(unittest.TestCase):
             {"LLM_MAX_CONTENT_CHARS": "255"},
             clear=False,
         ):
-            with self.assertRaisesRegex(ValueError, "content limit"):
+            with self.assertRaisesRegex(ValueError, "LLM_MAX_CONTENT_CHARS"):
                 OpenAICompatibleLLM()
 
 

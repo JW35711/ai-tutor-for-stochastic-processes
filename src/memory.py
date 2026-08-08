@@ -15,6 +15,8 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 
+from .config import env_int
+
 
 DEFAULT_MEMORY_PATH = (
     Path(
@@ -41,7 +43,12 @@ class LearnerMemory:
     ) -> None:
         self.path = Path(path)
         configured_limit = (
-            int(os.getenv("MAX_SESSION_EVENTS", "1000"))
+            env_int(
+                "MAX_SESSION_EVENTS",
+                1000,
+                minimum=1,
+                maximum=1_000_000,
+            )
             if max_events_per_session is None
             else max_events_per_session
         )

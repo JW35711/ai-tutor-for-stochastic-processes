@@ -12,6 +12,8 @@ import urllib.request
 from collections.abc import Sequence
 from typing import Protocol
 
+from .config import env_float, env_int
+
 
 def normalize(vector: Sequence[float]) -> list[float]:
     norm = math.sqrt(sum(float(value) ** 2 for value in vector))
@@ -38,8 +40,8 @@ class LocalHashEmbedding:
     name = "local_hash"
 
     def __init__(self, dimension: int = 384) -> None:
-        if dimension < 64:
-            raise ValueError("hash embedding dimension must be at least 64")
+        if not 64 <= dimension <= 4096:
+            raise ValueError("hash embedding dimension must be between 64 and 4096")
         self.dimension = dimension
 
     @staticmethod
@@ -163,17 +165,35 @@ class OpenAICompatibleEmbedding:
 def embedding_backend_from_environment() -> EmbeddingBackend:
     backend = os.getenv("RAG_EMBEDDING_BACKEND", "local_hash").strip().lower()
     if backend in {"", "local", "local_hash"}:
-        dimension = int(os.getenv("RAG_HASH_DIMENSION", "384"))
+        dimension = env_int(
+            "RAG_HASH_DIMENSION",
+            384,
+            minimum=64,
+            maximum=4096,
+        )
         return LocalHashEmbedding(dimension=dimension)
     if backend in {"openai", "openai_compatible"}:
         return OpenAICompatibleEmbedding(
             api_key=os.getenv("EMBEDDING_API_KEY", ""),
             model=os.getenv("EMBEDDING_MODEL", ""),
             base_url=os.getenv("EMBEDDING_BASE_URL", "https://api.openai.com/v1"),
-            timeout=float(os.getenv("EMBEDDING_TIMEOUT_SECONDS", "30")),
-            batch_size=int(os.getenv("EMBEDDING_BATCH_SIZE", "64")),
-            max_response_bytes=int(
-                os.getenv("EMBEDDING_MAX_RESPONSE_BYTES", "10000000")
+            timeout=env_float(
+                "EMBEDDING_TIMEOUT_SECONDS",
+                30,
+                minimum=0.1,
+                maximum=300,
+            ),
+            batch_size=env_int(
+                "EMBEDDING_BATCH_SIZE",
+                64,
+                minimum=1,
+                maximum=2048,
+            ),
+            max_response_bytes=env_int(
+                "EMBEDDING_MAX_RESPONSE_BYTES",
+                10_000_000,
+                minimum=1_024,
+                maximum=100_000_000,
             ),
         )
     raise ValueError(f"unsupported RAG_EMBEDDING_BACKEND: {backend}")

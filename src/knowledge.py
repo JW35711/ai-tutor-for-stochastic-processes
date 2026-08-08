@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import os
 import re
 import time
 from collections import Counter, OrderedDict
@@ -15,6 +14,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 
+from .config import env_float, env_int
 from .embeddings import (
     EmbeddingBackend,
     LocalHashEmbedding,
@@ -46,7 +46,12 @@ class KnowledgeBase:
     ) -> None:
         self.path = path
         resolved_cache_size = (
-            int(os.getenv("RAG_RETRIEVAL_CACHE_SIZE", "256"))
+            env_int(
+                "RAG_RETRIEVAL_CACHE_SIZE",
+                256,
+                minimum=0,
+                maximum=10_000,
+            )
             if cache_size is None
             else cache_size
         )
@@ -61,7 +66,12 @@ class KnowledgeBase:
         self._cache_misses = 0
         self._cache_lock = Lock()
         resolved_cooldown = (
-            float(os.getenv("RAG_EMBEDDING_FAILURE_COOLDOWN_SECONDS", "60"))
+            env_float(
+                "RAG_EMBEDDING_FAILURE_COOLDOWN_SECONDS",
+                60,
+                minimum=0,
+                maximum=3600,
+            )
             if embedding_failure_cooldown is None
             else float(embedding_failure_cooldown)
         )

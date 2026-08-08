@@ -75,3 +75,8 @@ Before exposing the application beyond a private demo:
 The current server deliberately avoids claiming multi-tenant production
 readiness. It provides request protection and observability suitable for a
 single-instance portfolio demonstration.
+
+All numeric environment settings are parsed as finite values with explicit
+upper and lower bounds. A misspelled, non-numeric or unsafe value fails startup
+with the exact variable name instead of being silently clamped. `.env.example`
+is the configuration inventory for the interview deployment.

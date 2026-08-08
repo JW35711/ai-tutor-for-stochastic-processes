@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import re
 import urllib.error
 import urllib.request
+
+from .config import env_float, env_int
 
 
 class OpenAICompatibleLLM:
@@ -17,17 +18,24 @@ class OpenAICompatibleLLM:
         self.api_key = os.getenv("LLM_API_KEY", "")
         self.model = os.getenv("LLM_MODEL", "")
         self.base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-        self.timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
-        self.max_response_bytes = int(
-            os.getenv("LLM_MAX_RESPONSE_BYTES", "1000000")
+        self.timeout = env_float(
+            "LLM_TIMEOUT_SECONDS",
+            30,
+            minimum=0.1,
+            maximum=300,
         )
-        self.max_content_chars = int(os.getenv("LLM_MAX_CONTENT_CHARS", "12000"))
-        if not math.isfinite(self.timeout) or self.timeout <= 0:
-            raise ValueError("LLM timeout must be positive")
-        if not 1_024 <= self.max_response_bytes <= 20_000_000:
-            raise ValueError("LLM response limit must be between 1024 and 20000000")
-        if not 256 <= self.max_content_chars <= 100_000:
-            raise ValueError("LLM content limit must be between 256 and 100000")
+        self.max_response_bytes = env_int(
+            "LLM_MAX_RESPONSE_BYTES",
+            1_000_000,
+            minimum=1_024,
+            maximum=20_000_000,
+        )
+        self.max_content_chars = env_int(
+            "LLM_MAX_CONTENT_CHARS",
+            12_000,
+            minimum=256,
+            maximum=100_000,
+        )
 
     @property
     def enabled(self) -> bool:

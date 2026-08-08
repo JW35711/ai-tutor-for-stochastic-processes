@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-import os
+from .config import env_int
 
 
-MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
+MAX_QUESTION_CHARS = env_int(
+    "MAX_QUESTION_CHARS",
+    4000,
+    minimum=100,
+    maximum=100_000,
+)
 
 
 def validate_question(value: object) -> str:

@@ -6,7 +6,6 @@ import argparse
 import hashlib
 import json
 import mimetypes
-import os
 import re
 import signal
 import time
@@ -18,8 +17,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from src.assessment import AssessmentEngine
 from src.agent import StochasticTutorAgent
+from src.assessment import AssessmentEngine
+from src.config import env_float, env_int
 from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
 from src.openapi import OPENAPI_SPEC
@@ -43,15 +43,38 @@ EVALUATION["corpus_match"] = (
     EVALUATION["corpus_sha256"] == AGENT.knowledge.corpus_sha256
 )
 RATE_LIMITER = SlidingWindowRateLimiter(
-    limit=max(1, int(os.getenv("API_RATE_LIMIT_PER_MINUTE", "60"))),
-    max_clients=max(1, int(os.getenv("API_RATE_LIMIT_CLIENT_CAP", "10000"))),
+    limit=env_int(
+        "API_RATE_LIMIT_PER_MINUTE",
+        60,
+        minimum=1,
+        maximum=1_000_000,
+    ),
+    max_clients=env_int(
+        "API_RATE_LIMIT_CLIENT_CAP",
+        10_000,
+        minimum=1,
+        maximum=1_000_000,
+    ),
 )
 METRICS = ServiceMetrics()
-MAX_JSON_BODY_BYTES = max(1024, int(os.getenv("MAX_JSON_BODY_BYTES", "1000000")))
-REQUEST_SOCKET_TIMEOUT_SECONDS = max(
-    1.0, float(os.getenv("REQUEST_SOCKET_TIMEOUT_SECONDS", "10"))
+MAX_JSON_BODY_BYTES = env_int(
+    "MAX_JSON_BODY_BYTES",
+    1_000_000,
+    minimum=1_024,
+    maximum=20_000_000,
 )
-MEMORY_RETENTION_DAYS = max(0, int(os.getenv("MEMORY_RETENTION_DAYS", "0")))
+REQUEST_SOCKET_TIMEOUT_SECONDS = env_float(
+    "REQUEST_SOCKET_TIMEOUT_SECONDS",
+    10,
+    minimum=1,
+    maximum=300,
+)
+MEMORY_RETENTION_DAYS = env_int(
+    "MEMORY_RETENTION_DAYS",
+    0,
+    minimum=0,
+    maximum=3650,
+)
 PURGED_SESSIONS_ON_STARTUP = (
     AGENT.memory.purge_stale(MEMORY_RETENTION_DAYS)
     if MEMORY_RETENTION_DAYS
