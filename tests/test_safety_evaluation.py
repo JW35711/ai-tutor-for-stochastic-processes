@@ -9,6 +9,7 @@ class SafetyEvaluationTests(unittest.TestCase):
         self.assertEqual(report["total"], 10)
         self.assertEqual(report["passed"], report["total"])
         self.assertEqual(report["failures"], [])
+        self.assertRegex(report["cases_sha256"], r"^[0-9a-f]{64}$")
 
 
 if __name__ == "__main__":

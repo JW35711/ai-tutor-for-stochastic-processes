@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import tempfile
@@ -78,6 +79,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
     return {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "corpus_sha256": corpus_sha256,
+        "cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(),
         "total": total,
         "passed": passed,
         "pass_rate": round(passed / total, 4) if total else 0.0,

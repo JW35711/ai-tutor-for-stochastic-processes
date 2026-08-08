@@ -11,6 +11,7 @@ class RetrievalEvaluationTests(unittest.TestCase):
         self.assertEqual(report["hit_at_3"], 1.0)
         self.assertGreaterEqual(report["mrr"], 0.8)
         self.assertEqual(report["failures"], [])
+        self.assertRegex(report["cases_sha256"], r"^[0-9a-f]{64}$")
 
 
 if __name__ == "__main__":

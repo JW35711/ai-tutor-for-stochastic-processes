@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from datetime import UTC, datetime
@@ -61,6 +62,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES, limit: int = 3) -> dict[str, Any]
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "embedding_backend": knowledge.stats()["embedding_backend"],
         "corpus_sha256": knowledge.corpus_sha256,
+        "cases_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(),
         "total": len(cases),
         f"hit_at_{limit}": round(hits / len(cases), 4) if cases else 0.0,
         "mrr": round(sum(reciprocal_ranks) / len(cases), 4) if cases else 0.0,

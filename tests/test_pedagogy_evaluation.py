@@ -11,6 +11,7 @@ class PedagogyEvaluationTests(unittest.TestCase):
         self.assertEqual(report["pass_rate"], 1.0)
         self.assertEqual(report["structured_answer_rate"], 1.0)
         self.assertEqual(report["failures"], [])
+        self.assertRegex(report["cases_sha256"], r"^[0-9a-f]{64}$")
 
 
 if __name__ == "__main__":
