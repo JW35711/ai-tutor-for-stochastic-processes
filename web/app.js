@@ -449,11 +449,22 @@ document.querySelectorAll("[data-question]").forEach((button) => {
 });
 
 resetButton.addEventListener("click", async () => {
+  resetButton.disabled = true;
   if (sessionId) {
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
-    } catch (_) {
-      // A local reset should still work when the server has just restarted.
+      const response = await fetch(
+        `/api/sessions/${encodeURIComponent(sessionId)}`,
+        { method: "DELETE" },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "服务端删除失败");
+    } catch (error) {
+      addMessage(
+        "agent",
+        `学习记录尚未删除：${error.message}。会话标识仍保留，请稍后重试。`,
+      );
+      resetButton.disabled = false;
+      return;
     }
   }
   sessionId = null;
@@ -472,5 +483,6 @@ resetButton.addEventListener("click", async () => {
   exportRunButton.disabled = true;
   exportProfileButton.disabled = true;
   quizPanel.classList.add("hidden");
+  resetButton.disabled = false;
   input.focus();
 });

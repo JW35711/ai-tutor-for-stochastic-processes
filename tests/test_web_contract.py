@@ -71,6 +71,18 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("/export`", self.javascript)
         self.assertIn("stochlab-learning-profile", self.javascript)
 
+    def test_failed_server_deletion_does_not_orphan_learner_data(self) -> None:
+        reset_handler = self.javascript.split(
+            'resetButton.addEventListener("click"',
+            maxsplit=1,
+        )[1]
+        self.assertIn("if (!response.ok)", reset_handler)
+        self.assertIn("会话标识仍保留", reset_handler)
+        self.assertLess(
+            reset_handler.index("if (!response.ok)"),
+            reset_handler.index("sessionId = null"),
+        )
+
     def test_dynamic_learning_regions_have_accessible_semantics(self) -> None:
         self.assertIn('role="log"', self.html)
         self.assertIn('id="healthStatus" class="health-pill" role="status"', self.html)

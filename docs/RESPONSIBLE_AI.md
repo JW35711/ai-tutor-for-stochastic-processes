@@ -43,6 +43,9 @@ The single-instance demo stores session IDs, learner questions, parameters,
 quiz results and misconception findings in local SQLite. Request logs exclude
 question text and learner identifiers. A learner can reset one session through
 the UI or `DELETE /api/sessions/{id}`.
+The browser clears its local session identifier only after that DELETE returns
+success. On a network, rate-limit or server error it keeps the identifier and
+asks the learner to retry, rather than hiding potentially retained data.
 
 Before public use, the operator must add authentication, define retention and
 deletion periods, publish a privacy notice and avoid sharing a SQLite file
