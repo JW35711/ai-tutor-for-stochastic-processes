@@ -8,6 +8,7 @@ from server import (
     RATE_LIMITER,
     TutorHTTPServer,
     TutorRequestHandler,
+    prometheus_metrics,
     readiness_report,
     validate_session_id,
     validate_session_path,
@@ -54,6 +55,25 @@ class ServerContractTests(unittest.TestCase):
         report = readiness_report()
         self.assertTrue(report["ready"])
         self.assertTrue(all(report["checks"].values()))
+
+    def test_prometheus_metrics_are_low_cardinality_and_parseable(self) -> None:
+        metrics = prometheus_metrics()
+        for name in (
+            "stochlab_http_requests_total",
+            "stochlab_http_latency_recent_p95_ms",
+            "stochlab_rag_embedding_query_failures_total",
+            "stochlab_llm_provider_failures_total",
+            "stochlab_ready",
+        ):
+            self.assertIn(f"# HELP {name}", metrics)
+            sample = next(
+                line for line in metrics.splitlines() if line.startswith(f"{name} ")
+            )
+            float(sample.split()[1])
+        self.assertNotIn("session_id", metrics)
+        self.assertNotIn("question", metrics)
+        self.assertIn("# TYPE stochlab_http_requests_total counter", metrics)
+        self.assertIn("# TYPE stochlab_ready gauge", metrics)
 
     def test_api_rate_limit_helper_returns_retry_metadata(self) -> None:
         handler = object.__new__(TutorRequestHandler)

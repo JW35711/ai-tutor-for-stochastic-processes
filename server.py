@@ -99,6 +99,112 @@ def readiness_report() -> dict[str, object]:
     return {"ready": all(checks.values()), "checks": checks}
 
 
+def prometheus_metrics() -> str:
+    """Render low-cardinality process metrics without learner identifiers."""
+
+    runtime = asdict(METRICS.snapshot())
+    knowledge = AGENT.knowledge.stats()
+    embedding_circuit = knowledge["embedding_circuit"]
+    llm_circuit = AGENT.llm.stats()
+    readiness = readiness_report()
+    values = (
+        (
+            "stochlab_http_requests_total",
+            runtime["requests"],
+            "HTTP requests",
+            "counter",
+        ),
+        (
+            "stochlab_http_errors_total",
+            runtime["errors"],
+            "HTTP errors",
+            "counter",
+        ),
+        (
+            "stochlab_http_rate_limited_total",
+            runtime["rate_limited"],
+            "Rate-limited HTTP requests",
+            "counter",
+        ),
+        (
+            "stochlab_http_latency_average_ms",
+            runtime["average_latency_ms"],
+            "All-time average HTTP latency in milliseconds",
+            "gauge",
+        ),
+        (
+            "stochlab_http_latency_recent_p95_ms",
+            runtime["recent_p95_latency_ms"],
+            "Recent bounded-window p95 latency in milliseconds",
+            "gauge",
+        ),
+        (
+            "stochlab_http_latency_window_samples",
+            runtime["latency_window_samples"],
+            "Samples retained in the latency window",
+            "gauge",
+        ),
+        (
+            "stochlab_rate_limiter_tracked_clients",
+            RATE_LIMITER.tracked_clients,
+            "Client keys tracked by the process-local limiter",
+            "gauge",
+        ),
+        (
+            "stochlab_knowledge_entries",
+            knowledge["entries"],
+            "Indexed RAG entries",
+            "gauge",
+        ),
+        (
+            "stochlab_rag_embedding_query_failures_total",
+            embedding_circuit["query_failures"],
+            "Hosted query-embedding failures",
+            "counter",
+        ),
+        (
+            "stochlab_rag_embedding_query_skips_total",
+            embedding_circuit["query_skips"],
+            "Query embeddings skipped by the circuit",
+            "counter",
+        ),
+        (
+            "stochlab_llm_provider_attempts_total",
+            llm_circuit["attempts"],
+            "Hosted LLM rewrite attempts",
+            "counter",
+        ),
+        (
+            "stochlab_llm_provider_failures_total",
+            llm_circuit["failures"],
+            "Hosted LLM rewrite failures",
+            "counter",
+        ),
+        (
+            "stochlab_llm_provider_skips_total",
+            llm_circuit["skips"],
+            "Hosted LLM rewrites skipped by the circuit",
+            "counter",
+        ),
+        (
+            "stochlab_ready",
+            int(bool(readiness["ready"])),
+            "Whether all local readiness checks pass",
+            "gauge",
+        ),
+    )
+    lines: list[str] = []
+    for name, value, help_text, metric_type in values:
+        lines.extend(
+            (
+                f"# HELP {name} {help_text}",
+                f"# TYPE {name} {metric_type}",
+                f"{name} {value}",
+            )
+        )
+    return "\n".join(lines) + "\n"
+
+
 def validate_session_path(path: str, *, suffix: str = "") -> str:
     prefix = "/api/sessions/"
     if not path.startswith(prefix) or (suffix and not path.endswith(suffix)):
@@ -242,6 +348,24 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _text(
+        self,
+        body: str,
+        *,
+        content_type: str,
+        status: HTTPStatus = HTTPStatus.OK,
+    ) -> None:
+        encoded = body.encode("utf-8")
+        self.response_status = int(status)
+        self.response_started = True
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
+        self._common_headers()
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def _read_json_object(self) -> dict[str, object]:
         media_type = self.headers.get("Content-Type", "").split(";", 1)[0]
         if media_type.strip().lower() != "application/json":
@@ -361,6 +485,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "tracked_clients": RATE_LIMITER.tracked_clients,
                     },
                 }
+            )
+        elif path == "/metrics":
+            self._text(
+                prometheus_metrics(),
+                content_type="text/plain; version=0.0.4; charset=utf-8",
             )
         elif path == "/api/topics":
             self._json({"modules": module_catalog()})

@@ -66,6 +66,20 @@ OPENAPI_SPEC: dict[str, Any] = {
                 "responses": {"200": _json_response("Health report", OBJECT)},
             }
         },
+        "/metrics": {
+            "get": {
+                "operationId": "getPrometheusMetrics",
+                "summary": "Low-cardinality Prometheus process metrics",
+                "responses": {
+                    "200": {
+                        "description": "Prometheus text exposition",
+                        "content": {
+                            "text/plain": {"schema": {"type": "string"}}
+                        },
+                    }
+                },
+            }
+        },
         "/api/topics": {
             "get": {
                 "operationId": "listTopics",

@@ -115,3 +115,10 @@ Knowledge statistics and every retrieved source include `corpus_sha256`, the
 fingerprint of the indexed cards and Notebook teaching cells.
 The `learner_data` section reports the configured retention period and how many
 stale sessions were purged at startup, without revealing their identifiers.
+
+`GET /metrics` exposes the same process signals in Prometheus text format:
+HTTP request/error/rate-limit counters, average and recent p95 latency, tracked
+rate-limit clients, knowledge-entry count, LLM and embedding circuit counters,
+and a readiness gauge. Metric names and labels never contain learner IDs,
+questions or source excerpts. Restrict this endpoint at the reverse proxy when
+the service is exposed publicly.

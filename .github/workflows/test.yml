@@ -62,6 +62,7 @@ jobs:
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8000/ready >/dev/null; then
               curl --fail --silent http://127.0.0.1:8000/openapi.json >/dev/null
+              curl --fail --silent http://127.0.0.1:8000/metrics | grep --quiet stochlab_ready
               exit 0
             fi
             sleep 1

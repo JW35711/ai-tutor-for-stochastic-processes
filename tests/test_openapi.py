@@ -15,6 +15,7 @@ class OpenAPIContractTests(unittest.TestCase):
             "/live",
             "/ready",
             "/health",
+            "/metrics",
             "/api/topics",
             "/api/tools",
             "/api/chat",
