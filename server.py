@@ -27,6 +27,7 @@ from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_eve
 from src.tool_catalog import build_tool_catalog
 from src.recommendation import recommend_next
 from src.version import API_VERSION, APP_VERSION
+from src.validation import validate_session_id
 
 
 ROOT = Path(__file__).resolve().parent
@@ -70,23 +71,6 @@ def readiness_report() -> dict[str, object]:
         "evaluation_corpus": bool(EVALUATION["corpus_match"]),
     }
     return {"ready": all(checks.values()), "checks": checks}
-
-
-def validate_session_id(value: object, *, required: bool = False) -> str | None:
-    if value is None or value == "":
-        if required:
-            raise ValueError("session_id is required")
-        return None
-    if not isinstance(value, str):
-        raise ValueError("session_id must be a string")
-    normalized = value.strip()
-    if not normalized or len(normalized) > 128 or "/" in normalized or any(
-        ord(character) < 32 for character in normalized
-    ):
-        raise ValueError(
-            "session_id must contain 1 to 128 printable characters without a slash"
-        )
-    return normalized
 
 
 def validate_session_path(path: str, *, suffix: str = "") -> str:

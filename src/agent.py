@@ -14,6 +14,7 @@ from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
 from .recommendation import recommend_next
+from .validation import validate_session_id
 from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
 from .processes import (
     analyze_markov_chain,
@@ -810,15 +811,7 @@ class StochasticTutorAgent:
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must not be empty")
-        if session_id is not None and (
-            not isinstance(session_id, str)
-            or not session_id.strip()
-            or len(session_id) > 128
-        ):
-            raise ValueError(
-                "session_id must be a non-empty string of at most 128 characters"
-            )
-        resolved_session = session_id or str(uuid.uuid4())
+        resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
         history = self.memory.history(resolved_session, limit=1)
         state = AgentState(
             question=question.strip(),

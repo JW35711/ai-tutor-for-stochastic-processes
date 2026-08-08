@@ -104,6 +104,13 @@ class AgentTests(unittest.TestCase):
     def test_rejects_invalid_session_identifier(self) -> None:
         with self.assertRaisesRegex(ValueError, "session_id"):
             self.agent.answer("模拟布朗运动", session_id=123)  # type: ignore[arg-type]
+        with self.assertRaisesRegex(ValueError, "slash"):
+            self.agent.answer("模拟布朗运动", session_id="learner/other")
+
+    def test_direct_agent_normalizes_the_same_session_as_http(self) -> None:
+        response = self.agent.answer("模拟布朗运动", session_id=" learner-1 ")
+        self.assertEqual(response["session_id"], "learner-1")
+        self.assertEqual(self.memory.profile("learner-1")["turns"], 1)
 
     def test_reads_number_before_path_unit(self) -> None:
         response = self.agent.answer("用300条路径模拟100步随机游走")
