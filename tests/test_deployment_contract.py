@@ -10,6 +10,9 @@ class DeploymentContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.compose = (ROOT / "compose.yaml").read_text("utf-8")
         cls.dockerfile = (ROOT / "Dockerfile").read_text("utf-8")
+        cls.workflow = (
+            ROOT / ".github" / "workflows" / "test.yml"
+        ).read_text("utf-8")
 
     def test_container_runs_as_unprivileged_user(self) -> None:
         self.assertIn("USER appuser", self.dockerfile)
@@ -32,6 +35,12 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("tutor-data:/app/artifacts", self.compose)
         self.assertIn("/tmp:rw,noexec,nosuid,size=64m", self.compose)
         self.assertIn("TUTOR_MEMORY_PATH: /app/artifacts/", self.compose)
+
+    def test_ci_starts_checks_and_cleans_hardened_service(self) -> None:
+        self.assertIn("docker compose config --quiet", self.workflow)
+        self.assertIn("http://127.0.0.1:8000/ready", self.workflow)
+        self.assertIn("http://127.0.0.1:8000/openapi.json", self.workflow)
+        self.assertIn("docker compose down --volumes", self.workflow)
 
 
 if __name__ == "__main__":

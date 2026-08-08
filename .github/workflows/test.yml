@@ -49,5 +49,22 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Validate hardened Compose contract
+        run: docker compose config --quiet
       - name: Build unprivileged interview image
         run: docker build -t stochastic-tutor-agent:test .
+      - name: Smoke-test hardened service
+        run: |
+          docker compose up --build --detach
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/ready >/dev/null; then
+              curl --fail --silent http://127.0.0.1:8000/openapi.json >/dev/null
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose logs
+          exit 1
+      - name: Remove smoke-test resources
+        if: always()
+        run: docker compose down --volumes
