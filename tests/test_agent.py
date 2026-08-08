@@ -141,6 +141,10 @@ class AgentTests(unittest.TestCase):
         response = self.agent.answer("泊松过程：强度=2e-1、时长=5")
         self.assertEqual(response["parameters"]["rate"], 0.2)
 
+    def test_overflowing_scientific_notation_is_rejected_before_tool_use(self) -> None:
+        with self.assertRaisesRegex(ValueError, "finite"):
+            self.agent.answer("连续时间随机游走：跳跃率为1e999、时长为3")
+
     def test_fractional_resource_count_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "must be an integer"):
             self.agent.answer("泊松过程：强度为2、路径数为2.5")

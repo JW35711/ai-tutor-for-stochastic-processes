@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import uuid
 from collections.abc import Callable
@@ -192,6 +193,8 @@ class StochasticTutorAgent:
                 match = re.search(reverse_pattern, text, flags=re.IGNORECASE)
             if match:
                 value = float(match.group(1))
+                if not math.isfinite(value):
+                    raise ValueError(f"{label} must be finite")
                 if integer:
                     if not value.is_integer():
                         raise ValueError(f"{label} must be an integer")
