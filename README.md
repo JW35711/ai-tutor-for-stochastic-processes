@@ -247,9 +247,10 @@ python3 evals/run_latency_benchmark.py --repetitions 2
 The deterministic acceptance suite currently contains 30 single-turn cases,
 5 multi-turn conversations, 22 module-scoped retrieval cases and 10 pedagogy
 cases. The checked local-hash baseline reaches `Hit@3 = 1.0000` and
-`MRR = 0.9242` on the retrieval set. The pedagogy set checks six explicit
-misconceptions, four neutral prompts, correction grounding and answer
-structure. These figures describe this repository's small regression sets,
+`MRR = 1.0000` on the retrieval set. The report preserves every case's rank,
+matched relevance phrase and returned source locators. The pedagogy set checks
+six explicit misconceptions, four neutral prompts, correction grounding and
+answer structure. These figures describe this repository's small regression sets,
 not a general benchmark of tutoring quality.
 
 `data/evaluation_manifest.json` is the checked dashboard summary. A unit test

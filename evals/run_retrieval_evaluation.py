@@ -20,18 +20,26 @@ from src.knowledge import KnowledgeBase  # noqa: E402
 DEFAULT_CASES = ROOT / "evals" / "retrieval_cases.json"
 
 
-def _matches(result: dict[str, Any], phrases: list[str]) -> bool:
+def _matched_phrase(result: dict[str, Any], phrases: list[str]) -> str | None:
     searchable = " ".join(
         str(result.get(field, ""))
         for field in ("title", "content", "source")
     ).lower()
-    return any(phrase.lower() in searchable for phrase in phrases)
+    return next(
+        (phrase for phrase in phrases if phrase.lower() in searchable),
+        None,
+    )
+
+
+def _matches(result: dict[str, Any], phrases: list[str]) -> bool:
+    return _matched_phrase(result, phrases) is not None
 
 
 def evaluate(cases_path: Path = DEFAULT_CASES, limit: int = 3) -> dict[str, Any]:
     knowledge = KnowledgeBase()
     cases: list[dict[str, Any]] = json.loads(cases_path.read_text("utf-8"))
     failures: list[dict[str, Any]] = []
+    case_results: list[dict[str, Any]] = []
     reciprocal_ranks: list[float] = []
     for case in cases:
         results = knowledge.retrieve(
@@ -48,6 +56,27 @@ def evaluate(cases_path: Path = DEFAULT_CASES, limit: int = 3) -> dict[str, Any]
             None,
         )
         reciprocal_ranks.append(1.0 / rank if rank else 0.0)
+        matched_phrase = (
+            _matched_phrase(results[rank - 1], case["relevant_phrases"])
+            if rank
+            else None
+        )
+        case_results.append(
+            {
+                "id": case["id"],
+                "module_id": case["module_id"],
+                "rank": rank,
+                "matched_phrase": matched_phrase,
+                "returned_sources": [
+                    {
+                        "source": result["source"],
+                        "title": result["title"],
+                        "score": result["score"],
+                    }
+                    for result in results
+                ],
+            }
+        )
         if rank is None:
             failures.append(
                 {
@@ -66,6 +95,7 @@ def evaluate(cases_path: Path = DEFAULT_CASES, limit: int = 3) -> dict[str, Any]
         "total": len(cases),
         f"hit_at_{limit}": round(hits / len(cases), 4) if cases else 0.0,
         "mrr": round(sum(reciprocal_ranks) / len(cases), 4) if cases else 0.0,
+        "case_results": case_results,
         "failures": failures,
     }
 
