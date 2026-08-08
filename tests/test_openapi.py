@@ -2,6 +2,7 @@ import unittest
 
 from src.openapi import OPENAPI_SPEC
 from src.version import API_VERSION, APP_VERSION
+from src.validation import MAX_QUESTION_CHARS
 
 
 class OpenAPIContractTests(unittest.TestCase):
@@ -40,6 +41,13 @@ class OpenAPIContractTests(unittest.TestCase):
     def test_session_schema_matches_path_safe_runtime_contract(self) -> None:
         schema = OPENAPI_SPEC["components"]["schemas"]["SessionId"]
         self.assertIn("[^/", schema["pattern"])
+
+    def test_chat_length_matches_shared_runtime_limit(self) -> None:
+        schema = OPENAPI_SPEC["components"]["schemas"]["ChatRequest"]
+        self.assertEqual(
+            schema["properties"]["question"]["maxLength"],
+            MAX_QUESTION_CHARS,
+        )
 
 
 if __name__ == "__main__":

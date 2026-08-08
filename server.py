@@ -27,7 +27,11 @@ from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_eve
 from src.tool_catalog import build_tool_catalog
 from src.recommendation import recommend_next
 from src.version import API_VERSION, APP_VERSION
-from src.validation import validate_session_id
+from src.validation import (
+    MAX_QUESTION_CHARS,
+    validate_question,
+    validate_session_id,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -43,7 +47,6 @@ RATE_LIMITER = SlidingWindowRateLimiter(
     max_clients=max(1, int(os.getenv("API_RATE_LIMIT_CLIENT_CAP", "10000"))),
 )
 METRICS = ServiceMetrics()
-MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
 MAX_JSON_BODY_BYTES = max(1024, int(os.getenv("MAX_JSON_BODY_BYTES", "1000000")))
 REQUEST_SOCKET_TIMEOUT_SECONDS = max(
     1.0, float(os.getenv("REQUEST_SOCKET_TIMEOUT_SECONDS", "10"))
@@ -410,16 +413,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     allowed={"question", "session_id"},
                     required={"question"},
                 )
-                raw_question = payload.get("question")
-                if not isinstance(raw_question, str):
-                    raise ValueError("question must be a string")
-                question = raw_question.strip()
-                if not question:
-                    raise ValueError("question is required")
-                if len(question) > MAX_QUESTION_CHARS:
-                    raise ValueError(
-                        f"question exceeds {MAX_QUESTION_CHARS} characters"
-                    )
+                question = validate_question(payload.get("question"))
                 raw_session_id = validate_session_id(payload.get("session_id"))
                 response = AGENT.answer(
                     question,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .version import API_VERSION, APP_VERSION
+from .validation import MAX_QUESTION_CHARS
 
 
 def _json_response(description: str, schema: dict[str, Any]) -> dict[str, Any]:
@@ -209,7 +210,11 @@ OPENAPI_SPEC: dict[str, Any] = {
                 "additionalProperties": False,
                 "required": ["question"],
                 "properties": {
-                    "question": {"type": "string", "minLength": 1, "maxLength": 4000},
+                    "question": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": MAX_QUESTION_CHARS,
+                    },
                     "session_id": {"$ref": "#/components/schemas/SessionId"},
                 },
             },

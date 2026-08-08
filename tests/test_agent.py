@@ -4,6 +4,7 @@ import unittest
 from src.agent import StochasticTutorAgent
 from src.memory import LearnerMemory
 from src.module_registry import module_catalog
+from src.validation import MAX_QUESTION_CHARS
 
 
 class FakeLLM:
@@ -111,6 +112,10 @@ class AgentTests(unittest.TestCase):
         response = self.agent.answer("模拟布朗运动", session_id=" learner-1 ")
         self.assertEqual(response["session_id"], "learner-1")
         self.assertEqual(self.memory.profile("learner-1")["turns"], 1)
+
+    def test_direct_agent_rejects_oversized_question_before_routing(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exceeds"):
+            self.agent.answer("x" * (MAX_QUESTION_CHARS + 1))
 
     def test_reads_number_before_path_unit(self) -> None:
         response = self.agent.answer("用300条路径模拟100步随机游走")

@@ -14,7 +14,7 @@ from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
 from .recommendation import recommend_next
-from .validation import validate_session_id
+from .validation import validate_question, validate_session_id
 from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
 from .processes import (
     analyze_markov_chain,
@@ -809,12 +809,11 @@ class StochasticTutorAgent:
         return NodeOutcome("offline safe answer")
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("question must not be empty")
+        normalized_question = validate_question(question)
         resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
         history = self.memory.history(resolved_session, limit=1)
         state = AgentState(
-            question=question.strip(),
+            question=normalized_question,
             session_id=resolved_session,
             previous_turn=history[-1] if history else None,
         )

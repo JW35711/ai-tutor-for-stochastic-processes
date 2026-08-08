@@ -2,6 +2,22 @@
 
 from __future__ import annotations
 
+import os
+
+
+MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
+
+
+def validate_question(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("question must be a string")
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("question is required")
+    if len(normalized) > MAX_QUESTION_CHARS:
+        raise ValueError(f"question exceeds {MAX_QUESTION_CHARS} characters")
+    return normalized
+
 
 def validate_session_id(value: object, *, required: bool = False) -> str | None:
     if value is None or value == "":
