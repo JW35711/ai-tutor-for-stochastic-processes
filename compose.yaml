@@ -1,0 +1,29 @@
+services:
+  tutor:
+    build: .
+    image: stochastic-tutor-agent:local
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      TUTOR_MEMORY_PATH: /app/artifacts/tutor_memory.sqlite3
+      MEMORY_RETENTION_DAYS: "30"
+      MAX_SESSION_EVENTS: "1000"
+      API_RATE_LIMIT_PER_MINUTE: "60"
+      API_RATE_LIMIT_CLIENT_CAP: "10000"
+    volumes:
+      - tutor-data:/app/artifacts
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 2.0
+    stop_grace_period: 20s
+    restart: unless-stopped
+
+volumes:
+  tutor-data:

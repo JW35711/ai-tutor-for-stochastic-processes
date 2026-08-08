@@ -214,7 +214,8 @@ docker run --rm -p 8000:8000 \
 ```
 
 The container runs as an unprivileged user, persists SQLite learner state in a
-named volume and includes a `/health` probe. See
+named volume and includes a `/ready` probe. Run `docker compose up --build` for
+the read-only, resource-bounded local profile. See
 [Deployment](docs/DEPLOYMENT.md) for configuration and production boundaries.
 
 ### Agent API and tests

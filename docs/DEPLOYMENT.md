@@ -20,6 +20,16 @@ docker run --rm -p 8000:8000 \
   stochastic-tutor-agent
 ```
 
+For the hardened local profile, use:
+
+```bash
+docker compose up --build
+```
+
+`compose.yaml` keeps the root filesystem read-only, drops all Linux
+capabilities, enables `no-new-privileges`, bounds PID/memory/CPU use, mounts
+only `/app/artifacts` for SQLite, and exposes port 8000 on loopback only.
+
 The image runs with uid `10001`, writes learner state only below
 `/app/artifacts`, and uses `/ready` for its container health check. `/live`
 reports process liveness without testing dependencies. Never commit `.env` or API
