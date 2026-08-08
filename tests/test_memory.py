@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from src.memory import LearnerMemory
+from src.memory import SCHEMA_VERSION
 from src.pedagogy import adaptive_note, diagnose
 
 
@@ -48,6 +49,7 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(journal_mode.lower(), "wal")
         self.assertEqual(busy_timeout, 5000)
         self.assertTrue(self.memory.is_ready())
+        self.assertEqual(self.memory.schema_version, SCHEMA_VERSION)
 
     def test_closed_memory_is_not_ready(self) -> None:
         separate = LearnerMemory(":memory:")
@@ -262,7 +264,19 @@ class LearnerMemoryTests(unittest.TestCase):
             for row in migrated._connection.execute("PRAGMA table_info(assessments)")
         }
         self.assertIn("bank_sha256", assessment_columns)
+        self.assertEqual(migrated.schema_version, SCHEMA_VERSION)
         migrated.close()
+
+    def test_newer_database_schema_is_rejected_without_downgrade(self) -> None:
+        future_path = Path(self.directory.name) / "future.sqlite3"
+        connection = sqlite3.connect(future_path)
+        connection.execute("PRAGMA user_version=999")
+        connection.close()
+        with self.assertRaisesRegex(RuntimeError, "newer"):
+            LearnerMemory(future_path)
+        check = sqlite3.connect(future_path)
+        self.assertEqual(check.execute("PRAGMA user_version").fetchone()[0], 999)
+        check.close()
 
 
 class PedagogyTests(unittest.TestCase):

@@ -28,6 +28,7 @@ DEFAULT_MEMORY_PATH = (
         )
     )
 )
+SCHEMA_VERSION = 3
 
 
 class LearnerMemory:
@@ -59,7 +60,11 @@ class LearnerMemory:
         self._connection.execute("PRAGMA busy_timeout=5000")
         if str(self.path) != ":memory:":
             self._connection.execute("PRAGMA journal_mode=WAL")
-        self._create_schema()
+        try:
+            self._create_schema()
+        except Exception:
+            self._connection.close()
+            raise
 
     @staticmethod
     def _now() -> str:
@@ -67,6 +72,13 @@ class LearnerMemory:
 
     def _create_schema(self) -> None:
         with self._lock, self._connection:
+            existing_version = self._connection.execute(
+                "PRAGMA user_version"
+            ).fetchone()[0]
+            if existing_version > SCHEMA_VERSION:
+                raise RuntimeError(
+                    "learner database schema is newer than this application"
+                )
             self._connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS sessions (
@@ -128,6 +140,14 @@ class LearnerMemory:
                 self._connection.execute(
                     "ALTER TABLE assessments ADD COLUMN bank_sha256 TEXT"
                 )
+            self._connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+
+    @property
+    def schema_version(self) -> int:
+        with self._lock:
+            return int(
+                self._connection.execute("PRAGMA user_version").fetchone()[0]
+            )
 
     def record_assessment(
         self,
