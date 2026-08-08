@@ -104,6 +104,20 @@ def validate_session_path(path: str, *, suffix: str = "") -> str:
     return session_id
 
 
+def validate_payload_fields(
+    payload: dict[str, object],
+    *,
+    allowed: set[str],
+    required: set[str],
+) -> None:
+    unknown = sorted(set(payload) - allowed)
+    if unknown:
+        raise ValueError(f"unexpected JSON fields: {', '.join(unknown)}")
+    missing = sorted(required - set(payload))
+    if missing:
+        raise ValueError(f"missing required JSON fields: {', '.join(missing)}")
+
+
 class TutorRequestHandler(BaseHTTPRequestHandler):
     server_version = f"StochasticTutor/{APP_VERSION}"
 
@@ -409,6 +423,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         try:
             payload = self._read_json_object()
             if path == "/api/chat":
+                validate_payload_fields(
+                    payload,
+                    allowed={"question", "session_id"},
+                    required={"question"},
+                )
                 raw_question = payload.get("question")
                 if not isinstance(raw_question, str):
                     raise ValueError("question must be a string")
@@ -425,6 +444,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     session_id=raw_session_id,
                 )
             else:
+                validate_payload_fields(
+                    payload,
+                    allowed={"question_id", "answer_index", "session_id"},
+                    required={"question_id", "answer_index"},
+                )
                 session_id = validate_session_id(payload.get("session_id"))
                 session_id = session_id or str(uuid.uuid4())
                 question_id = payload.get("question_id")

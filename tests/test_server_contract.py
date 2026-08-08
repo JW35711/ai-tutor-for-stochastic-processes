@@ -11,6 +11,7 @@ from server import (
     readiness_report,
     validate_session_id,
     validate_session_path,
+    validate_payload_fields,
 )
 
 
@@ -114,6 +115,20 @@ class ServerContractTests(unittest.TestCase):
             validate_session_path(
                 "/api/sessions/learner%2Fother/export",
                 suffix="/export",
+            )
+
+    def test_json_field_contract_rejects_typos_and_missing_values(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unexpected.*questoin"):
+            validate_payload_fields(
+                {"question": "hello", "questoin": "typo"},
+                allowed={"question", "session_id"},
+                required={"question"},
+            )
+        with self.assertRaisesRegex(ValueError, "missing.*question"):
+            validate_payload_fields(
+                {"session_id": "learner"},
+                allowed={"question", "session_id"},
+                required={"question"},
             )
 
     def test_json_reader_requires_declared_complete_object_body(self) -> None:

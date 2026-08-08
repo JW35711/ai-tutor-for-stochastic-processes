@@ -75,7 +75,8 @@ Requests over the configured sliding-window limit return status `429`, a
 ```
 
 POST routes require `Content-Type: application/json`, a complete non-chunked
-JSON object and typed string fields rather than implicit coercion. The default
+JSON object and typed string fields rather than implicit coercion. Missing and
+unknown fields are rejected instead of silently ignored. The default
 request limits are a 1 MB JSON body, a 4,000-character question
 and 60 API requests per client per minute. The in-memory limiter is suitable
 for this single-process interview deployment, not a distributed service.
