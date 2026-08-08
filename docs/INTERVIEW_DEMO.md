@@ -53,6 +53,7 @@ python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
 python3 evals/run_retrieval_evaluation.py
 python3 evals/run_pedagogy_evaluation.py
+python3 evals/run_safety_evaluation.py
 python3 evals/run_latency_benchmark.py --repetitions 2
 ```
 
@@ -62,6 +63,8 @@ separate 22-case retrieval set reports Hit@3 and MRR. Open `/health` to show the
 seven workflow nodes, active vector backend, request counters and latency.
 The 10-case pedagogy set checks misconception corrections, neutral controls and
 the required teaching-response structure.
+The independent 10-case safety set checks prompt injection, unknown tools,
+non-finite inputs, unstable-model claims and multiplicative work bounds.
 The latency report breaks one representative prompt per module into end-to-end
 and seven-node p50/p95 timings. It is explicitly labeled as a local offline
 benchmark rather than a production SLA. CI uploads it with the quality reports

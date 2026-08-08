@@ -87,6 +87,8 @@ Teaching behavior has a second independent gate: ten cases cover all six
 explicit misconception rules plus neutral controls. The evaluator requires
 every correction to appear in the answer and every successful tool response
 to include experiment, interpretation, guiding question and source sections.
+A third ten-case safety gate covers registry confinement, invalid numeric
+inputs, non-stationary queue claims and multiplicative simulation budgets.
 
 The committed evaluation manifest includes the corpus fingerprint used by its
 reports. At startup the service compares that value with the live index and

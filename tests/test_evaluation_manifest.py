@@ -18,6 +18,7 @@ class EvaluationManifestTests(unittest.TestCase):
             "multi_turn": len(json.loads((ROOT / "evals/conversations.json").read_text("utf-8"))),
             "retrieval": len(json.loads((ROOT / "evals/retrieval_cases.json").read_text("utf-8"))),
             "pedagogy": len(json.loads((ROOT / "evals/pedagogy_cases.json").read_text("utf-8"))),
+            "safety": len(json.loads((ROOT / "evals/safety_cases.json").read_text("utf-8"))),
         }
         self.assertEqual(
             {suite_id: suite["cases"] for suite_id, suite in suites.items()},

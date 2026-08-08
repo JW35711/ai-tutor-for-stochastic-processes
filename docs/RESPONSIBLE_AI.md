@@ -90,9 +90,11 @@ not a hostile multi-tenant service.
 
 ## Evaluation interpretation
 
-The repository's 67 acceptance cases are regression tests for this curriculum:
-30 single-turn, 5 multi-turn, 22 retrieval and 10 pedagogy cases. A perfect
-pass rate means the checked behaviors did not regress. It is not evidence of
+The repository's 77 acceptance cases are regression tests for this curriculum:
+30 single-turn, 5 multi-turn, 22 retrieval, 10 pedagogy and 10 safety cases. A
+perfect pass rate means the checked behaviors did not regress. It is not evidence of
 general mathematical reasoning quality, fairness across learner populations or
 improved learning outcomes. A course deployment would require instructor
 review, learner studies and calibrated assessment instruments.
+The safety set specifically covers prompt injection, unknown tools, non-finite
+values, unstable queues and resource-amplification boundaries.

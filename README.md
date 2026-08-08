@@ -6,7 +6,7 @@
 
 | Course coverage | Executable tools | State nodes | RAG evidence | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 15 | 7 | 236 | 67/67 |
+| 11/11 modules | 15 | 7 | 236 | 77/77 |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -234,6 +234,7 @@ python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
 python3 evals/run_retrieval_evaluation.py
 python3 evals/run_pedagogy_evaluation.py
+python3 evals/run_safety_evaluation.py
 python3 evals/run_latency_benchmark.py --repetitions 2
 ```
 
