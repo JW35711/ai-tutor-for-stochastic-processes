@@ -50,6 +50,7 @@ class DeploymentContractTests(unittest.TestCase):
             "MAX_JSON_BODY_BYTES",
             "MAX_QUESTION_CHARS",
             "REQUEST_SOCKET_TIMEOUT_SECONDS",
+            "LLM_MAX_CONTENT_CHARS",
             "MAX_SESSION_EVENTS",
             "MEMORY_RETENTION_DAYS",
         ):

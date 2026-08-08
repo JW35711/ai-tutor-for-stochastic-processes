@@ -319,6 +319,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "llm": {
                         "enabled": AGENT.llm.enabled,
                         "mode": "verified_rewrite",
+                        "max_content_chars": AGENT.llm.max_content_chars,
                     },
                     "evaluation": EVALUATION,
                     "assessment": {

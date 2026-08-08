@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import patch
 
@@ -81,6 +82,29 @@ class LLMGuardTests(unittest.TestCase):
             return_value=ByteResponse(b"x" * 1025),
         ):
             self.assertIsNone(client.complete("system", "user"))
+
+    def test_provider_content_over_character_limit_falls_back_offline(self) -> None:
+        environment = {
+            "LLM_API_KEY": "test-key",
+            "LLM_MODEL": "test-model",
+            "LLM_MAX_CONTENT_CHARS": "256",
+        }
+        with patch.dict("os.environ", environment, clear=False):
+            client = OpenAICompatibleLLM()
+        body = json.dumps(
+            {"choices": [{"message": {"content": "x" * 257}}]}
+        ).encode("utf-8")
+        with patch("urllib.request.urlopen", return_value=ByteResponse(body)):
+            self.assertIsNone(client.complete("system", "user"))
+
+    def test_provider_content_limit_configuration_is_bounded(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"LLM_MAX_CONTENT_CHARS": "255"},
+            clear=False,
+        ):
+            with self.assertRaisesRegex(ValueError, "content limit"):
+                OpenAICompatibleLLM()
 
 
 if __name__ == "__main__":

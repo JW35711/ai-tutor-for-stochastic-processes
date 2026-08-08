@@ -67,6 +67,9 @@ path or URL. It can only select one of 15 registered functions and supply
 numeric parameters that are parsed and validated. The RAG corpus is local and
 read-only. Retrieved text is evidence, not an instruction channel, and a hosted
 model cannot overwrite the tool result accepted by the API.
+Hosted rewrites also have independent response-byte and text-character limits;
+an oversized provider answer is discarded in favor of the bounded offline
+draft.
 
 Regression tests cover the function whitelist, prompt text containing an
 unregistered Python call, and parameterized SQLite session deletion. These

@@ -21,10 +21,13 @@ class OpenAICompatibleLLM:
         self.max_response_bytes = int(
             os.getenv("LLM_MAX_RESPONSE_BYTES", "1000000")
         )
+        self.max_content_chars = int(os.getenv("LLM_MAX_CONTENT_CHARS", "12000"))
         if not math.isfinite(self.timeout) or self.timeout <= 0:
             raise ValueError("LLM timeout must be positive")
         if not 1_024 <= self.max_response_bytes <= 20_000_000:
             raise ValueError("LLM response limit must be between 1024 and 20000000")
+        if not 256 <= self.max_content_chars <= 100_000:
+            raise ValueError("LLM content limit must be between 256 and 100000")
 
     @property
     def enabled(self) -> bool:
@@ -65,7 +68,10 @@ class OpenAICompatibleLLM:
             if len(body) > self.max_response_bytes:
                 return None
             payload = json.loads(body.decode("utf-8"))
-            return payload["choices"][0]["message"]["content"].strip()
+            content = payload["choices"][0]["message"]["content"]
+            if not isinstance(content, str) or len(content) > self.max_content_chars:
+                return None
+            return content.strip()
         except (
             urllib.error.URLError,
             TimeoutError,
