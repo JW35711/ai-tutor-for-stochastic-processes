@@ -13,6 +13,7 @@ class DeploymentContractTests(unittest.TestCase):
         cls.workflow = (
             ROOT / ".github" / "workflows" / "test.yml"
         ).read_text("utf-8")
+        cls.environment = (ROOT / ".env.example").read_text("utf-8")
 
     def test_container_runs_as_unprivileged_user(self) -> None:
         self.assertIn("USER appuser", self.dockerfile)
@@ -41,6 +42,18 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("http://127.0.0.1:8000/ready", self.workflow)
         self.assertIn("http://127.0.0.1:8000/openapi.json", self.workflow)
         self.assertIn("docker compose down --volumes", self.workflow)
+
+    def test_example_environment_documents_every_runtime_bound(self) -> None:
+        for variable in (
+            "API_RATE_LIMIT_PER_MINUTE",
+            "API_RATE_LIMIT_CLIENT_CAP",
+            "MAX_JSON_BODY_BYTES",
+            "MAX_QUESTION_CHARS",
+            "REQUEST_SOCKET_TIMEOUT_SECONDS",
+            "MAX_SESSION_EVENTS",
+            "MEMORY_RETENTION_DAYS",
+        ):
+            self.assertIn(f"{variable}=", self.environment)
 
 
 if __name__ == "__main__":
