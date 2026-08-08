@@ -8,6 +8,7 @@ a stable `error_code` plus `request_id` for programmatic handling and log
 correlation.
 Static UI assets return a SHA-256 `ETag` with `Cache-Control: no-cache`, so
 browsers revalidate changed files and reuse unchanged bytes through `304`.
+The same contract is available to tools at `GET /openapi.json` as OpenAPI 3.1.
 
 ## Chat
 

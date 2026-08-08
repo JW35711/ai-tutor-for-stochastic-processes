@@ -22,6 +22,7 @@ from src.assessment import AssessmentEngine
 from src.agent import StochasticTutorAgent
 from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
+from src.openapi import OPENAPI_SPEC
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 from src.tool_catalog import build_tool_catalog
 from src.recommendation import recommend_next
@@ -274,6 +275,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/live":
             self._json({"status": "ok", "service": "stochastic-tutor-agent"})
+        elif path == "/openapi.json":
+            self._json(OPENAPI_SPEC)
         elif path == "/ready":
             readiness = readiness_report()
             self._json(

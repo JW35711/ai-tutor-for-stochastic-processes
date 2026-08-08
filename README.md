@@ -133,6 +133,9 @@ python3 server.py
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000), then try:
 
+The machine-readable API contract is available at
+[http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json).
+
 - `模拟强度为2、时长为5的泊松过程，使用200条路径`
 - `用500条路径模拟100步随机游走，并比较理论均值`
 - `用500条路径模拟T为1、网格数为200的布朗运动，解释终点方差`
