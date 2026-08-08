@@ -29,6 +29,11 @@ class ServerContractTests(unittest.TestCase):
         self.assertEqual(headers["X-RateLimit-Limit"], str(RATE_LIMITER.limit))
         self.assertEqual(headers["X-RateLimit-Remaining"], "9")
 
+    def test_server_header_omits_python_runtime_version(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        self.assertRegex(handler.version_string(), r"^StochasticTutor/\d+\.\d+\.\d+$")
+        self.assertNotIn("Python", handler.version_string())
+
     def test_invalid_supplied_request_id_is_replaced(self) -> None:
         handler = object.__new__(TutorRequestHandler)
         handler.headers = {"X-Request-ID": "contains spaces and is invalid"}

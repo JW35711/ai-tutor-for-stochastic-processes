@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .version import API_VERSION, APP_VERSION
+
 
 def _json_response(description: str, schema: dict[str, Any]) -> dict[str, Any]:
     return {
@@ -11,7 +13,9 @@ def _json_response(description: str, schema: dict[str, Any]) -> dict[str, Any]:
         "content": {"application/json": {"schema": schema}},
         "headers": {
             "X-Request-ID": {"schema": {"type": "string"}},
-            "X-API-Version": {"schema": {"type": "string", "const": "1"}},
+            "X-API-Version": {
+                "schema": {"type": "string", "const": API_VERSION}
+            },
         },
     }
 
@@ -27,13 +31,14 @@ OPENAPI_SPEC: dict[str, Any] = {
     "openapi": "3.1.0",
     "info": {
         "title": "StochLab Teaching Agent API",
-        "version": "1.0.0",
+        "version": APP_VERSION,
         "description": (
             "Local-first API for a source-aware stochastic-process teaching Agent. "
             "The interview build has no application-level authentication and must "
             "sit behind an authenticated reverse proxy before public exposure."
         ),
     },
+    "x-api-version": API_VERSION,
     "servers": [{"url": "/", "description": "Current origin"}],
     "paths": {
         "/live": {

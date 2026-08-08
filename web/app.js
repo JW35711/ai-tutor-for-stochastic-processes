@@ -26,6 +26,7 @@ const exportRunButton = document.querySelector("#exportRunButton");
 const exportProfileButton = document.querySelector("#exportProfileButton");
 const evaluationCount = document.querySelector("#evaluationCount");
 const evaluationMeta = document.querySelector("#evaluationMeta");
+const appVersion = document.querySelector("#appVersion");
 
 let sessionId = window.localStorage.getItem("stochasticTutorSession");
 let activeModuleId = "module01";
@@ -322,6 +323,7 @@ async function hydrateHealth() {
     healthStatus.innerHTML = "<i></i> Agent online";
     const ragBackend = health.knowledge?.embedding_backend || "retrieval ready";
     healthMeta.textContent = `${health.modules} modules · ${health.tools} tools · ${ragBackend}`;
+    appVersion.textContent = `v${health.version || "0.4.0"} · Interview build`;
     moduleCount.textContent = `${health.modules}/${health.modules}`;
     toolCount.textContent = health.tools;
     sourceCount.textContent = health.knowledge?.entries ?? "—";

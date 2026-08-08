@@ -1,9 +1,14 @@
 import unittest
 
 from src.openapi import OPENAPI_SPEC
+from src.version import API_VERSION, APP_VERSION
 
 
 class OpenAPIContractTests(unittest.TestCase):
+    def test_application_and_api_versions_have_one_source_of_truth(self) -> None:
+        self.assertEqual(OPENAPI_SPEC["info"]["version"], APP_VERSION)
+        self.assertEqual(OPENAPI_SPEC["x-api-version"], API_VERSION)
+
     def test_spec_covers_every_public_api_and_probe(self) -> None:
         expected = {
             "/live",

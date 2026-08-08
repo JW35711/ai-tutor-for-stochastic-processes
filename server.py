@@ -26,6 +26,7 @@ from src.openapi import OPENAPI_SPEC
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 from src.tool_catalog import build_tool_catalog
 from src.recommendation import recommend_next
+from src.version import API_VERSION, APP_VERSION
 
 
 ROOT = Path(__file__).resolve().parent
@@ -101,7 +102,12 @@ def validate_session_path(path: str, *, suffix: str = "") -> str:
 
 
 class TutorRequestHandler(BaseHTTPRequestHandler):
-    server_version = "StochasticTutor/0.2"
+    server_version = f"StochasticTutor/{APP_VERSION}"
+
+    def version_string(self) -> str:
+        """Avoid disclosing the interpreter version in the Server header."""
+
+        return self.server_version
 
     def _begin_request(self) -> None:
         supplied = self.headers.get("X-Request-ID", "")
@@ -143,7 +149,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
 
     def _common_headers(self) -> None:
         self.send_header("X-Request-ID", self.request_id)
-        self.send_header("X-API-Version", "1")
+        self.send_header("X-API-Version", API_VERSION)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
@@ -291,6 +297,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 {
                     "status": "ok",
                     "service": "stochastic-tutor-agent",
+                    "version": APP_VERSION,
+                    "api_version": API_VERSION,
                     "modules": 11,
                     "tools": len(AGENT.tools),
                     "persistent_memory": True,
