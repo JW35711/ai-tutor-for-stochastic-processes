@@ -12,9 +12,17 @@ class QueryFailingEmbedding:
 
     def embed_many(self, texts):
         self.calls += 1
-        if self.calls > 1:
+        if self.calls == 2:
             raise RuntimeError("query backend unavailable")
         return [[1.0, 0.0] for _ in texts]
+
+
+class FakeClock:
+    def __init__(self) -> None:
+        self.now = 100.0
+
+    def __call__(self) -> float:
+        return self.now
 
 
 class KnowledgeBaseTests(unittest.TestCase):
@@ -94,6 +102,64 @@ class KnowledgeBaseTests(unittest.TestCase):
             "query backend unavailable",
             knowledge.stats()["embedding_fallback"],
         )
+
+    def test_query_embedding_circuit_skips_then_recovers(self) -> None:
+        backend = QueryFailingEmbedding()
+        clock = FakeClock()
+        knowledge = KnowledgeBase(
+            embedding_backend=backend,
+            cache_size=0,
+            embedding_failure_cooldown=60,
+            clock=clock,
+        )
+
+        failed = knowledge.retrieve("Poisson arrivals", module_id="module01")
+        skipped = knowledge.retrieve("Brownian variance", module_id="module04")
+        self.assertEqual(backend.calls, 2)
+        self.assertTrue(
+            all(item["retrieval_mode"] == "sparse_fallback" for item in failed)
+        )
+        self.assertTrue(
+            all(item["retrieval_mode"] == "sparse_fallback" for item in skipped)
+        )
+        open_stats = knowledge.stats()["embedding_circuit"]
+        self.assertEqual(open_stats["state"], "open")
+        self.assertEqual(open_stats["query_failures"], 1)
+        self.assertEqual(open_stats["query_skips"], 1)
+
+        clock.now += 61
+        recovered = knowledge.retrieve("Markov transition", module_id="module05")
+        self.assertEqual(backend.calls, 3)
+        self.assertTrue(
+            all(item["retrieval_mode"] == "hybrid" for item in recovered)
+        )
+        recovered_stats = knowledge.stats()
+        self.assertEqual(recovered_stats["embedding_circuit"]["state"], "closed")
+        self.assertIsNone(recovered_stats["embedding_fallback"])
+
+    def test_sparse_fallback_result_is_not_cached(self) -> None:
+        backend = QueryFailingEmbedding()
+        clock = FakeClock()
+        knowledge = KnowledgeBase(
+            embedding_backend=backend,
+            cache_size=2,
+            embedding_failure_cooldown=1,
+            clock=clock,
+        )
+        knowledge.retrieve("Poisson arrivals", module_id="module01")
+        self.assertEqual(knowledge.stats()["retrieval_cache"]["size"], 0)
+        clock.now += 2
+        recovered = knowledge.retrieve("Poisson arrivals", module_id="module01")
+        self.assertTrue(
+            all(item["retrieval_mode"] == "hybrid" for item in recovered)
+        )
+        self.assertEqual(knowledge.stats()["retrieval_cache"]["size"], 1)
+
+    def test_embedding_failure_cooldown_is_bounded(self) -> None:
+        for invalid in (-1, float("inf"), 3601):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "cooldown"):
+                    KnowledgeBase(embedding_failure_cooldown=invalid)
 
 
 if __name__ == "__main__":

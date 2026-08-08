@@ -185,7 +185,10 @@ dimension before it enters the index. Embedding responses also have a
 configurable size limit before JSON decoding.
 If only a later query-vector request fails, the retriever safely uses sparse
 scores and exposes `retrieval_mode=sparse_fallback` in sources and workflow
-trace rather than claiming a hybrid result.
+trace rather than claiming a hybrid result. A bounded circuit breaker then
+skips repeated provider calls for 60 seconds by default, probes recovery after
+the cooldown, and never caches the temporary sparse fallback as a hybrid hit.
+Set `RAG_EMBEDDING_FAILURE_COOLDOWN_SECONDS` between 0 and 3600 to tune it.
 
 Repeated retrievals use a thread-safe in-process LRU cache (256 entries by
 default). `/health` reports its capacity, size, hits and misses. Set

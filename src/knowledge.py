@@ -7,7 +7,9 @@ import json
 import math
 import os
 import re
+import time
 from collections import Counter, OrderedDict
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
 from threading import Lock
@@ -39,6 +41,8 @@ class KnowledgeBase:
         notebook_root: Path = DEFAULT_NOTEBOOK_ROOT,
         embedding_backend: EmbeddingBackend | None = None,
         cache_size: int | None = None,
+        embedding_failure_cooldown: float | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
         self.path = path
         resolved_cache_size = (
@@ -56,6 +60,22 @@ class KnowledgeBase:
         self._cache_hits = 0
         self._cache_misses = 0
         self._cache_lock = Lock()
+        resolved_cooldown = (
+            float(os.getenv("RAG_EMBEDDING_FAILURE_COOLDOWN_SECONDS", "60"))
+            if embedding_failure_cooldown is None
+            else float(embedding_failure_cooldown)
+        )
+        if not math.isfinite(resolved_cooldown) or not 0 <= resolved_cooldown <= 3600:
+            raise ValueError(
+                "embedding failure cooldown must be between 0 and 3600 seconds"
+            )
+        self._embedding_failure_cooldown = resolved_cooldown
+        self._clock = clock or time.monotonic
+        self._embedding_circuit_lock = Lock()
+        self._embedding_retry_after = 0.0
+        self._embedding_request_in_flight = False
+        self._embedding_query_failures = 0
+        self._embedding_query_skips = 0
         curated: list[dict[str, Any]] = json.loads(path.read_text("utf-8"))
         self._module_topics = {
             entry["module_id"]: entry["topic"] for entry in curated
@@ -82,12 +102,14 @@ class KnowledgeBase:
             for term, frequency in document_frequency.items()
         }
         self.embedding_fallback_reason: str | None = None
+        self._index_fallback_reason: str | None = None
         try:
             self.embedding_backend = (
                 embedding_backend or embedding_backend_from_environment()
             )
         except (ValueError, TypeError) as error:
             self.embedding_fallback_reason = str(error)
+            self._index_fallback_reason = str(error)
             self.embedding_backend = LocalHashEmbedding()
         try:
             self._entry_vectors = self.embedding_backend.embed_many(
@@ -95,10 +117,59 @@ class KnowledgeBase:
             )
         except (RuntimeError, ValueError, TypeError) as error:
             self.embedding_fallback_reason = str(error)
+            self._index_fallback_reason = str(error)
             self.embedding_backend = LocalHashEmbedding()
             self._entry_vectors = self.embedding_backend.embed_many(
                 self._entry_texts
             )
+
+    def _query_vector(self, query: str) -> tuple[list[float], str]:
+        """Embed one query without repeatedly blocking on a failed provider."""
+
+        if self.embedding_backend.name == "local_hash":
+            return self.embedding_backend.embed_many([query])[0], "hybrid"
+
+        now = self._clock()
+        with self._embedding_circuit_lock:
+            if now < self._embedding_retry_after:
+                self._embedding_query_skips += 1
+                return [], "sparse_fallback"
+            if self._embedding_request_in_flight:
+                self._embedding_query_skips += 1
+                return [], "sparse_fallback"
+            self._embedding_request_in_flight = True
+
+        try:
+            vectors = self.embedding_backend.embed_many([query])
+            if len(vectors) != 1:
+                raise RuntimeError(
+                    "embedding endpoint returned an unexpected query row count"
+                )
+            query_vector = vectors[0]
+            expected_dimension = (
+                len(self._entry_vectors[0]) if self._entry_vectors else 0
+            )
+            if len(query_vector) != expected_dimension:
+                raise RuntimeError("query embedding dimension differs from the index")
+        except (RuntimeError, ValueError, TypeError) as error:
+            with self._embedding_circuit_lock:
+                self.embedding_fallback_reason = str(error)
+                self._embedding_query_failures += 1
+                self._embedding_retry_after = (
+                    self._clock() + self._embedding_failure_cooldown
+                )
+                self._embedding_request_in_flight = False
+            return [], "sparse_fallback"
+        except BaseException:
+            with self._embedding_circuit_lock:
+                self._embedding_request_in_flight = False
+            raise
+
+        with self._embedding_circuit_lock:
+            self.embedding_fallback_reason = self._index_fallback_reason
+            self._embedding_retry_after = 0.0
+            self._embedding_request_in_flight = False
+        return query_vector, "hybrid"
 
     def _notebook_entries(self, notebook_root: Path) -> list[dict[str, Any]]:
         entries: list[dict[str, Any]] = []
@@ -201,13 +272,7 @@ class KnowledgeBase:
                 self._cache_misses += 1
         query_terms = self._terms(query)
         normalized_query = " ".join(query.lower().split())
-        try:
-            query_vector = self.embedding_backend.embed_many([query])[0]
-            retrieval_mode = "hybrid"
-        except (RuntimeError, ValueError, TypeError) as error:
-            self.embedding_fallback_reason = str(error)
-            query_vector = []
-            retrieval_mode = "sparse_fallback"
+        query_vector, retrieval_mode = self._query_vector(query)
         scored: list[
             tuple[float, int, dict[str, Any], float, float, float]
         ] = []
@@ -277,7 +342,8 @@ class KnowledgeBase:
                 bonus_score,
             ) in scored[:safe_limit]
         ]
-        if self._cache_size:
+        # A sparse emergency answer must not outlive provider recovery in cache.
+        if self._cache_size and retrieval_mode == "hybrid":
             with self._cache_lock:
                 self._cache[cache_key] = deepcopy(results)
                 self._cache.move_to_end(cache_key)
@@ -293,6 +359,22 @@ class KnowledgeBase:
                 "hits": self._cache_hits,
                 "misses": self._cache_misses,
             }
+        with self._embedding_circuit_lock:
+            retry_after_seconds = max(
+                0.0, self._embedding_retry_after - self._clock()
+            )
+            embedding_circuit = {
+                "state": (
+                    "probe_in_flight"
+                    if self._embedding_request_in_flight
+                    else "open" if retry_after_seconds > 0 else "closed"
+                ),
+                "cooldown_seconds": self._embedding_failure_cooldown,
+                "retry_after_seconds": round(retry_after_seconds, 3),
+                "query_failures": self._embedding_query_failures,
+                "query_skips": self._embedding_query_skips,
+                "request_in_flight": self._embedding_request_in_flight,
+            }
         return {
             "entries": len(self.entries),
             "curated_cards": sum(entry["kind"] == "curated" for entry in self.entries),
@@ -302,6 +384,7 @@ class KnowledgeBase:
             "embedding_backend": self.embedding_backend.name,
             "embedding_dimension": self.embedding_backend.dimension,
             "embedding_fallback": self.embedding_fallback_reason,
+            "embedding_circuit": embedding_circuit,
             "corpus_sha256": self.corpus_sha256,
             "retrieval_cache": cache_stats,
         }

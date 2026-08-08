@@ -101,6 +101,10 @@ knowledge-index statistics, embedding backend/fallback state and process-local
 request metrics. It also returns the checked evaluation manifest used by the
 dashboard, including retrieval Hit@3 and MRR. It does not expose API keys,
 prompts or learner records.
+The knowledge section includes a query-embedding circuit state, configured
+cooldown, remaining retry delay, failure and skip counters, and whether a
+recovery probe is in flight. These values reveal provider availability without
+revealing query text or credentials.
 Latency metrics include the all-time process average and p95 over a bounded
 256-request recent window, together with the current window sample count.
 Knowledge statistics and every retrieved source include `corpus_sha256`, the

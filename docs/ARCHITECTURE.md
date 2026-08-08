@@ -66,7 +66,10 @@ backend and reports the reason through `/health`.
 If a hosted index succeeds but a later query-vector call fails, retrieval uses
 the compatible sparse score only and labels every result
 `retrieval_mode=sparse_fallback`; it never compares incompatible local and
-hosted vector spaces.
+hosted vector spaces. A bounded cooldown circuit prevents every concurrent
+question from waiting on the same failed provider. The health payload exposes
+its state, failure and skip counters, and next retry delay. Sparse emergency
+results are not cached, so a recovered provider can restore hybrid retrieval.
 
 A bounded LRU cache avoids repeated embedding calls for equivalent normalized
 queries. Cached results are deep-copied on both insertion and return so one
