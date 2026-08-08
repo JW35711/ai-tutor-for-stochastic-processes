@@ -44,6 +44,9 @@ RATE_LIMITER = SlidingWindowRateLimiter(
 METRICS = ServiceMetrics()
 MAX_QUESTION_CHARS = max(100, int(os.getenv("MAX_QUESTION_CHARS", "4000")))
 MAX_JSON_BODY_BYTES = max(1024, int(os.getenv("MAX_JSON_BODY_BYTES", "1000000")))
+REQUEST_SOCKET_TIMEOUT_SECONDS = max(
+    1.0, float(os.getenv("REQUEST_SOCKET_TIMEOUT_SECONDS", "10"))
+)
 MEMORY_RETENTION_DAYS = max(0, int(os.getenv("MEMORY_RETENTION_DAYS", "0")))
 PURGED_SESSIONS_ON_STARTUP = (
     AGENT.memory.purge_stale(MEMORY_RETENTION_DAYS)
@@ -477,8 +480,16 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
 
 
 class TutorHTTPServer(ThreadingHTTPServer):
-    daemon_threads = True
+    # Let server_close wait for active handlers, while the per-connection
+    # timeout prevents an idle client from blocking shutdown indefinitely.
+    daemon_threads = False
+    block_on_close = True
     allow_reuse_address = True
+
+    def get_request(self) -> tuple[object, object]:
+        request, client_address = super().get_request()
+        request.settimeout(REQUEST_SOCKET_TIMEOUT_SECONDS)
+        return request, client_address
 
 
 def _request_shutdown(_signum: int, _frame: object) -> None:

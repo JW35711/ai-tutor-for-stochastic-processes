@@ -40,8 +40,9 @@ class ServerContractTests(unittest.TestCase):
         handler._begin_request()
         self.assertRegex(handler.request_id, r"^[0-9a-f]{32}$")
 
-    def test_server_request_threads_do_not_block_shutdown(self) -> None:
-        self.assertTrue(TutorHTTPServer.daemon_threads)
+    def test_server_drains_request_threads_before_closing_memory(self) -> None:
+        self.assertFalse(TutorHTTPServer.daemon_threads)
+        self.assertTrue(TutorHTTPServer.block_on_close)
         self.assertTrue(TutorHTTPServer.allow_reuse_address)
 
     def test_dashboard_evaluation_matches_live_corpus(self) -> None:

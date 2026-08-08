@@ -24,8 +24,10 @@ The image runs with uid `10001`, writes learner state only below
 `/app/artifacts`, and uses `/ready` for its container health check. `/live`
 reports process liveness without testing dependencies. Never commit `.env` or API
 keys. Use the platform's secret manager for hosted deployments.
-The server handles `SIGTERM`, stops daemon request threads and closes its SQLite
-connection before the container exits.
+The server handles `SIGTERM`, stops accepting work, waits for active request
+threads and then closes SQLite. Accepted sockets default to a 10-second timeout
+so an idle client cannot block shutdown indefinitely; configure this with
+`REQUEST_SOCKET_TIMEOUT_SECONDS`.
 
 ## Required persistence
 
