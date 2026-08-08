@@ -146,6 +146,21 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(len(snapshot["assessments"]), 1)
         self.assertEqual(snapshot["profile"]["quiz_correct"], 1)
 
+    def test_repeating_one_known_quiz_does_not_inflate_topic_coverage(self) -> None:
+        for _ in range(2):
+            self.memory.record_assessment(
+                session_id="repeat-quiz-user",
+                question_id="q04",
+                module_id="module04",
+                answer_index=2,
+                correct=True,
+                bank_sha256="d" * 64,
+            )
+        module = self.memory.profile("repeat-quiz-user")["modules"][0]
+        self.assertEqual(module["quiz_attempts"], 2)
+        self.assertEqual(module["distinct_quiz_questions"], 1)
+        self.assertEqual(module["mastery"], 0.38)
+
     def test_concurrent_turns_are_serialized_without_loss(self) -> None:
         def record(index: int) -> None:
             self.memory.record_turn(

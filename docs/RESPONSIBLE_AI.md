@@ -29,6 +29,9 @@ The profile deliberately calls its score *practice evidence*. Successful tool
 runs, concept-check attempts and explicit misconception triggers are stored as
 different signals. The score is a transparent product heuristic and must not
 be used for grading, admission, hiring or diagnosis.
+Quiz exposure is counted by distinct question ID rather than raw submissions,
+so repeatedly submitting an already revealed answer does not create fake topic
+coverage. Attempts and accuracy remain visible separately.
 
 The six misconception rules fire only when a learner states a known trigger.
 Absence of a trigger does not prove understanding. The current rule set and

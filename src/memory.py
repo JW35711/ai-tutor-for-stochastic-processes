@@ -264,6 +264,7 @@ class LearnerMemory:
             ).fetchall()
 
         modules: dict[str, dict[str, Any]] = {}
+        module_question_ids: dict[str, set[str]] = {}
         misconception_counts: dict[str, dict[str, Any]] = {}
         for row in rows:
             module = modules.setdefault(
@@ -276,6 +277,7 @@ class LearnerMemory:
                     "mastery": 0.0,
                     "quiz_attempts": 0,
                     "quiz_correct": 0,
+                    "distinct_quiz_questions": 0,
                 },
             )
             module["attempts"] += 1
@@ -300,19 +302,27 @@ class LearnerMemory:
                     "mastery": 0.0,
                     "quiz_attempts": 0,
                     "quiz_correct": 0,
+                    "distinct_quiz_questions": 0,
                 },
             )
             module["quiz_attempts"] += 1
             module["quiz_correct"] += int(row["correct"])
+            module_question_ids.setdefault(row["module_id"], set()).add(
+                row["question_id"]
+            )
 
         # Tool execution is evidence of practice, not proof of full mastery.
         # The score therefore grows conservatively and is capped below 1.
         for module in modules.values():
+            distinct_questions = len(
+                module_question_ids.get(module["module_id"], set())
+            )
+            module["distinct_quiz_questions"] = distinct_questions
             practice_evidence = min(module["successful_runs"] / 3, 1.0)
             quiz_evidence = 0.0
             if module["quiz_attempts"]:
                 quiz_accuracy = module["quiz_correct"] / module["quiz_attempts"]
-                quiz_exposure = min(module["quiz_attempts"] / 2, 1.0)
+                quiz_exposure = min(distinct_questions / 2, 1.0)
                 quiz_evidence = quiz_accuracy * quiz_exposure
             module["mastery"] = round(
                 min(1.0, 0.1 + 0.35 * practice_evidence + 0.55 * quiz_evidence),
