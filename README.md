@@ -95,6 +95,9 @@ returns a guided explanation with the execution trace. SQLite learner memory
 persists practice and concept-check results across server restarts. A
 transparent recommendation policy uses coverage, practice evidence and quiz
 exposure to propose the next experiment without claiming to measure ability.
+Every response also carries a deterministic `run_sha256` over the selected
+module, tool, parameters, complete result and course-corpus version. This is
+separate from the per-request ID used for log correlation.
 
 ```mermaid
 flowchart LR

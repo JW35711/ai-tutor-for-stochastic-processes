@@ -42,6 +42,7 @@ flowchart LR
 | `openapi.py` | Publishes the versioned machine-readable HTTP contract | Clients can inspect routes without coupling to handler code |
 | `version.py` | Defines application and API versions once | UI, health, headers and OpenAPI cannot silently disagree |
 | `validation.py` | Shares session contracts across core and HTTP layers | Direct Agent calls cannot bypass lifecycle-safe identifiers |
+| `provenance.py` | Canonically hashes module, tool, parameters, result and corpus | Equivalent execution evidence has a stable portable fingerprint |
 | `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
 | `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |

@@ -32,6 +32,10 @@ Each trace item contains the public node name, a concise detail, `status` and
 `duration_ms` for node-level observability.
 The response also includes an explainable `recommendation` with its module,
 reason code, learner-facing reason and suggested next question.
+`run_sha256` fingerprints the module, selected function, parameters, complete
+tool result and corpus version. It is stable across equivalent deterministic
+runs and changes when any execution evidence changes; request IDs remain the
+separate per-call log-correlation key.
 
 ## Concept checks
 

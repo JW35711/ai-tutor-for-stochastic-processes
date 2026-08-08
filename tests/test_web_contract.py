@@ -65,6 +65,7 @@ class WebContractTests(unittest.TestCase):
     def test_run_evidence_can_be_exported_after_execution(self) -> None:
         self.assertIn('id="exportRunButton"', self.html)
         self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)
+        self.assertIn("payload.run_sha256", self.javascript)
 
     def test_learner_can_export_a_separate_versioned_profile(self) -> None:
         self.assertIn('id="exportProfileButton"', self.html)

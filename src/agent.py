@@ -13,6 +13,7 @@ from .llm import OpenAICompatibleLLM, preserves_verified_facts
 from .memory import LearnerMemory
 from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
+from .provenance import execution_sha256
 from .recommendation import recommend_next
 from .validation import validate_question, validate_session_id
 from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
@@ -802,6 +803,13 @@ class StochasticTutorAgent:
             "llm_enabled": self.llm.enabled,
             "llm_applied": bool(polished),
         }
+        state.response["run_sha256"] = execution_sha256(
+            module_id=state.module_id,
+            tool=self.tools[state.tool_key].__name__,
+            parameters=state.parameters,
+            result=state.result,
+            corpus_sha256=self.knowledge.corpus_sha256,
+        )
         if polished:
             return NodeOutcome("verified LLM-polished answer")
         if candidate:

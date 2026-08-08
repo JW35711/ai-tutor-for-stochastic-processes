@@ -78,6 +78,7 @@ class AgentTests(unittest.TestCase):
                 "respond",
             ],
         )
+        self.assertRegex(response["run_sha256"], r"^[0-9a-f]{64}$")
         self.assertEqual(
             response["workflow"]["nodes"],
             [item["node"] for item in response["trace"]],
@@ -86,6 +87,13 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(all(item["duration_ms"] >= 0 for item in response["trace"]))
         self.assertIn("module_id", response["recommendation"])
         self.assertIn("suggested_question", response["recommendation"])
+
+    def test_same_verified_execution_has_stable_evidence_fingerprint(self) -> None:
+        first = self.agent.answer("模拟强度为2、时长为3的泊松过程")
+        second = self.agent.answer("模拟强度为2、时长为3的泊松过程")
+        changed = self.agent.answer("模拟强度为3、时长为3的泊松过程")
+        self.assertEqual(first["run_sha256"], second["run_sha256"])
+        self.assertNotEqual(first["run_sha256"], changed["run_sha256"])
 
     def test_grounded_llm_rewrite_is_applied(self) -> None:
         self.agent.llm = FakeLLM(grounded=True)  # type: ignore[assignment]

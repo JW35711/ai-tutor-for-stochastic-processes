@@ -163,11 +163,13 @@ function renderEvidence(payload) {
   exportRunButton.disabled = false;
   exportProfileButton.disabled = false;
   const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
+  const evidenceLabel = payload.run_sha256?.slice(0, 8) || "unknown";
   const corpusLabel = payload.sources?.[0]?.corpus_sha256?.slice(0, 8) || "unknown";
   runMeta.innerHTML = `
     <span>${escapeHtml(payload.module_id.toUpperCase())}</span>
     <span>${escapeHtml(payload.tool)}</span>
     <span>RUN ${escapeHtml(requestLabel)}</span>
+    <span>EVID ${escapeHtml(evidenceLabel)}</span>
     <span>KB ${escapeHtml(corpusLabel)}</span>
     <span>${payload.llm_applied ? "LLM VERIFIED" : "OFFLINE GROUNDED"}</span>
   `;
