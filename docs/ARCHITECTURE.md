@@ -39,6 +39,8 @@ flowchart LR
 | `assessment.py` | Serves and grades module concept checks | Quiz results provide evidence beyond tool execution |
 | `memory.py` | Persists turns, tool parameters, quizzes and per-module progress in SQLite | Learner state and follow-up context survive server restarts |
 | `runtime.py` | Implements rate limiting, request metrics and structured events | HTTP protection remains independent of tutoring logic |
+| `openapi.py` | Publishes the versioned machine-readable HTTP contract | Clients can inspect routes without coupling to handler code |
+| `version.py` | Defines application and API versions once | UI, health, headers and OpenAPI cannot silently disagree |
 | `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
 | `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |
@@ -87,6 +89,9 @@ to include experiment, interpretation, guiding question and source sections.
 The committed evaluation manifest includes the corpus fingerprint used by its
 reports. At startup the service compares that value with the live index and
 exposes `corpus_match`; the UI refuses to present a stale pass count.
+The assessment bank has its own SHA-256 fingerprint. Each graded attempt stores
+that fingerprint, so a future question edit does not make historical evidence
+look as though it came from the new bank.
 
 ## State graph
 
@@ -136,10 +141,18 @@ the parameter column to existing local profiles without deleting earlier turns.
 File-backed memory uses WAL mode, enforced foreign keys and a bounded busy
 timeout; application-level locking keeps the shared standard-library connection
 consistent across request threads.
+Schema version 3 is stored in SQLite `user_version`. Older local databases are
+migrated in place, while a database created by a newer application is rejected
+instead of being silently downgraded. Simulation turns and quiz attempts are
+independently capped per session, and the learner can export all retained rows
+with corpus and quiz-bank provenance before deleting the session.
 
 ## Reliability and safety
 
 - Invalid model parameters fail before a chart is generated.
+- Tools bound multiplicative work, not just individual parameters. Event-driven
+  models aggregate online and retain at most 500 raw transitions per displayed
+  path, with explicit truncation flags.
 - Signed and scientific-notation inputs are parsed rather than silently
   replaced by defaults; fractional counts fail integer validation.
 - M/M/1 stability is checked before a stationary distribution is discussed.
@@ -152,8 +165,17 @@ consistent across request threads.
 - Each API response carries a request ID and browser security headers.
 - All API requests use a per-client sliding-window rate limit. POST requests
   are additionally bounded by body size and question length.
+- The rate limiter also bounds active client-key cardinality. Runtime latency
+  exposes an all-time average and bounded recent p95.
+- `/live` reports process liveness; `/ready` checks memory, catalogs, knowledge,
+  assessment and evaluation versions before the service receives traffic.
+- `/openapi.json` describes the human-documented API as OpenAPI 3.1.
 - Logs contain route, status and latency, but not the learner's question text.
 
 Runtime counters are deliberately process-local, matching the current
 single-instance deployment. A multi-instance version should place rate limits
 in Redis and export metrics to an OpenTelemetry-compatible collector.
+The hardened Compose profile runs the non-root image with a read-only root
+filesystem, no Linux capabilities, bounded resources and a dedicated SQLite
+volume. CI starts this profile, verifies readiness and OpenAPI, then removes its
+temporary volume.

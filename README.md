@@ -261,13 +261,17 @@ Additional endpoints:
 
 | Endpoint | Purpose |
 | --- | --- |
+| `GET /live` | Process liveness only |
+| `GET /ready` | SQLite, catalog, knowledge and content-version readiness |
 | `GET /health` | Tool, module, workflow, memory and knowledge-index status |
+| `GET /openapi.json` | OpenAPI 3.1 machine-readable contract |
 | `GET /api/topics` | Public catalogue for Modules 00–10 |
 | `GET /api/tools` | 15 tool descriptions and JSON-ready parameter contracts |
 | `POST /api/chat` | Full retrieval and simulation Agent turn |
 | `GET /api/profile?session_id=...` | Persistent learner profile and history |
 | `GET /api/quiz?module_id=module04` | Concept check without leaking the answer |
 | `POST /api/quiz/submit` | Grade and persist an answer |
+| `GET /api/sessions/{id}/export` | Export all retained learner data and provenance |
 | `DELETE /api/sessions/{id}` | Reset one learner session |
 
 Every response includes `X-Request-ID`, `X-API-Version` and basic browser
@@ -297,6 +301,8 @@ examples.
 │   ├── workflow.py         # Typed seven-node state graph
 │   ├── embeddings.py       # Local and optional hosted vector backends
 │   ├── runtime.py          # Rate limiting, metrics and JSON events
+│   ├── openapi.py          # Machine-readable API contract
+│   ├── version.py          # Application and API versions
 │   ├── evaluation_manifest.py # Checked dashboard evaluation summary
 │   ├── tool_catalog.py      # Executable tool parameter contracts
 │   ├── recommendation.py   # Explainable next-practice policy
