@@ -61,6 +61,9 @@ or memory request.
 Event-driven tools compute aggregate statistics online and retain at most 500
 raw transitions for each displayed path. A `series_truncated` or
 `event_times_truncated` flag makes that display-only sampling explicit.
+Positive continuous parameters use a numerically safe lower bound, stationary
+weights are scaled before normalization, and JSON serialization rejects
+non-finite values instead of emitting non-standard `NaN` or `Infinity` tokens.
 
 A learner question cannot choose an arbitrary Python name, shell command, file
 path or URL. It can only select one of 15 registered functions and supply

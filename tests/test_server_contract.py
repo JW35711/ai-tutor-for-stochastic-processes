@@ -1,3 +1,4 @@
+import math
 import unittest
 from io import BytesIO
 from unittest.mock import Mock
@@ -87,6 +88,11 @@ class ServerContractTests(unittest.TestCase):
         )
         self.assertEqual(status, 400)
         self.assertIsNone(headers)
+
+    def test_json_writer_rejects_non_finite_numbers(self) -> None:
+        handler = object.__new__(TutorRequestHandler)
+        with self.assertRaisesRegex(ValueError, "Out of range"):
+            handler._json({"invalid": math.nan})
 
     def test_session_id_contract_is_shared_across_api_routes(self) -> None:
         self.assertEqual(validate_session_id(" learner-1 "), "learner-1")

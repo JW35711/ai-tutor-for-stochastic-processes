@@ -203,7 +203,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         status: HTTPStatus = HTTPStatus.OK,
         extra_headers: dict[str, str] | None = None,
     ) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        body = json.dumps(
+            payload,
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
         self.response_status = int(status)
         self.response_started = True
         self.send_response(status)

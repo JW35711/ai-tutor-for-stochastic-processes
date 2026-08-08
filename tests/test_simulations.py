@@ -1,3 +1,4 @@
+import json
 import math
 import unittest
 
@@ -166,6 +167,25 @@ class SimulationToolTests(unittest.TestCase):
     def test_birth_death_rejects_state_outside_capacity(self) -> None:
         with self.assertRaises(ValueError):
             simulate_birth_death_process(capacity=3, initial_state=4)
+
+    def test_birth_death_stationary_weights_remain_finite_at_extreme_ratio(self) -> None:
+        result = simulate_birth_death_process(
+            birth_rate=100.0,
+            death_rate=1e-12,
+            capacity=100,
+            horizon=1.0,
+            paths=1,
+            seed=21,
+        )
+        stationary = result["stationary_distribution"]
+        self.assertTrue(all(math.isfinite(value) for value in stationary))
+        self.assertTrue(math.isclose(sum(stationary), 1.0, abs_tol=1e-6))
+        self.assertGreater(stationary[-1], 0.999999)
+        json.dumps(result, allow_nan=False)
+
+    def test_rates_below_numerically_safe_minimum_are_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "between"):
+            simulate_poisson_process(rate=1e-13)
 
 
 if __name__ == "__main__":

@@ -23,12 +23,17 @@ def _positive_int(value: int, name: str, maximum: int = 100_000) -> int:
     return value
 
 
-def _positive_float(value: float, name: str, maximum: float = 10_000.0) -> float:
+def _positive_float(
+    value: float,
+    name: str,
+    maximum: float = 10_000.0,
+    minimum: float = 1e-12,
+) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{name} must be a number")
     number = float(value)
-    if not math.isfinite(number) or number <= 0 or number > maximum:
-        raise ValueError(f"{name} must be in (0, {maximum}]")
+    if not math.isfinite(number) or number < minimum or number > maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
     return number
 
 
@@ -36,9 +41,9 @@ def _probability(value: float, name: str, allow_zero: bool = True) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{name} must be a number")
     number = float(value)
-    lower_ok = number >= 0.0 if allow_zero else number > 0.0
+    lower_ok = number >= 0.0 if allow_zero else number >= 1e-12
     if not math.isfinite(number) or not lower_ok or number > 1.0:
-        interval = "[0, 1]" if allow_zero else "(0, 1]"
+        interval = "[0, 1]" if allow_zero else "[1e-12, 1]"
         raise ValueError(f"{name} must be in {interval}")
     return number
 
@@ -555,10 +560,12 @@ def simulate_two_state_ctmc(
 def _birth_death_stationary(
     birth_rate: float, death_rate: float, capacity: int
 ) -> list[float]:
-    weights = [1.0]
     ratio = birth_rate / death_rate
-    for _ in range(capacity):
-        weights.append(weights[-1] * ratio)
+    if ratio >= 1.0:
+        # Scale relative to the largest state so no positive power can overflow.
+        weights = [ratio ** (state - capacity) for state in range(capacity + 1)]
+    else:
+        weights = [ratio**state for state in range(capacity + 1)]
     normalizer = sum(weights)
     return [weight / normalizer for weight in weights]
 
