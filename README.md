@@ -163,7 +163,9 @@ python3 server.py
 The application remains usable in offline-safe mode when these variables are
 unset. Provider calls have configurable timeouts and bounded response bodies;
 an unavailable or oversized LLM response falls back to the verified offline
-answer. A failed provider call opens a bounded 60-second circuit by default,
+answer. A candidate rewrite must contain the exact immutable result block and
+all Notebook locators; the model may add teaching explanation around that
+block but cannot paraphrase or relabel its conclusions. A failed provider call opens a bounded 60-second circuit by default,
 so later learners receive the offline answer immediately instead of each
 waiting for the same unavailable service. Configure this with
 `LLM_FAILURE_COOLDOWN_SECONDS` between 0 and 3600.

@@ -186,7 +186,7 @@ def preserves_verified_facts(
     verified_result_text: str,
     sources: list[dict[str, object]],
 ) -> bool:
-    """Accept a rewrite only when every numeric and source anchor survives.
+    """Accept a rewrite only when the verified result block remains immutable.
 
     This is intentionally conservative. A hosted model is a presentation layer,
     not an authority over simulation results or retrieved provenance.
@@ -194,16 +194,19 @@ def preserves_verified_facts(
 
     if not isinstance(candidate, str) or not candidate.strip():
         return False
+    verified_block = verified_result_text.strip()
+    if not verified_block or verified_block not in candidate:
+        return False
+    numeric_pattern = r"(?<![A-Za-z])[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?"
     numeric_anchors = set(
-        re.findall(
-            r"(?<![A-Za-z])[-+]?\d+(?:\.\d+)?(?:e[-+]?\d+)?",
-            verified_result_text,
-            re.I,
-        )
+        re.findall(numeric_pattern, verified_result_text, re.I)
     )
+    candidate_numbers = set(re.findall(numeric_pattern, candidate, re.I))
     source_anchors = {
         str(source.get("source", ""))
         for source in sources
         if source.get("source")
     }
-    return all(anchor in candidate for anchor in numeric_anchors | source_anchors)
+    return numeric_anchors <= candidate_numbers and all(
+        anchor in candidate for anchor in source_anchors
+    )

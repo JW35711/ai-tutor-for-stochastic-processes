@@ -15,7 +15,8 @@ psychometric assessment.
 - Retrieval is restricted to the routed course module and returns exact
   Notebook cell locators plus score components.
 - A language model is optional and only rewrites a deterministic answer.
-- A rewrite is discarded if any numeric or Notebook-source anchor is missing.
+- A rewrite is discarded unless the complete verified result block and every
+  Notebook-source locator remain unchanged.
 - The seven-node trace states which module, evidence, parameters and tool were
   used; it does not expose hidden chain-of-thought.
 

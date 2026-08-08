@@ -176,6 +176,9 @@ with corpus and quiz-bank provenance before deleting the session.
 - Numerical functions receive explicit seeds for reproducible tests.
 - Normal notebook use remains unseeded, matching the thesis teaching design.
 - LLM use is optional; offline mode supports every simulation and assessment.
+- Hosted LLM rewrites must preserve the exact verified result block and every
+  Notebook locator. This prevents categorical conclusions or labeled values
+  from being swapped while still allowing explanation around the block.
 - Hosted LLM and embedding calls use bounded timeouts, response-body limits
   and independent cooldown circuits. Concurrent or repeated provider failures
   degrade immediately to a verified offline answer or sparse retrieval path;

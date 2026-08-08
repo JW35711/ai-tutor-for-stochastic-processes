@@ -42,8 +42,9 @@ class LLMGuardTests(unittest.TestCase):
 
     def test_accepts_rewrite_that_preserves_numbers_and_source(self) -> None:
         candidate = (
-            "理论值 1.5，而本次经验均值为 1.25。\n"
-            "notebooks/04_Random_Walk_Part3.ipynb#cell-4"
+            "先保留经过验证的结果：\n"
+            f"{self.draft}\n"
+            "接下来可以讨论为什么经验值与理论值不同。"
         )
         self.assertTrue(
             preserves_verified_facts(candidate, self.draft, self.sources)
@@ -56,6 +57,33 @@ class LLMGuardTests(unittest.TestCase):
         )
         self.assertFalse(
             preserves_verified_facts(candidate, self.draft, self.sources)
+        )
+
+    def test_rejects_semantic_reversal_even_when_numbers_survive(self) -> None:
+        verified = (
+            "交通强度 ρ=1.2≥1，不存在稳定的几何平稳分布；"
+            "经验平均客户数为 4.0。"
+        )
+        source = "notebooks/07_Markov_Chain_Part3.ipynb#cell-56"
+        candidate = (
+            "交通强度 ρ=1.2≥1，队列稳定并且存在几何平稳分布；"
+            f"经验平均客户数为 4.0。{source}"
+        )
+        self.assertFalse(
+            preserves_verified_facts(
+                candidate,
+                verified,
+                [{"source": source}],
+            )
+        )
+
+    def test_number_must_be_a_complete_token(self) -> None:
+        self.assertFalse(
+            preserves_verified_facts(
+                "经验均值 11.25。source",
+                "经验均值 1.25。",
+                [{"source": "source"}],
+            )
         )
 
     def test_rejects_missing_source(self) -> None:
