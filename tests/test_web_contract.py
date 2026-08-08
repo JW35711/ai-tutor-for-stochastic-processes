@@ -29,6 +29,7 @@ class WebContractTests(unittest.TestCase):
             self.assertIn(label, self.html)
         self.assertIn('id="appVersion"', self.html)
         self.assertIn("health.version", self.javascript)
+        self.assertIn("SAFETY ${safety?.passed", self.javascript)
 
     def test_dashboard_has_prompts_covering_all_modules(self) -> None:
         prompts = re.findall(r'data-question="([^"]+)"', self.html)

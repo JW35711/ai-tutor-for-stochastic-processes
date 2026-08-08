@@ -334,8 +334,9 @@ async function hydrateHealth() {
         ? `${health.evaluation.passed}/${health.evaluation.total}`
         : "STALE";
       const retrieval = health.evaluation.suites?.find((suite) => suite.id === "retrieval");
+      const safety = health.evaluation.suites?.find((suite) => suite.id === "safety");
       evaluationMeta.textContent = health.evaluation.corpus_match && retrieval
-        ? `RAG Hit@3 ${Math.round(retrieval.hit_at_3 * 100)}% · MRR ${retrieval.mrr}`
+        ? `RAG Hit@3 ${Math.round(retrieval.hit_at_3 * 100)}% · SAFETY ${safety?.passed ?? "—"}/${safety?.cases ?? "—"}`
         : "课程内容已变化，需要重跑评测";
     }
   } catch (_) {
