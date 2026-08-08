@@ -1,13 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "corpus_sha256": "3ce7ac6de8c86d90e6c7dd324f1a7f9925f0556c14853d3bab38b0742fedb80b",
   "total": 77,
   "passed": 77,
   "suites": [
-    {"id": "single_turn", "cases": 30, "passed": 30},
-    {"id": "multi_turn", "cases": 5, "passed": 5},
-    {"id": "retrieval", "cases": 22, "passed": 22, "hit_at_3": 1.0, "mrr": 0.9242},
-    {"id": "pedagogy", "cases": 10, "passed": 10, "structured_answer_rate": 1.0},
-    {"id": "safety", "cases": 10, "passed": 10}
+    {"id": "single_turn", "cases": 30, "passed": 30, "cases_file": "evals/cases.json", "cases_sha256": "9858ff344ced0db7cc22a870e6f6d00d551f8d7b0f46dc8fb149f794a2f1489a"},
+    {"id": "multi_turn", "cases": 5, "passed": 5, "cases_file": "evals/conversations.json", "cases_sha256": "4c543dbf927b198c8c89376eb0878c48367d00c2a6dae358c72d2aa4515ff2cf"},
+    {"id": "retrieval", "cases": 22, "passed": 22, "cases_file": "evals/retrieval_cases.json", "cases_sha256": "c31d922414fd8d896f7c3515d71659134e388595ff4fd3e80d8df4cdef89f26e", "hit_at_3": 1.0, "mrr": 0.9242},
+    {"id": "pedagogy", "cases": 10, "passed": 10, "cases_file": "evals/pedagogy_cases.json", "cases_sha256": "bd14466ba5464356f1eb47061c7873bfee9fe59937eb68404e208f07da253512", "structured_answer_rate": 1.0},
+    {"id": "safety", "cases": 10, "passed": 10, "cases_file": "evals/safety_cases.json", "cases_sha256": "e3a5845f20316404b6c9a1c2f655dafd1c7ea9751599e0ed42ee91625119b90c"}
   ]
 }

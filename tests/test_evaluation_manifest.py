@@ -1,4 +1,6 @@
+import hashlib
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -20,6 +22,13 @@ class EvaluationManifestTests(unittest.TestCase):
             "pedagogy": len(json.loads((ROOT / "evals/pedagogy_cases.json").read_text("utf-8"))),
             "safety": len(json.loads((ROOT / "evals/safety_cases.json").read_text("utf-8"))),
         }
+        case_files = {
+            "single_turn": ROOT / "evals/cases.json",
+            "multi_turn": ROOT / "evals/conversations.json",
+            "retrieval": ROOT / "evals/retrieval_cases.json",
+            "pedagogy": ROOT / "evals/pedagogy_cases.json",
+            "safety": ROOT / "evals/safety_cases.json",
+        }
         self.assertEqual(
             {suite_id: suite["cases"] for suite_id, suite in suites.items()},
             expected,
@@ -27,6 +36,42 @@ class EvaluationManifestTests(unittest.TestCase):
         self.assertEqual(manifest["total"], sum(expected.values()))
         self.assertEqual(manifest["passed"], manifest["total"])
         self.assertEqual(manifest["corpus_sha256"], KnowledgeBase().corpus_sha256)
+        for suite_id, path in case_files.items():
+            self.assertEqual(
+                suites[suite_id]["cases_file"],
+                str(path.relative_to(ROOT)),
+            )
+            self.assertEqual(
+                suites[suite_id]["cases_sha256"],
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+            )
+
+    def test_loader_rejects_case_content_changed_without_manifest_update(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir()
+            (root / "evals").mkdir()
+            case_path = root / "evals" / "cases.json"
+            case_path.write_text('[{"id":"changed"}]', "utf-8")
+            manifest = {
+                "version": 2,
+                "corpus_sha256": "a" * 64,
+                "total": 1,
+                "passed": 1,
+                "suites": [
+                    {
+                        "id": "single_turn",
+                        "cases": 1,
+                        "passed": 1,
+                        "cases_file": "evals/cases.json",
+                        "cases_sha256": "b" * 64,
+                    }
+                ],
+            }
+            manifest_path = root / "data" / "evaluation_manifest.json"
+            manifest_path.write_text(json.dumps(manifest), "utf-8")
+            with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                load_evaluation_manifest(manifest_path)
 
 
 if __name__ == "__main__":

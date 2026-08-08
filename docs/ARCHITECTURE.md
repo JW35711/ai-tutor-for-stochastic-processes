@@ -93,6 +93,8 @@ inputs, non-stationary queue claims and multiplicative simulation budgets.
 The committed evaluation manifest includes the corpus fingerprint used by its
 reports. At startup the service compares that value with the live index and
 exposes `corpus_match`; the UI refuses to present a stale pass count.
+Manifest version 2 also stores the SHA-256 of each exact case file, so changing
+case wording without changing the case count cannot preserve an old pass claim.
 The assessment bank has its own SHA-256 fingerprint. Each graded attempt stores
 that fingerprint, so a future question edit does not make historical evidence
 look as though it came from the new bank.
