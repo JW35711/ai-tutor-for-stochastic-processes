@@ -98,7 +98,7 @@ class ServerContractTests(unittest.TestCase):
     def test_session_id_contract_is_shared_across_api_routes(self) -> None:
         self.assertEqual(validate_session_id(" learner-1 "), "learner-1")
         self.assertIsNone(validate_session_id(None))
-        for invalid in (123, "", "x" * 129, "line\nbreak"):
+        for invalid in (123, "", "x" * 129, "line\nbreak", "with/slash"):
             with self.subTest(invalid=invalid):
                 with self.assertRaises(ValueError):
                     validate_session_id(invalid, required=True)

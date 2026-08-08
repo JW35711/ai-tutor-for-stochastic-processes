@@ -37,6 +37,10 @@ class OpenAPIContractTests(unittest.TestCase):
         required = OPENAPI_SPEC["components"]["schemas"]["Error"]["required"]
         self.assertEqual(required, ["error", "error_code", "request_id"])
 
+    def test_session_schema_matches_path_safe_runtime_contract(self) -> None:
+        schema = OPENAPI_SPEC["components"]["schemas"]["SessionId"]
+        self.assertIn("[^/", schema["pattern"])
+
 
 if __name__ == "__main__":
     unittest.main()

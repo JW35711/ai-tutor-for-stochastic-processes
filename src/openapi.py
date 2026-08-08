@@ -201,7 +201,8 @@ OPENAPI_SPEC: dict[str, Any] = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 128,
-                "description": "Printable opaque learner-session identifier.",
+                "pattern": "^[^/\\u0000-\\u001F]{1,128}$",
+                "description": "Printable opaque learner-session identifier without slash.",
             },
             "ChatRequest": {
                 "type": "object",

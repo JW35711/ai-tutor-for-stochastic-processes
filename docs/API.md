@@ -82,8 +82,10 @@ and 60 API requests per client per minute. The in-memory limiter is suitable
 for this single-process interview deployment, not a distributed service.
 `MAX_JSON_BODY_BYTES` and `MAX_QUESTION_CHARS` can lower or raise the first two
 limits for a controlled deployment.
-All routes share the same session contract: 1--128 printable characters, with
-omission allowed only when the server can generate a new session.
+All routes share the same session contract: 1--128 printable characters with
+no slash, with omission allowed only when the server can generate a new
+session. This guarantees every accepted ID is safe in profile, export and
+deletion routes.
 
 ## Health
 

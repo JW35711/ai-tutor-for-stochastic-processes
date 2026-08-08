@@ -70,6 +70,7 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('id="exportProfileButton"', self.html)
         self.assertIn("/export`", self.javascript)
         self.assertIn("stochlab-learning-profile", self.javascript)
+        self.assertIn("safeSessionLabel", self.javascript)
 
     def test_failed_server_deletion_does_not_orphan_learner_data(self) -> None:
         reset_handler = self.javascript.split(

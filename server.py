@@ -80,11 +80,11 @@ def validate_session_id(value: object, *, required: bool = False) -> str | None:
     if not isinstance(value, str):
         raise ValueError("session_id must be a string")
     normalized = value.strip()
-    if not normalized or len(normalized) > 128 or any(
+    if not normalized or len(normalized) > 128 or "/" in normalized or any(
         ord(character) < 32 for character in normalized
     ):
         raise ValueError(
-            "session_id must contain 1 to 128 printable characters"
+            "session_id must contain 1 to 128 printable characters without a slash"
         )
     return normalized
 
@@ -99,8 +99,6 @@ def validate_session_path(path: str, *, suffix: str = "") -> str:
         required=True,
     )
     assert session_id is not None
-    if "/" in session_id:
-        raise ValueError("session_id path cannot contain a slash")
     return session_id
 
 

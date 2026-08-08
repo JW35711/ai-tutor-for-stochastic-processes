@@ -425,7 +425,10 @@ exportProfileButton.addEventListener("click", async () => {
     );
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "导出失败");
-    downloadJson(payload, `stochlab-learning-profile-${sessionId.slice(0, 8)}.json`);
+    const safeSessionLabel = sessionId
+      .replace(/[^A-Za-z0-9_-]/g, "")
+      .slice(0, 8) || "session";
+    downloadJson(payload, `stochlab-learning-profile-${safeSessionLabel}.json`);
   } catch (error) {
     addMessage("agent", `学习档案导出失败：${error.message}`);
   } finally {
