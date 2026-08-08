@@ -346,6 +346,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "enabled": AGENT.llm.enabled,
                         "mode": "verified_rewrite",
                         "max_content_chars": AGENT.llm.max_content_chars,
+                        "provider_circuit": AGENT.llm.stats(),
                     },
                     "evaluation": EVALUATION,
                     "assessment": {

@@ -168,8 +168,10 @@ with corpus and quiz-bank provenance before deleting the session.
 - Numerical functions receive explicit seeds for reproducible tests.
 - Normal notebook use remains unseeded, matching the thesis teaching design.
 - LLM use is optional; offline mode supports every simulation and assessment.
-- Hosted LLM and embedding calls use bounded timeouts and response-body limits;
-  failures degrade to an offline answer or local retrieval backend.
+- Hosted LLM and embedding calls use bounded timeouts, response-body limits
+  and independent cooldown circuits. Concurrent or repeated provider failures
+  degrade immediately to a verified offline answer or sparse retrieval path;
+  health reports recovery state without prompts or credentials.
 - Third-party reference PDFs are excluded from version control.
 - Each API response carries a request ID and browser security headers.
 - All API requests use a per-client sliding-window rate limit. POST requests

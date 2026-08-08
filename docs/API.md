@@ -105,6 +105,10 @@ The knowledge section includes a query-embedding circuit state, configured
 cooldown, remaining retry delay, failure and skip counters, and whether a
 recovery probe is in flight. These values reveal provider availability without
 revealing query text or credentials.
+The LLM section exposes the same bounded operational counters for the optional
+rewrite provider. `state=disabled` is normal when no provider is configured;
+an open circuit never makes the service unready because the verified offline
+teaching path remains complete.
 Latency metrics include the all-time process average and p95 over a bounded
 256-request recent window, together with the current window sample count.
 Knowledge statistics and every retrieved source include `corpus_sha256`, the
