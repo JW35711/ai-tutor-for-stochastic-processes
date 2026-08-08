@@ -320,7 +320,7 @@ class LearnerMemory:
         }
 
     def history(self, session_id: str, limit: int = 20) -> list[dict[str, Any]]:
-        safe_limit = max(1, min(int(limit), 100))
+        safe_limit = max(1, min(int(limit), self.max_events_per_session))
         with self._lock:
             rows = self._connection.execute(
                 """
@@ -342,7 +342,7 @@ class LearnerMemory:
     ) -> list[dict[str, Any]]:
         """Return recent quiz attempts with their content-version provenance."""
 
-        safe_limit = max(1, min(int(limit), 100))
+        safe_limit = max(1, min(int(limit), self.max_events_per_session))
         with self._lock:
             rows = self._connection.execute(
                 """
@@ -358,6 +358,19 @@ class LearnerMemory:
             item["correct"] = bool(item["correct"])
             attempts.append(item)
         return attempts
+
+    def snapshot(self, session_id: str) -> dict[str, Any]:
+        """Export all retained learner-owned records for one session."""
+
+        return {
+            "schema_version": 1,
+            "session_id": session_id,
+            "profile": self.profile(session_id),
+            "turns": self.history(session_id, self.max_events_per_session),
+            "assessments": self.assessment_history(
+                session_id, self.max_events_per_session
+            ),
+        }
 
     def reset(self, session_id: str) -> None:
         with self._lock, self._connection:

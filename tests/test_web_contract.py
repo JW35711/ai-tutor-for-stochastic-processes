@@ -64,6 +64,11 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('id="exportRunButton"', self.html)
         self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)
 
+    def test_learner_can_export_a_separate_versioned_profile(self) -> None:
+        self.assertIn('id="exportProfileButton"', self.html)
+        self.assertIn("/export`", self.javascript)
+        self.assertIn("stochlab-learning-profile", self.javascript)
+
     def test_dynamic_learning_regions_have_accessible_semantics(self) -> None:
         self.assertIn('role="log"', self.html)
         self.assertIn('id="healthStatus" class="health-pill" role="status"', self.html)

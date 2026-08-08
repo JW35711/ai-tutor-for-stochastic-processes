@@ -119,6 +119,31 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(attempt["answer_index"], 2)
         self.assertTrue(attempt["correct"])
 
+    def test_snapshot_exports_all_retained_event_types(self) -> None:
+        self.memory.record_turn(
+            session_id="export-user",
+            question="simulate Brownian motion",
+            module_id="module04",
+            topic="brownian_motion",
+            tool="brownian_motion",
+            parameters={"horizon": 1.0},
+            verified=True,
+            misconceptions=[],
+        )
+        self.memory.record_assessment(
+            session_id="export-user",
+            question_id="q04",
+            module_id="module04",
+            answer_index=2,
+            correct=True,
+            bank_sha256="c" * 64,
+        )
+        snapshot = self.memory.snapshot("export-user")
+        self.assertEqual(snapshot["schema_version"], 1)
+        self.assertEqual(len(snapshot["turns"]), 1)
+        self.assertEqual(len(snapshot["assessments"]), 1)
+        self.assertEqual(snapshot["profile"]["quiz_correct"], 1)
+
     def test_concurrent_turns_are_serialized_without_loss(self) -> None:
         def record(index: int) -> None:
             self.memory.record_turn(

@@ -54,6 +54,9 @@ stores the `bank_sha256` of the exact assessment content used; rows created by
 older releases may return `null` for that field after the in-place migration.
 
 - `DELETE /api/sessions/{id}` clears only that learner session.
+- `GET /api/sessions/{id}/export` returns every retained simulation turn and
+  quiz attempt for that session, plus content hashes, policy limits and the
+  current recommendation. The UI exposes this separately from single-run JSON.
 
 ## Errors and limits
 

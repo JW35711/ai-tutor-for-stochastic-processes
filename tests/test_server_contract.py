@@ -9,6 +9,7 @@ from server import (
     TutorRequestHandler,
     readiness_report,
     validate_session_id,
+    validate_session_path,
 )
 
 
@@ -88,6 +89,20 @@ class ServerContractTests(unittest.TestCase):
             with self.subTest(invalid=invalid):
                 with self.assertRaises(ValueError):
                     validate_session_id(invalid, required=True)
+
+    def test_session_export_path_decodes_only_one_safe_identifier(self) -> None:
+        self.assertEqual(
+            validate_session_path(
+                "/api/sessions/learner-1/export",
+                suffix="/export",
+            ),
+            "learner-1",
+        )
+        with self.assertRaisesRegex(ValueError, "slash"):
+            validate_session_path(
+                "/api/sessions/learner%2Fother/export",
+                suffix="/export",
+            )
 
     def test_json_reader_requires_declared_complete_object_body(self) -> None:
         handler = object.__new__(TutorRequestHandler)

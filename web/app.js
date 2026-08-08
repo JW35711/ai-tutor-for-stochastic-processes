@@ -23,6 +23,7 @@ const toolCount = document.querySelector("#toolCount");
 const sourceCount = document.querySelector("#sourceCount");
 const verificationBadge = document.querySelector("#verificationBadge");
 const exportRunButton = document.querySelector("#exportRunButton");
+const exportProfileButton = document.querySelector("#exportProfileButton");
 const evaluationCount = document.querySelector("#evaluationCount");
 const evaluationMeta = document.querySelector("#evaluationMeta");
 
@@ -159,6 +160,7 @@ function renderEvidence(payload) {
   verificationBadge.textContent = payload.verified ? "VERIFIED" : "VALIDATION FAILED";
   latestRunPayload = payload;
   exportRunButton.disabled = false;
+  exportProfileButton.disabled = false;
   const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
   const corpusLabel = payload.sources?.[0]?.corpus_sha256?.slice(0, 8) || "unknown";
   runMeta.innerHTML = `
@@ -222,6 +224,7 @@ async function askAgent(question) {
     sessionId = payload.session_id;
     activeModuleId = payload.module_id;
     window.localStorage.setItem("stochasticTutorSession", sessionId);
+    exportProfileButton.disabled = false;
     addMessage("agent", payload.answer);
     renderEvidence(payload);
   } catch (error) {
@@ -277,6 +280,7 @@ async function submitQuiz(questionId, answerIndex) {
     if (!response.ok) throw new Error(payload.error || "提交失败");
     sessionId = payload.session_id;
     window.localStorage.setItem("stochasticTutorSession", sessionId);
+    exportProfileButton.disabled = false;
     const result = payload.result;
     buttons.forEach((button) => {
       const index = Number(button.dataset.answer);
@@ -369,6 +373,7 @@ async function restoreSession() {
     verificationBadge.classList.remove("invalid");
     verificationBadge.textContent = "SESSION RESTORED";
     exportRunButton.disabled = true;
+    exportProfileButton.disabled = false;
     runMeta.innerHTML = `<span>SESSION RESTORED</span><span>${escapeHtml(activeModuleId.toUpperCase())}</span>`;
     parameters.innerHTML = latest?.parameters
       ? Object.entries(latest.parameters)
@@ -389,17 +394,41 @@ async function restoreSession() {
 
 restoreSession();
 
-exportRunButton.addEventListener("click", () => {
-  if (!latestRunPayload) return;
-  const body = JSON.stringify(latestRunPayload, null, 2);
+function downloadJson(payload, filename) {
+  const body = JSON.stringify(payload, null, 2);
   const blob = new Blob([body], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const runLabel = latestRunPayload.request_id?.slice(0, 8) || "local";
   link.href = url;
-  link.download = `stochlab-${latestRunPayload.module_id}-${runLabel}.json`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+exportRunButton.addEventListener("click", () => {
+  if (!latestRunPayload) return;
+  const runLabel = latestRunPayload.request_id?.slice(0, 8) || "local";
+  downloadJson(
+    latestRunPayload,
+    `stochlab-${latestRunPayload.module_id}-${runLabel}.json`,
+  );
+});
+
+exportProfileButton.addEventListener("click", async () => {
+  if (!sessionId) return;
+  exportProfileButton.disabled = true;
+  try {
+    const response = await fetch(
+      `/api/sessions/${encodeURIComponent(sessionId)}/export`,
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "导出失败");
+    downloadJson(payload, `stochlab-learning-profile-${sessionId.slice(0, 8)}.json`);
+  } catch (error) {
+    addMessage("agent", `学习档案导出失败：${error.message}`);
+  } finally {
+    exportProfileButton.disabled = false;
+  }
 });
 
 form.addEventListener("submit", (event) => {
@@ -439,6 +468,7 @@ resetButton.addEventListener("click", async () => {
   verificationBadge.textContent = "WAITING";
   latestRunPayload = null;
   exportRunButton.disabled = true;
+  exportProfileButton.disabled = true;
   quizPanel.classList.add("hidden");
   input.focus();
 });

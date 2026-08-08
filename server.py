@@ -12,6 +12,7 @@ import signal
 import time
 import uuid
 from dataclasses import asdict
+from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -81,6 +82,21 @@ def validate_session_id(value: object, *, required: bool = False) -> str | None:
             "session_id must contain 1 to 128 printable characters"
         )
     return normalized
+
+
+def validate_session_path(path: str, *, suffix: str = "") -> str:
+    prefix = "/api/sessions/"
+    if not path.startswith(prefix) or (suffix and not path.endswith(suffix)):
+        raise ValueError("invalid session path")
+    end = -len(suffix) if suffix else None
+    session_id = validate_session_id(
+        unquote(path[len(prefix) : end]),
+        required=True,
+    )
+    assert session_id is not None
+    if "/" in session_id:
+        raise ValueError("session_id path cannot contain a slash")
+    return session_id
 
 
 class TutorRequestHandler(BaseHTTPRequestHandler):
@@ -330,6 +346,27 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 self._json({"quiz": ASSESSMENTS.question(module_id)})
             except ValueError as error:
                 self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_module")
+        elif path.startswith("/api/sessions/") and path.endswith("/export"):
+            try:
+                session_id = validate_session_path(path, suffix="/export")
+            except ValueError as error:
+                self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
+            else:
+                profile = AGENT.memory.profile(session_id)
+                self._json(
+                    {
+                        "exported_at": datetime.now(timezone.utc).isoformat(
+                            timespec="seconds"
+                        ),
+                        "corpus_sha256": AGENT.knowledge.corpus_sha256,
+                        "assessment_bank_sha256": ASSESSMENTS.bank_sha256,
+                        "retention_days": MEMORY_RETENTION_DAYS or None,
+                        "max_events_per_type": AGENT.memory.max_events_per_session,
+                        "learner_data": AGENT.memory.snapshot(session_id),
+                        "recommendation": recommend_next(profile),
+                        "request_id": self.request_id,
+                    }
+                )
         else:
             self._static(path)
 
@@ -414,15 +451,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         if not path.startswith(prefix):
             self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
-        raw_session_id = unquote(path[len(prefix) :])
         try:
-            session_id = validate_session_id(raw_session_id, required=True)
-            if session_id and "/" in session_id:
-                raise ValueError("session_id path cannot contain a slash")
+            session_id = validate_session_path(path)
         except ValueError as error:
             self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
             return
-        assert session_id is not None
         AGENT.memory.reset(session_id)
         self._json({"status": "reset", "session_id": session_id})
 
