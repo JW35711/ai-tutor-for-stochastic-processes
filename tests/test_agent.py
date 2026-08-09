@@ -68,6 +68,11 @@ class AgentTests(unittest.TestCase):
         self.assertIn("Python", response["answer"])
         self.assertIn("ChatGPT", response["answer"])
 
+    def test_first_module_question_is_course_navigation_not_a_simulation(self) -> None:
+        response = self.agent.answer("第一个module是什么")
+        self.assertEqual(response["module_id"], "general")
+        self.assertIn("Module 01", response["answer"])
+
     def test_parameter_follow_up_still_inherits_the_previous_simulation(self) -> None:
         prior = self.agent.answer("模拟强度为2、时长为3的泊松过程")
         response = self.agent.answer("再把强度改成3", prior["session_id"])

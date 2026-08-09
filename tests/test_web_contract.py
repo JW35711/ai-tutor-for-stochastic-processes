@@ -124,7 +124,9 @@ class WebContractTests(unittest.TestCase):
     def test_provider_fallback_is_visible_in_health_status(self) -> None:
         self.assertIn("embedding_circuit?.state", self.javascript)
         self.assertIn("provider_circuit?.state", self.javascript)
-        self.assertIn("Agent online · fallback", self.javascript)
+        self.assertIn('"fallback"', self.javascript)
+        self.assertIn("LLM unavailable", self.javascript)
+        self.assertIn("provider_circuit?.last_failure", self.javascript)
 
 
 if __name__ == "__main__":

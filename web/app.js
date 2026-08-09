@@ -380,14 +380,16 @@ async function hydrateHealth() {
     const health = await fetchJson("/health", {}, 5_000);
     const ragCircuit = health.knowledge?.embedding_circuit?.state;
     const llmCircuit = health.llm?.provider_circuit?.state;
-    const degraded = ragCircuit === "open" || llmCircuit === "open";
+    const llmFailure = health.llm?.provider_circuit?.last_failure;
+    const degraded = ragCircuit === "open" || llmCircuit === "open" || Boolean(llmFailure);
     healthStatus.classList.add("online");
     healthStatus.classList.toggle("degraded", degraded);
     healthStatus.innerHTML = degraded
-      ? "<i></i> Agent online · fallback"
+      ? `<i></i> Agent online · ${llmFailure ? "LLM unavailable" : "fallback"}`
       : "<i></i> Agent online";
     const ragBackend = health.knowledge?.embedding_backend || "retrieval ready";
-    healthMeta.textContent = `${health.modules} modules · ${health.tools} tools · ${ragBackend}`;
+    const llmLabel = llmFailure ? `LLM ${llmFailure}` : (health.llm?.enabled ? "LLM ready" : "LLM offline");
+    healthMeta.textContent = `${health.modules} modules · ${health.tools} tools · ${ragBackend} · ${llmLabel}`;
     appVersion.textContent = `v${health.version || "0.4.0"} · Interview build`;
     moduleCount.textContent = `${health.modules}/${health.modules}`;
     toolCount.textContent = health.tools;

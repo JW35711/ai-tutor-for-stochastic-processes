@@ -117,6 +117,12 @@ class StochasticTutorAgent:
         "这门课",
         "课程",
         "学什么",
+        "第一个module",
+        "第一个 module",
+        "第一个模块",
+        "第一模块",
+        "第1个module",
+        "第1个 module",
         "随机过程是什么",
         "什么是随机过程",
         "技术栈",
@@ -923,6 +929,23 @@ class StochasticTutorAgent:
                 "随机游走、布朗运动、离散与连续时间马尔可夫链，以及可靠性、缓冲区和 "
                 "M/M/1 排队模型。最后三个探索模块讨论非齐次 Poisson 过程、自避免游走和 "
                 "圆上粒子合并。每个主题都把定义、可执行仿真、图形结果和理论量对照起来。"
+            )
+        if any(
+            marker in lowered
+            for marker in (
+                "第一个module",
+                "第一个 module",
+                "第一个模块",
+                "第一模块",
+                "第1个module",
+                "第1个 module",
+            )
+        ):
+            return (
+                "第一个正式教学模块是 Module 01：Bernoulli and Poisson processes。"
+                "它先从离散时间的 Bernoulli 到达开始，说明累计计数和首次等待时间，"
+                "再过渡到连续时间 Poisson 过程，比较计数分布、指数等待时间和理论均值 λT。"
+                "课程在它之前还有 Module 00，作为 Monte Carlo 仿真的准备模块。"
             )
         if any(marker in lowered for marker in ("技术栈", "架构", "rag", "agent")):
             return (
