@@ -634,6 +634,7 @@ class StochasticTutorAgent:
             state.retrieval_query,
             topic=state.topic,
             module_id=state.module_id,
+            limit=4,
         )
         mode = state.sources[0]["retrieval_mode"] if state.sources else "no_results"
         return NodeOutcome(f"{len(state.sources)} source-aware notes via {mode}")

@@ -108,6 +108,17 @@ class AgentTests(unittest.TestCase):
         self.assertIn("suggested_question", response["recommendation"])
         self.assertIn("review_interval_days", response["recommendation"])
 
+    def test_agent_response_can_include_lecture_note_reference(self) -> None:
+        response = self.agent.answer(
+            "M/M/1 queue：到达率为0.75、服务率为1、时长为2000"
+        )
+        self.assertTrue(
+            any(
+                source["source"] == "reference/lectnotes_technmath.pdf#page-69"
+                for source in response["sources"]
+            )
+        )
+
     def test_same_verified_execution_has_stable_evidence_fingerprint(self) -> None:
         first = self.agent.answer("模拟强度为2、时长为3的泊松过程")
         second = self.agent.answer("模拟强度为2、时长为3的泊松过程")
