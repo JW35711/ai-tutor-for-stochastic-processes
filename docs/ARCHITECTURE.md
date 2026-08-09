@@ -46,6 +46,7 @@ flowchart LR
 | `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
 | `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |
+| `teaching_team.py` | Maps workflow nodes to educational Agent roles | Multi-agent framing is explicit without adding hidden model calls |
 | `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
 | `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
 
@@ -132,6 +133,12 @@ the failed node and exception type are appended before the error propagates.
 This gives the UI node-level latency and failure evidence without exposing
 private reasoning text.
 
+The response also exposes `teaching_team`, a role-level projection of the same
+trace. The roles are Curriculum Agent, Content Agent, Simulation Planner,
+Simulation Agent, Assessment Agent, Learner Model Agent and Tutor Agent. This
+keeps the interview-facing multi-agent design inspectable: each role maps to a
+real state-graph node and no extra hidden model call is implied.
+
 ## Learner model
 
 The learner profile distinguishes three forms of evidence:
@@ -147,7 +154,9 @@ in an education product.
 The recommendation policy first revisits a practiced module with weak or
 missing evidence, then expands to the next uncovered course module, and finally
 suggests boundary cases when all modules are covered. Every recommendation
-includes a reason code, learner-facing reason and editable suggested question.
+includes a reason code, learner-facing reason, editable suggested question and
+a conservative review interval. The interval is inspired by spaced-repetition
+systems but remains a transparent heuristic over local practice evidence.
 
 ## Multi-turn state
 

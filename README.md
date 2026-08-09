@@ -109,6 +109,7 @@ flowchart LR
     D --> M[(Learner memory)]
     QZ[Concept check] --> M
     M --> E[Verified guided response]
+    E --> A[Teaching-team role trace]
     M --> UI[Web UI, profile, sources and trace]
 ```
 
@@ -117,6 +118,11 @@ tested nodes: `classify → retrieve → plan → tool → diagnose → memory �
 respond`. It is implemented locally to preserve the zero-dependency offline
 demo, while keeping node boundaries compatible with a future LangGraph
 adapter.
+For interview clarity, the same trace is projected onto named educational
+roles: Curriculum Agent, Content Agent, Simulation Planner, Simulation Agent,
+Assessment Agent, Learner Model Agent and Tutor Agent. These are not hidden
+LLM calls; each role maps to a real workflow node and exposes its responsibility
+in the UI.
 
 Numerical computation is performed by Python, not by the language model. An
 optional OpenAI-compatible model can improve the wording, but it receives the
@@ -214,7 +220,8 @@ from persistent session history, while the trace lists every inherited field.
 The **当前模块概念测验** button adds a graded concept check for each of the 11
 modules. Simulation practice, quiz accuracy and diagnosed misconceptions are
 shown separately in the learner profile; the UI does not claim that tool use
-alone proves mastery.
+alone proves mastery. The next-practice recommendation also includes a small
+spaced-repetition-style review interval derived from the local evidence score.
 
 ### Run with Docker
 

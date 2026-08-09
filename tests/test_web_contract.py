@@ -65,6 +65,13 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("source.query_expansions", self.javascript)
         self.assertIn("title_sparse", self.javascript)
 
+    def test_team_trace_and_review_interval_are_rendered(self) -> None:
+        self.assertIn("payload.teaching_team", self.javascript)
+        self.assertIn("item.role_name", self.javascript)
+        self.assertIn("item.responsibility", self.javascript)
+        self.assertIn("review_interval_days", self.javascript)
+        self.assertIn("建议 ${recommendation.review_interval_days} 天后复习", self.javascript)
+
     def test_run_evidence_can_be_exported_after_execution(self) -> None:
         self.assertIn('id="exportRunButton"', self.html)
         self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)

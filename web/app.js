@@ -186,10 +186,14 @@ function renderProfile(memory, note = "", recommendation = null) {
     : "";
 
   if (recommendation) {
+    const reviewInterval = recommendation.review_interval_days
+      ? `建议 ${recommendation.review_interval_days} 天后复习`
+      : "建议完成一次仿真后复习";
     nextRecommendation.innerHTML = `
       <span>NEXT PRACTICE</span>
       <strong>${escapeHtml(recommendation.module_id.toUpperCase())} · ${escapeHtml(recommendation.module_label)}</strong>
       <p>${escapeHtml(recommendation.reason)}</p>
+      <small>${escapeHtml(reviewInterval)}</small>
       <button type="button">使用建议问题</button>
     `;
     nextRecommendation.querySelector("button").addEventListener("click", () => {
@@ -250,10 +254,12 @@ function renderEvidence(payload) {
         .join("")
     : "<p>没有检索到课程来源。</p>";
 
-  trace.innerHTML = payload.trace
+  const teamTrace = payload.teaching_team?.length ? payload.teaching_team : payload.trace;
+  trace.innerHTML = teamTrace
     .map((item) => `
       <li class="${item.status === "error" ? "trace-error" : ""}">
-        <strong>${escapeHtml(item.node)}</strong> · ${escapeHtml(item.detail)}
+        <strong>${escapeHtml(item.role_name || item.node)}</strong> · ${escapeHtml(item.detail)}
+        ${item.responsibility ? `<span>${escapeHtml(item.responsibility)}</span>` : ""}
         <small>${escapeHtml(item.duration_ms ?? "—")} ms</small>
       </li>
     `)

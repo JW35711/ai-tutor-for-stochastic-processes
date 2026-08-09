@@ -95,8 +95,18 @@ class AgentTests(unittest.TestCase):
         )
         self.assertTrue(all(item["status"] == "ok" for item in response["trace"]))
         self.assertTrue(all(item["duration_ms"] >= 0 for item in response["trace"]))
+        self.assertEqual(len(response["teaching_team"]), 7)
+        self.assertEqual(
+            response["teaching_team"][0]["role_id"],
+            "curriculum_agent",
+        )
+        self.assertEqual(
+            response["teaching_team"][-1]["role_id"],
+            "tutor_agent",
+        )
         self.assertIn("module_id", response["recommendation"])
         self.assertIn("suggested_question", response["recommendation"])
+        self.assertIn("review_interval_days", response["recommendation"])
 
     def test_same_verified_execution_has_stable_evidence_fingerprint(self) -> None:
         first = self.agent.answer("模拟强度为2、时长为3的泊松过程")

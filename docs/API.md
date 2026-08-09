@@ -22,16 +22,21 @@ The same contract is available to tools at `GET /openapi.json` as OpenAPI 3.1.
 ```
 
 The response contains the selected module and tool, validated parameters,
-numerical result, Notebook sources, seven-node trace, learner profile and
-request ID. `llm_enabled` states whether a provider is configured, while
+numerical result, Notebook and lecture-note sources, seven-node trace,
+teaching-team role trace, learner profile and request ID. `llm_enabled` states
+whether a provider is configured, while
 `llm_applied` is true only when its rewrite passed numeric and source-anchor
 validation. `session_id` can be omitted on the first turn and then reused.
 `verified` is true only when tool validation and execution completed; the UI
 uses it instead of displaying a static success badge.
 Each trace item contains the public node name, a concise detail, `status` and
 `duration_ms` for node-level observability.
+`teaching_team` maps the same trace onto stable educational roles such as
+Curriculum Agent, Content Agent, Simulation Agent, Assessment Agent and Tutor
+Agent, each with a short responsibility string.
 The response also includes an explainable `recommendation` with its module,
-reason code, learner-facing reason and suggested next question.
+reason code, learner-facing reason, suggested next question and conservative
+review interval in days.
 `run_sha256` fingerprints the module, selected function, parameters, complete
 tool result and corpus version. It is stable across equivalent deterministic
 runs and changes when any execution evidence changes; request IDs remain the

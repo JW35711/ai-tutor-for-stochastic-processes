@@ -908,6 +908,13 @@ h1 {
   line-height: 1.5;
 }
 
+.next-recommendation small {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--primary-strong);
+  font-size: 0.6rem;
+}
+
 .next-recommendation button {
   padding: 6px 8px;
   color: white;
@@ -1020,6 +1027,13 @@ h1 {
 
 .trace-list strong {
   color: var(--primary-strong);
+}
+
+.trace-list span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.6rem;
 }
 
 .trace-list small {

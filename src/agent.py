@@ -16,6 +16,7 @@ from .module_registry import MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
 from .provenance import execution_sha256
 from .recommendation import recommend_next
+from .teaching_team import build_team_trace
 from .validation import validate_question, validate_session_id
 from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
 from .processes import (
@@ -827,4 +828,5 @@ class StochasticTutorAgent:
             previous_turn=history[-1] if history else None,
         )
         completed = self.workflow.invoke(state)
+        completed.response["teaching_team"] = build_team_trace(completed.trace)
         return completed.response

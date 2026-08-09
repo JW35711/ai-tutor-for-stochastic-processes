@@ -22,12 +22,27 @@ PRACTICE_PROMPTS: dict[str, str] = {
 }
 
 
+def _review_interval_days(module: dict[str, Any] | None) -> int:
+    """Small SM-2-inspired interval policy from local evidence only."""
+
+    if not module:
+        return 1
+    mastery = float(module.get("mastery", 0.0))
+    quiz_attempts = int(module.get("quiz_attempts", 0))
+    if quiz_attempts == 0 or mastery < 0.55:
+        return 1
+    if mastery < 0.8:
+        return 3
+    return 7
+
+
 def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
     """Return one explainable practice suggestion without claiming ability."""
 
     modules = {item["module_id"]: item for item in profile.get("modules", [])}
     if not modules:
         target = MODULES[0]
+        selected_module = None
         reason_code = "start_foundation"
         reason = "还没有练习记录，先用 Monte Carlo 熟悉重复抽样和理论对照。"
     else:
@@ -46,6 +61,7 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
         )
         if needs_evidence:
             selected = needs_evidence[0]
+            selected_module = selected
             target = next(
                 module for module in MODULES if module.module_id == selected["module_id"]
             )
@@ -58,6 +74,7 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
             uncovered = [module for module in MODULES if module.module_id not in modules]
             if uncovered:
                 target = uncovered[0]
+                selected_module = modules.get(target.module_id)
                 reason_code = "expand_coverage"
                 reason = "已练习模块的证据较完整，可以按课程顺序扩展到下一个模型。"
             else:
@@ -65,6 +82,7 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
                     modules.values(),
                     key=lambda item: (item.get("mastery", 0.0), item["module_id"]),
                 )
+                selected_module = selected
                 target = next(
                     module
                     for module in MODULES
@@ -78,4 +96,5 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
         "reason_code": reason_code,
         "reason": reason,
         "suggested_question": PRACTICE_PROMPTS[target.module_id],
+        "review_interval_days": str(_review_interval_days(selected_module)),
     }
