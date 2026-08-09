@@ -102,6 +102,8 @@ class StochasticTutorAgent:
     GENERAL_CHAT_MARKERS = (
         "你好",
         "您好",
+        "在吗",
+        "在不在",
         "嗨",
         "hello",
         "hi",

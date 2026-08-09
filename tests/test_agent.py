@@ -55,6 +55,11 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(response["tool"], "no_simulation")
         self.assertEqual(response["memory"]["turns"], 1)
 
+    def test_presence_greeting_is_general_conversation(self) -> None:
+        response = self.agent.answer("在吗")
+        self.assertEqual(response["module_id"], "general")
+        self.assertEqual(response["tool"], "no_simulation")
+
     def test_course_overview_never_inherits_a_previous_simulation(self) -> None:
         prior = self.agent.answer("解释伯努利过程的几何等待时间")
         response = self.agent.answer("这门课在学什么", prior["session_id"])
