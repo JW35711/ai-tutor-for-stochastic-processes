@@ -114,6 +114,15 @@ class StochasticTutorAgent:
         "这个项目",
         "这个agent",
         "这个 agent",
+        "这门课",
+        "课程",
+        "学什么",
+        "随机过程是什么",
+        "什么是随机过程",
+        "技术栈",
+        "架构",
+        "rag",
+        "agent",
         "随机过程课程",
         "教学agent",
         "教学 agent",
@@ -866,7 +875,7 @@ class StochasticTutorAgent:
             ),
             json.dumps({"question": question}, ensure_ascii=False),
         )
-        answer = candidate or self.GENERAL_FALLBACK
+        answer = candidate or self._offline_general_answer(question)
         detail = "LLM general conversation" if candidate else "offline general conversation"
         trace = [
             {
@@ -903,11 +912,59 @@ class StochasticTutorAgent:
         }
 
     @classmethod
+    def _offline_general_answer(cls, question: str) -> str:
+        """Give useful product answers when a hosted model is unavailable."""
+
+        lowered = question.lower()
+        if any(marker in lowered for marker in ("这门课", "课程", "学什么")):
+            return (
+                "这门课围绕随机过程的建模、仿真和解释展开。课程先用 Monte Carlo "
+                "建立重复抽样的直觉，再覆盖 Bernoulli 与 Poisson 过程、离散和连续时间 "
+                "随机游走、布朗运动、离散与连续时间马尔可夫链，以及可靠性、缓冲区和 "
+                "M/M/1 排队模型。最后三个探索模块讨论非齐次 Poisson 过程、自避免游走和 "
+                "圆上粒子合并。每个主题都把定义、可执行仿真、图形结果和理论量对照起来。"
+            )
+        if any(marker in lowered for marker in ("技术栈", "架构", "rag", "agent")):
+            return (
+                "这个项目采用 Python 本地服务和浏览器端 Dashboard。Agent 先识别问题是否属于 "
+                "11 个课程模块，再检索 Notebook 与 lecture notes 证据，选择受限的数值工具运行仿真，"
+                "随后校验结果、记录学习状态并生成回答。ChatGPT 只负责自然语言讲解；数值结果、"
+                "参数和来源仍由本地工具链锁定，因此可以追溯和复现。"
+            )
+        if any(marker in lowered for marker in ("你叫什么", "你是谁", "介绍一下你自己")):
+            return cls.GENERAL_FALLBACK
+        return (
+            "我可以先帮你定位问题属于哪个随机过程主题，再解释概念或运行对应仿真。"
+            "你可以直接问课程总览、某个模型的原理，或给出参数让我比较模拟结果。"
+        )
+
+    @classmethod
     def _is_general_conversation(cls, question: str) -> bool:
         """Allow a narrow chat lane without swallowing unknown tool requests."""
 
         lowered = question.lower().strip()
         return any(marker in lowered for marker in cls.GENERAL_CHAT_MARKERS)
+
+    @staticmethod
+    def _is_explicit_follow_up(question: str) -> bool:
+        """Only inherit a simulation when the learner explicitly continues it."""
+
+        lowered = question.lower().strip()
+        follow_up_markers = (
+            "再",
+            "继续",
+            "上一轮",
+            "上一次",
+            "刚才",
+            "把它",
+            "改成",
+            "改为",
+            "调整为",
+            "增加到",
+            "减少到",
+            "同样的",
+        )
+        return any(marker in lowered for marker in follow_up_markers)
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         normalized_question = validate_question(question)
@@ -917,7 +974,7 @@ class StochasticTutorAgent:
         if classified_module is None:
             if self._is_general_conversation(normalized_question):
                 return self._general_response(normalized_question, resolved_session)
-            if not history:
+            if not history or not self._is_explicit_follow_up(normalized_question):
                 raise ValueError(
                     "I could not identify the teaching module. Please name a model or Module 00-10."
                 )

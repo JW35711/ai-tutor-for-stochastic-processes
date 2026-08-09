@@ -55,6 +55,25 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(response["tool"], "no_simulation")
         self.assertEqual(response["memory"]["turns"], 1)
 
+    def test_course_overview_never_inherits_a_previous_simulation(self) -> None:
+        prior = self.agent.answer("解释伯努利过程的几何等待时间")
+        response = self.agent.answer("这门课在学什么", prior["session_id"])
+        self.assertEqual(response["module_id"], "general")
+        self.assertEqual(response["tool"], "no_simulation")
+        self.assertIn("M/M/1", response["answer"])
+
+    def test_general_architecture_question_has_an_offline_answer(self) -> None:
+        response = self.agent.answer("这个 Agent 的技术栈是什么")
+        self.assertEqual(response["module_id"], "general")
+        self.assertIn("Python", response["answer"])
+        self.assertIn("ChatGPT", response["answer"])
+
+    def test_parameter_follow_up_still_inherits_the_previous_simulation(self) -> None:
+        prior = self.agent.answer("模拟强度为2、时长为3的泊松过程")
+        response = self.agent.answer("再把强度改成3", prior["session_id"])
+        self.assertEqual(response["module_id"], "module01")
+        self.assertEqual(response["parameters"]["rate"], 3.0)
+
     def test_routes_brownian_before_random_walk(self) -> None:
         self.assertEqual(
             self.agent.classify_module("随机游走如何逼近布朗运动"),
