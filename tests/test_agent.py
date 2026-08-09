@@ -48,6 +48,13 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(response["memory"]["turns"], 0)
         self.assertIn("StochLab", response["answer"])
 
+    def test_greeting_never_inherits_a_previous_simulation(self) -> None:
+        prior = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
+        response = self.agent.answer("你好", prior["session_id"])
+        self.assertEqual(response["module_id"], "general")
+        self.assertEqual(response["tool"], "no_simulation")
+        self.assertEqual(response["memory"]["turns"], 1)
+
     def test_routes_brownian_before_random_walk(self) -> None:
         self.assertEqual(
             self.agent.classify_module("随机游走如何逼近布朗运动"),

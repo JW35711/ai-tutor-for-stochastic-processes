@@ -100,6 +100,11 @@ class StochasticTutorAgent:
         "例如你可以问：‘布朗运动的终点方差为什么是 T？’"
     )
     GENERAL_CHAT_MARKERS = (
+        "你好",
+        "您好",
+        "嗨",
+        "hello",
+        "hi",
         "你叫什么",
         "你是谁",
         "介绍一下你自己",
@@ -909,12 +914,13 @@ class StochasticTutorAgent:
         resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
         history = self.memory.history(resolved_session, limit=1)
         classified_module = self.classify_module(normalized_question)
-        if classified_module is None and not history:
+        if classified_module is None:
             if self._is_general_conversation(normalized_question):
                 return self._general_response(normalized_question, resolved_session)
-            raise ValueError(
-                "I could not identify the teaching module. Please name a model or Module 00-10."
-            )
+            if not history:
+                raise ValueError(
+                    "I could not identify the teaching module. Please name a model or Module 00-10."
+                )
         state = AgentState(
             question=normalized_question,
             session_id=resolved_session,
