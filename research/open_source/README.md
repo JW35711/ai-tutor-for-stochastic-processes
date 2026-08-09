@@ -68,6 +68,22 @@ Agent may independently use the general dashboard ideas to organize its own
 modules, workflow evidence and learner profile. This avoids creating or
 redistributing a derivative under the upstream Fair Core terms.
 
+### Multi-agent Education
+
+- Repository: https://github.com/bcefghj/multi-agent-education
+- Reviewed commit: not vendored locally because GitHub HTTPS cloning was
+  unavailable in this workspace during review.
+- License: MIT
+- Reviewed areas: educational agent responsibilities, learner modelling,
+  spaced-repetition-style review planning and event-oriented coordination.
+
+No upstream source file is copied into `src/`. The adapted implementation keeps
+this project's local state graph and adds a small role projection over existing
+nodes: Curriculum Agent, Content Agent, Simulation Planner, Simulation Agent,
+Assessment Agent, Learner Model Agent and Tutor Agent. The review cadence is a
+transparent local heuristic over practice evidence, not an imported mastery
+model.
+
 ## Dependency reference
 
 LangGraph is the preferred workflow dependency for the future state graph:
