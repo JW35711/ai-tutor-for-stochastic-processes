@@ -1,0 +1,114 @@
+[
+  {
+    "module_id": "module00",
+    "topic": "monte_carlo",
+    "title": "Lecture notes: simulation and Monte Carlo motivation",
+    "content": "The lecture notes describe simulation as a way to study random mechanisms when direct mathematical analysis is difficult, and list Monte Carlo methods as a central scientific use case. This supports Module 00's role as a preparatory module on repeated random experiments, empirical averages and comparison with theoretical quantities.",
+    "source": "reference/lectnotes_technmath.pdf#page-19",
+    "keywords": ["simulation", "monte carlo", "random processes", "visualization", "scientific simulation"]
+  },
+  {
+    "module_id": "module01",
+    "topic": "bernoulli_poisson",
+    "title": "Lecture notes: Bernoulli process in slotted time",
+    "content": "The Bernoulli process is introduced as packet arrivals in numbered time slots, where each slot contains an independent zero-one arrival variable with fixed probability p. This directly matches the notebook treatment of discrete-time counting, cumulative arrivals and geometric waiting time.",
+    "source": "reference/lectnotes_technmath.pdf#page-21",
+    "keywords": ["bernoulli process", "slotted time", "packet arrivals", "counting process", "geometric waiting time"]
+  },
+  {
+    "module_id": "module01",
+    "topic": "bernoulli_poisson",
+    "title": "Lecture notes: Poisson process construction",
+    "content": "The Poisson process is constructed from independent exponential inter-occurrence times. The accumulated event times define a continuous-time counting process N(t), and N(t) counts the number of events occurring before time t. The notes emphasize that waiting times are independent exponential variables with mean 1/lambda.",
+    "source": "reference/lectnotes_technmath.pdf#page-23",
+    "keywords": ["poisson process", "exponential waiting time", "inter-occurrence time", "counting process", "lambda"]
+  },
+  {
+    "module_id": "module01",
+    "topic": "bernoulli_poisson",
+    "title": "Lecture notes: Poisson increments and mean",
+    "content": "For a Poisson process with intensity lambda, the lecture notes derive that N(t) has a Poisson distribution with parameter lambda times t. They also state independent stationary increments and interpret lambda as the expected number of events per unit time.",
+    "source": "reference/lectnotes_technmath.pdf#page-24",
+    "keywords": ["poisson distribution", "independent increments", "stationary increments", "lambda t", "mean count"]
+  },
+  {
+    "module_id": "module04",
+    "topic": "brownian_motion",
+    "title": "Lecture notes: Brownian motion and scaled random walk",
+    "content": "Standard Brownian motion is described as a continuous-time process starting at zero with independent stationary increments, normal distribution B(t) with mean zero and variance t, and continuous paths. The notes also connect Brownian motion to scaled simple random walks, matching the notebook's approximation experiment.",
+    "source": "reference/lectnotes_technmath.pdf#page-16",
+    "keywords": ["brownian motion", "independent increments", "stationary increments", "normal distribution", "scaled random walk"]
+  },
+  {
+    "module_id": "module05",
+    "topic": "discrete_markov_chain",
+    "title": "Lecture notes: discrete Markov property",
+    "content": "The Markov property is presented as the rule that, given the current state, the future distribution does not depend on the earlier path. For time-homogeneous chains, the one-step transition probabilities do not depend on time and can be organized into a transition matrix.",
+    "source": "reference/lectnotes_technmath.pdf#page-34",
+    "keywords": ["markov property", "transition probability", "transition matrix", "time homogeneous", "current state"]
+  },
+  {
+    "module_id": "module05",
+    "topic": "discrete_markov_chain",
+    "title": "Lecture notes: steady state and stationary distributions",
+    "content": "The lecture notes motivate steady-state behavior through simulated Markov-chain paths and describe stationary distributions as a way to characterize long-run equilibrium. This supports the notebook comparison between empirical state frequencies and the stationary distribution.",
+    "source": "reference/lectnotes_technmath.pdf#page-42",
+    "keywords": ["stationary distribution", "steady state", "equilibrium", "long-run frequency", "markov chain"]
+  },
+  {
+    "module_id": "module06",
+    "topic": "continuous_markov_chain",
+    "title": "Lecture notes: continuous-time Markov chain holding times",
+    "content": "A continuous-time Markov chain is defined through transition intensities q_ij, collected in a generator matrix. If the chain is in state i, the holding time in that state is exponential with rate q_i, and the next state is selected with probability q_ij/q_i. This is the theoretical basis for the CTMC simulation tool.",
+    "source": "reference/lectnotes_technmath.pdf#page-53",
+    "keywords": ["ctmc", "transition intensity", "generator matrix", "holding time", "exponential distribution"]
+  },
+  {
+    "module_id": "module06",
+    "topic": "continuous_markov_chain",
+    "title": "Lecture notes: birth-death stationary balance",
+    "content": "For birth-death processes, the generator has nearest-neighbour birth and death rates. The stationary probabilities satisfy balance equations mu_n pi_n equals lambda_{n-1} pi_{n-1}, giving an explicit product-form expression after normalization.",
+    "source": "reference/lectnotes_technmath.pdf#page-56",
+    "keywords": ["birth death process", "stationary distribution", "balance equations", "product form", "generator"]
+  },
+  {
+    "module_id": "module07",
+    "topic": "applied_markov_models",
+    "title": "Lecture notes: life-length process and survival",
+    "content": "The life-length process uses a positive lifetime T to represent whether a system is functioning at time t. Its mean function equals the survival probability P(T>t). This gives a direct reference for the reliability part of Module 07.",
+    "source": "reference/lectnotes_technmath.pdf#page-61",
+    "keywords": ["life length", "survival function", "reliability", "system functioning", "lifetime"]
+  },
+  {
+    "module_id": "module07",
+    "topic": "applied_markov_models",
+    "title": "Lecture notes: series, parallel and hazard ideas",
+    "content": "The reliability chapter discusses component lifetimes, remaining lifetime, failure intensity and systems connected in series or parallel. These ideas support the notebook experiments comparing series and parallel system lifetimes and interpreting hazard-rate effects.",
+    "source": "reference/lectnotes_technmath.pdf#page-64",
+    "keywords": ["series system", "parallel system", "hazard rate", "remaining lifetime", "failure intensity"]
+  },
+  {
+    "module_id": "module07",
+    "topic": "applied_markov_models",
+    "title": "Lecture notes: discrete buffer model",
+    "content": "The lecture notes model a transmission node with randomly arriving packets and a queue or buffer. The buffer length at the end of each slot evolves from arrivals, service capacity and the previous queue size, matching the notebook's discrete-time buffer simulation.",
+    "source": "reference/lectnotes_technmath.pdf#page-67",
+    "keywords": ["buffer", "queue", "packet arrivals", "service capacity", "discrete time"]
+  },
+  {
+    "module_id": "module07",
+    "topic": "applied_markov_models",
+    "title": "Lecture notes: M/M/1 stability",
+    "content": "The M/M/1 model is presented as a birth-death process with constant arrival rate lambda and service rate mu. When the traffic intensity rho equals lambda divided by mu is below one, the model has a geometric steady-state distribution with probabilities proportional to rho^k.",
+    "source": "reference/lectnotes_technmath.pdf#page-69",
+    "keywords": ["m/m/1", "traffic intensity", "queue stability", "birth death process", "geometric distribution"]
+  },
+  {
+    "module_id": "module10",
+    "topic": "coalescing_particles",
+    "title": "Lecture notes: coalescent waiting-time structure",
+    "content": "The notes discuss coalescent models through ancestral lineages merging over time. Although the notebook uses particles on a finite circle rather than Kingman's population model, both examples focus on random merging events, decreasing cluster counts and the distribution of coalescence time.",
+    "source": "reference/lectnotes_technmath.pdf#page-79",
+    "keywords": ["coalescent", "coalescence time", "merging", "cluster count", "ancestral lineages"]
+  }
+]

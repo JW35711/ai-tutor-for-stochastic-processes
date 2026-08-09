@@ -54,6 +54,14 @@ between users or instances. Model and embedding providers may have separate
 data policies; enabling them is an operator decision, not a requirement for
 the offline application.
 
+When the optional rewrite provider is enabled, it receives only the current
+question, routed topic, immutable verified result block, source locators and
+the deterministic draft. Session IDs, prior questions, learner profiles, quiz
+history and raw simulation arrays are excluded. The draft contains the first
+retrieved teaching excerpt needed for explanation. Operators must still
+disclose that the current question and excerpt leave the local process and
+review the selected provider's retention policy.
+
 The demo supports an optional `MEMORY_RETENTION_DAYS` startup purge. It deletes
 complete stale sessions rather than partial turns, is disabled by default, and
 is visible through the health response.
@@ -75,8 +83,10 @@ non-finite values instead of emitting non-standard `NaN` or `Infinity` tokens.
 A learner question cannot choose an arbitrary Python name, shell command, file
 path or URL. It can only select one of 15 registered functions and supply
 numeric parameters that are parsed and validated. The RAG corpus is local and
-read-only. Retrieved text is evidence, not an instruction channel, and a hosted
-model cannot overwrite the tool result accepted by the API.
+read-only. Reference PDFs are not published in the repository; only reviewed
+short chunks with page locators are indexed. Retrieved text is evidence, not an
+instruction channel, and a hosted model cannot overwrite the tool result
+accepted by the API.
 Hosted rewrites also have independent response-byte and text-character limits;
 an oversized provider answer is discarded in favor of the bounded offline
 draft.

@@ -750,13 +750,10 @@ class StochasticTutorAgent:
             {
                 "question": state.question,
                 "topic": state.topic,
-                "tool_result": {
-                    key: value
-                    for key, value in state.result.items()
-                    if key not in {"series", "event_times", "endpoints", "counts"}
-                },
-                "retrieved_sources": state.sources,
-                "learner_profile": state.profile,
+                "verified_result_block": verified_anchor_text,
+                "source_locators": [
+                    source["source"] for source in state.sources
+                ],
                 "draft": deterministic_answer,
             },
             ensure_ascii=False,
@@ -764,8 +761,9 @@ class StochasticTutorAgent:
         candidate = self.llm.complete(
             (
                 "You are a Socratic mathematics tutor. Preserve every numerical "
-                "result and source exactly. Explain in concise Chinese, distinguish "
-                "simulation from theory, and end with one guiding question."
+                "result block and source locator exactly. Explain in concise Chinese "
+                "around the immutable block, distinguish simulation from theory, and "
+                "end with one guiding question."
             ),
             llm_prompt,
         )

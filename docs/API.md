@@ -112,7 +112,8 @@ teaching path remains complete.
 Latency metrics include the all-time process average and p95 over a bounded
 256-request recent window, together with the current window sample count.
 Knowledge statistics and every retrieved source include `corpus_sha256`, the
-fingerprint of the indexed cards and Notebook teaching cells.
+fingerprint of the indexed cards, Notebook teaching cells and reviewed
+lecture-note chunks.
 The `learner_data` section reports the configured retention period and how many
 stale sessions were purged at startup, without revealing their identifiers.
 

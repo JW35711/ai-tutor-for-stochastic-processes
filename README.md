@@ -6,7 +6,7 @@
 
 | Course coverage | Executable tools | State nodes | RAG evidence | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 15 | 7 | 236 | 109/109 |
+| 11/11 modules | 15 | 7 | 250 | 109/109 |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -89,15 +89,15 @@ tools:
 - coalescing particles on a circle.
 
 For each question, the Agent classifies the topic, retrieves source-aware
-Notebook evidence, validates parameters, chooses a simulation tool, compares
-the empirical result with theory, diagnoses explicit misconceptions, and
-returns a guided explanation with the execution trace. SQLite learner memory
-persists practice and concept-check results across server restarts. A
-transparent recommendation policy uses coverage, practice evidence and quiz
-exposure to propose the next experiment without claiming to measure ability.
-Every response also carries a deterministic `run_sha256` over the selected
-module, tool, parameters, complete result and course-corpus version. This is
-separate from the per-request ID used for log correlation.
+Notebook and lecture-note evidence, validates parameters, chooses a simulation
+tool, compares the empirical result with theory, diagnoses explicit
+misconceptions, and returns a guided explanation with the execution trace.
+SQLite learner memory persists practice and concept-check results across
+server restarts. A transparent recommendation policy uses coverage, practice
+evidence and quiz exposure to propose the next experiment without claiming to
+measure ability. Every response also carries a deterministic `run_sha256` over
+the selected module, tool, parameters, complete result and course-corpus
+version. This is separate from the per-request ID used for log correlation.
 
 ```mermaid
 flowchart LR
@@ -199,9 +199,12 @@ Repeated retrievals use a thread-safe in-process LRU cache (256 entries by
 default). `/health` reports its capacity, size, hits and misses. Set
 `RAG_RETRIEVAL_CACHE_SIZE=0` to disable it during backend comparisons.
 
-The ordered knowledge cards, Notebook cell text and source locators are hashed
-into one SHA-256 corpus version. Health, retrieved evidence and the Dashboard
-expose that version so a response can be tied to an exact teaching corpus.
+The ordered knowledge cards, Notebook cell text, reviewed lecture-note chunks
+and source locators are hashed into one SHA-256 corpus version. Health,
+retrieved evidence and the Dashboard expose that version so a response can be
+tied to an exact teaching corpus. The local PDF files stay out of Git; only
+short reviewed chunks with page locators such as
+`reference/lectnotes_technmath.pdf#page-69` are indexed.
 
 The Agent also supports contextual follow-ups. After a full request such as
 `M/M/1 queue：到达率为0.75、服务率为1、时长为300`, the learner can simply say
@@ -299,7 +302,7 @@ examples.
 
 ```text
 .
-├── data/                   # Curated source-aware knowledge cards
+├── data/                   # Curated source-aware cards and reference chunks
 ├── docs/                   # Architecture and interview demo script
 ├── evals/                  # Routing, retrieval and pedagogy evaluations
 ├── exercises/              # Additional exercises

@@ -34,6 +34,7 @@ class KnowledgeBaseTests(unittest.TestCase):
         stats = self.knowledge.stats()
         self.assertEqual(stats["curated_cards"], 11)
         self.assertGreater(stats["notebook_chunks"], 100)
+        self.assertGreaterEqual(stats["reference_chunks"], 10)
         self.assertEqual(stats["embedding_backend"], "local_hash")
         self.assertEqual(stats["embedding_dimension"], 384)
         self.assertRegex(stats["corpus_sha256"], r"^[0-9a-f]{64}$")
@@ -58,6 +59,19 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertTrue(
             all(
                 item["corpus_sha256"] == self.knowledge.corpus_sha256
+                for item in sources
+            )
+        )
+
+    def test_reference_chunks_are_retrievable_with_page_locators(self) -> None:
+        sources = self.knowledge.retrieve(
+            "M/M/1 traffic intensity geometric steady state",
+            module_id="module07",
+        )
+        self.assertTrue(
+            any(
+                item["kind"] == "reference_chunk"
+                and item["source"] == "reference/lectnotes_technmath.pdf#page-69"
                 for item in sources
             )
         )

@@ -32,7 +32,7 @@ flowchart LR
 | --- | --- | --- |
 | `workflow.py` | Runs the typed seven-node state graph | Node order and state transitions can be tested without the web layer |
 | `module_registry.py` | Routes Chinese and English questions to Modules 00–10 | Routing can be evaluated independently |
-| `knowledge.py` | Indexes curated cards and Markdown cells, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
+| `knowledge.py` | Indexes curated cards, Markdown cells and reviewed lecture-note chunks, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
 | `embeddings.py` | Provides local hash and optional OpenAI-compatible vectors | Neural retrieval is optional, while offline behavior remains deterministic |
 | `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
 | `pedagogy.py` | Detects explicitly stated misconceptions | Diagnoses are transparent rather than hidden in a prompt |
@@ -51,12 +51,14 @@ flowchart LR
 
 ## Retrieval
 
-At startup, the retriever loads 11 curated knowledge cards and extracts
-Markdown teaching cells from all 11 notebooks. It combines IDF-weighted sparse
-terms, Chinese character bigrams and trigrams, and cosine similarity over a
-vector index. Results are restricted to the routed module and expose sparse,
-title, vector and bonus score components, the backend name, source type and
-exact `#cell-N` locator.
+At startup, the retriever loads 11 curated knowledge cards, extracts Markdown
+teaching cells from all 11 notebooks, and merges reviewed lecture-note chunks
+from `data/reference_chunks.json`. It combines IDF-weighted sparse terms,
+Chinese character bigrams and trigrams, and cosine similarity over a vector
+index. Results are restricted to the routed module and expose sparse, title,
+vector and bonus score components, the backend name, source type and exact
+source locator. Notebook sources use `#cell-N`; lecture-note sources use page
+locators such as `reference/lectnotes_technmath.pdf#page-69`.
 
 For Chinese course questions, a small reviewed concept map appends transparent
 English retrieval hints for terms such as holding time, memorylessness, hazard
@@ -179,6 +181,10 @@ with corpus and quiz-bank provenance before deleting the session.
 - Hosted LLM rewrites must preserve the exact verified result block and every
   Notebook locator. This prevents categorical conclusions or labeled values
   from being swapped while still allowing explanation around the block.
+- The rewrite payload excludes session IDs, histories, learner profiles and
+  raw simulation arrays. Only the current question, routed topic, verified
+  block, source locators and deterministic draft leave the process when an
+  operator explicitly enables a provider.
 - Hosted LLM and embedding calls use bounded timeouts, response-body limits
   and independent cooldown circuits. Concurrent or repeated provider failures
   degrade immediately to a verified offline answer or sparse retrieval path;

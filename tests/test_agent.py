@@ -19,6 +19,16 @@ class FakeLLM:
         return json.loads(user)["draft"] + "\n\n这段文字已通过锚点校验。"
 
 
+class CapturingLLM(FakeLLM):
+    def __init__(self) -> None:
+        super().__init__(grounded=True)
+        self.payload = None
+
+    def complete(self, system: str, user: str) -> str:
+        self.payload = json.loads(user)
+        return self.payload["draft"]
+
+
 class AgentTests(unittest.TestCase):
     def setUp(self) -> None:
         self.memory = LearnerMemory(":memory:")
@@ -109,6 +119,30 @@ class AgentTests(unittest.TestCase):
         self.assertFalse(response["llm_applied"])
         self.assertIn("### 先看实验结果", response["answer"])
         self.assertIn("rejected ungrounded", response["trace"][-1]["detail"])
+
+    def test_hosted_rewrite_payload_excludes_profile_and_raw_tool_arrays(self) -> None:
+        client = CapturingLLM()
+        self.agent.llm = client  # type: ignore[assignment]
+        response = self.agent.answer(
+            "用2000个样本做蒙特卡洛实验估计π",
+            session_id="private-session-label",
+        )
+        self.assertTrue(response["llm_applied"])
+        self.assertEqual(
+            set(client.payload),
+            {
+                "question",
+                "topic",
+                "verified_result_block",
+                "source_locators",
+                "draft",
+            },
+        )
+        serialized = json.dumps(client.payload, ensure_ascii=False)
+        self.assertNotIn("private-session-label", serialized)
+        self.assertNotIn("learner_profile", serialized)
+        self.assertNotIn("tool_result", serialized)
+        self.assertNotIn('"series"', serialized)
 
     def test_rejects_invalid_session_identifier(self) -> None:
         with self.assertRaisesRegex(ValueError, "session_id"):

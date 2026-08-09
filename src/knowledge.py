@@ -25,6 +25,7 @@ from .embeddings import (
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_KNOWLEDGE_PATH = ROOT / "data" / "knowledge_base.json"
 DEFAULT_NOTEBOOK_ROOT = ROOT / "notebooks"
+DEFAULT_REFERENCE_CHUNKS_PATH = ROOT / "data" / "reference_chunks.json"
 
 
 class KnowledgeBase:
@@ -71,6 +72,7 @@ class KnowledgeBase:
         self,
         path: Path = DEFAULT_KNOWLEDGE_PATH,
         notebook_root: Path = DEFAULT_NOTEBOOK_ROOT,
+        reference_chunks_path: Path = DEFAULT_REFERENCE_CHUNKS_PATH,
         embedding_backend: EmbeddingBackend | None = None,
         cache_size: int | None = None,
         embedding_failure_cooldown: float | None = None,
@@ -124,6 +126,7 @@ class KnowledgeBase:
         }
         self.entries = [dict(entry, kind="curated") for entry in curated]
         self.entries.extend(self._notebook_entries(notebook_root))
+        self.entries.extend(self._reference_entries(reference_chunks_path))
         self._entry_texts = [self._entry_text(entry) for entry in self.entries]
         corpus_digest = hashlib.sha256()
         for entry, text in zip(self.entries, self._entry_texts, strict=True):
@@ -250,6 +253,48 @@ class KnowledgeBase:
                         "kind": "notebook_cell",
                     }
                 )
+        return entries
+
+    def _reference_entries(self, reference_chunks_path: Path) -> list[dict[str, Any]]:
+        """Load reviewed course-reference chunks with explicit source locators."""
+
+        if not reference_chunks_path.is_file():
+            return []
+        try:
+            chunks = json.loads(reference_chunks_path.read_text("utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return []
+        entries: list[dict[str, Any]] = []
+        for index, chunk in enumerate(chunks):
+            module_id = chunk.get("module_id")
+            topic = chunk.get("topic")
+            title = chunk.get("title")
+            content = chunk.get("content")
+            source = chunk.get("source")
+            if (
+                module_id not in self._module_topics
+                or topic != self._module_topics[module_id]
+                or not isinstance(title, str)
+                or not isinstance(content, str)
+                or not isinstance(source, str)
+            ):
+                continue
+            clean_content = self._clean_markdown(content)
+            if len(clean_content) < 80:
+                continue
+            keywords = chunk.get("keywords", [])
+            entries.append(
+                {
+                    "module_id": module_id,
+                    "topic": topic,
+                    "title": title[:100],
+                    "content": clean_content[:1400],
+                    "source": source,
+                    "keywords": keywords if isinstance(keywords, list) else [],
+                    "kind": "reference_chunk",
+                    "reference_index": index,
+                }
+            )
         return entries
 
     @staticmethod
@@ -450,6 +495,9 @@ class KnowledgeBase:
             "curated_cards": sum(entry["kind"] == "curated" for entry in self.entries),
             "notebook_chunks": sum(
                 entry["kind"] == "notebook_cell" for entry in self.entries
+            ),
+            "reference_chunks": sum(
+                entry["kind"] == "reference_chunk" for entry in self.entries
             ),
             "embedding_backend": self.embedding_backend.name,
             "embedding_dimension": self.embedding_backend.dimension,
