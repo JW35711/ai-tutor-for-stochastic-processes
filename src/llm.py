@@ -127,6 +127,15 @@ class OpenAICompatibleLLM:
                 or len(content) > self.max_content_chars
             ):
                 raise RuntimeError("LLM content violates configured contract")
+        except urllib.error.HTTPError as error:
+            # Keep a useful operational signal without storing the provider body,
+            # which can contain request details or provider-generated text.
+            with self._circuit_lock:
+                self._failures += 1
+                self._last_failure = f"HTTP_{error.code}"
+                self._retry_after = self._clock() + self.failure_cooldown
+                self._request_in_flight = False
+            return None
         except (
             urllib.error.URLError,
             TimeoutError,

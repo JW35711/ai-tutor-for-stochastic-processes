@@ -93,6 +93,27 @@ class StochasticTutorAgent:
         "coalescing_particles": "coalescing particles circle cluster count 粒子合并 圆周 簇数量",
     }
 
+    GENERAL_FALLBACK = (
+        "我是 StochLab，一个面向随机过程课程的教学 Agent。"
+        "我可以解释概念、根据你的问题运行 11 个模块的仿真，"
+        "并把结果和课程 Notebook、lecture notes 对照。"
+        "例如你可以问：‘布朗运动的终点方差为什么是 T？’"
+    )
+    GENERAL_CHAT_MARKERS = (
+        "你叫什么",
+        "你是谁",
+        "介绍一下你自己",
+        "你能做什么",
+        "怎么用",
+        "如何使用",
+        "这个项目",
+        "这个agent",
+        "这个 agent",
+        "随机过程课程",
+        "教学agent",
+        "教学 agent",
+    )
+
     def __init__(self, memory: LearnerMemory | None = None) -> None:
         self.knowledge = KnowledgeBase()
         self.llm = OpenAICompatibleLLM()
@@ -819,10 +840,81 @@ class StochasticTutorAgent:
             return NodeOutcome("rejected ungrounded LLM rewrite; offline safe answer")
         return NodeOutcome("offline safe answer")
 
+    def _general_response(
+        self,
+        question: str,
+        session_id: str,
+    ) -> dict[str, Any]:
+        """Answer product conversation without pretending it is a simulation.
+
+        Course tools are intentionally not selected for greetings, identity
+        questions, or product questions.  This avoids the old unsafe default of
+        treating every unknown utterance as a Monte Carlo request.
+        """
+
+        candidate = self.llm.complete(
+            (
+                "You are StochLab, a friendly Chinese teaching agent for "
+                "stochastic processes. Answer the user's product or casual "
+                "question directly in concise Chinese. Do not claim that a "
+                "simulation was run and do not invent course citations."
+            ),
+            json.dumps({"question": question}, ensure_ascii=False),
+        )
+        answer = candidate or self.GENERAL_FALLBACK
+        detail = "LLM general conversation" if candidate else "offline general conversation"
+        trace = [
+            {
+                "node": "respond",
+                "detail": detail,
+                "status": "ok",
+                "duration_ms": 0.0,
+            }
+        ]
+        return {
+            "session_id": session_id,
+            "answer": answer,
+            "module_id": "general",
+            "module_number": None,
+            "module_label": "General conversation",
+            "topic": "general_conversation",
+            "topic_label": "General conversation",
+            "tool": "no_simulation",
+            "parameters": {},
+            "result": {"series": []},
+            "verified": False,
+            "sources": [],
+            "trace": trace,
+            "workflow": {"nodes": ["respond"]},
+            "memory": self.memory.profile(session_id),
+            "misconceptions": [],
+            "learning_note": "这是一轮普通对话，没有运行仿真，也没有写入练习记录。",
+            "recommendation": None,
+            "context": {"module_inherited": False, "parameters_inherited": []},
+            "llm_enabled": self.llm.enabled,
+            "llm_applied": bool(candidate),
+            "teaching_team": build_team_trace(trace),
+            "run_sha256": None,
+        }
+
+    @classmethod
+    def _is_general_conversation(cls, question: str) -> bool:
+        """Allow a narrow chat lane without swallowing unknown tool requests."""
+
+        lowered = question.lower().strip()
+        return any(marker in lowered for marker in cls.GENERAL_CHAT_MARKERS)
+
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         normalized_question = validate_question(question)
         resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
         history = self.memory.history(resolved_session, limit=1)
+        classified_module = self.classify_module(normalized_question)
+        if classified_module is None and not history:
+            if self._is_general_conversation(normalized_question):
+                return self._general_response(normalized_question, resolved_session)
+            raise ValueError(
+                "I could not identify the teaching module. Please name a model or Module 00-10."
+            )
         state = AgentState(
             question=normalized_question,
             session_id=resolved_session,

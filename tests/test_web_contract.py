@@ -72,6 +72,10 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("review_interval_days", self.javascript)
         self.assertIn("建议 ${recommendation.review_interval_days} 天后复习", self.javascript)
 
+    def test_general_conversation_does_not_require_a_module_or_sources(self) -> None:
+        self.assertIn('String(payload.module_id || "general")', self.javascript)
+        self.assertIn("const retrievedSources = payload.sources || []", self.javascript)
+
     def test_run_evidence_can_be_exported_after_execution(self) -> None:
         self.assertIn('id="exportRunButton"', self.html)
         self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)

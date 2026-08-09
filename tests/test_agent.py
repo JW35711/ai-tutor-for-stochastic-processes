@@ -40,6 +40,14 @@ class AgentTests(unittest.TestCase):
     def test_routes_chinese_poisson_question(self) -> None:
         self.assertEqual(self.agent.classify_module("泊松过程的等待时间"), "module01")
 
+    def test_general_question_does_not_trigger_a_simulation(self) -> None:
+        response = self.agent.answer("你叫什么")
+        self.assertEqual(response["module_id"], "general")
+        self.assertEqual(response["tool"], "no_simulation")
+        self.assertFalse(response["verified"])
+        self.assertEqual(response["memory"]["turns"], 0)
+        self.assertIn("StochLab", response["answer"])
+
     def test_routes_brownian_before_random_walk(self) -> None:
         self.assertEqual(
             self.agent.classify_module("随机游走如何逼近布朗运动"),

@@ -216,8 +216,9 @@ function renderEvidence(payload) {
   const requestLabel = payload.request_id ? payload.request_id.slice(0, 8) : "local";
   const evidenceLabel = payload.run_sha256?.slice(0, 8) || "unknown";
   const corpusLabel = payload.sources?.[0]?.corpus_sha256?.slice(0, 8) || "unknown";
+  const moduleLabel = String(payload.module_id || "general").toUpperCase();
   runMeta.innerHTML = `
-    <span>${escapeHtml(payload.module_id.toUpperCase())}</span>
+    <span>${escapeHtml(moduleLabel)}</span>
     <span>${escapeHtml(payload.tool)}</span>
     <span>RUN ${escapeHtml(requestLabel)}</span>
     <span>EVID ${escapeHtml(evidenceLabel)}</span>
@@ -237,8 +238,9 @@ function renderEvidence(payload) {
 
   renderProfile(payload.memory, payload.learning_note, payload.recommendation);
 
-  sources.innerHTML = payload.sources.length
-    ? payload.sources
+  const retrievedSources = payload.sources || [];
+  sources.innerHTML = retrievedSources.length
+    ? retrievedSources
         .map((source) => `
           <div class="source-item">
             <strong>${escapeHtml(source.title)}</strong>
@@ -254,8 +256,9 @@ function renderEvidence(payload) {
         .join("")
     : "<p>没有检索到课程来源。</p>";
 
-  const teamTrace = payload.teaching_team?.length ? payload.teaching_team : payload.trace;
-  trace.innerHTML = teamTrace
+  const teamTrace = payload.teaching_team?.length ? payload.teaching_team : (payload.trace || []);
+  trace.innerHTML = teamTrace.length
+    ? teamTrace
     .map((item) => `
       <li class="${item.status === "error" ? "trace-error" : ""}">
         <strong>${escapeHtml(item.role_name || item.node)}</strong> · ${escapeHtml(item.detail)}
@@ -263,7 +266,8 @@ function renderEvidence(payload) {
         <small>${escapeHtml(item.duration_ms ?? "—")} ms</small>
       </li>
     `)
-    .join("");
+    .join("")
+    : "<li><strong>chat</strong> · no simulation needed</li>";
 }
 
 async function askAgent(question) {

@@ -186,6 +186,21 @@ class LLMGuardTests(unittest.TestCase):
         self.assertEqual(client.stats()["state"], "disabled")
         self.assertEqual(client.stats()["attempts"], 0)
 
+    def test_http_failure_reports_status_without_provider_body(self) -> None:
+        environment = {"LLM_API_KEY": "test-key", "LLM_MODEL": "test-model"}
+        with patch.dict("os.environ", environment, clear=False):
+            client = OpenAICompatibleLLM()
+        error = urllib.error.HTTPError(
+            "https://api.openai.com/v1/chat/completions",
+            401,
+            "Unauthorized",
+            hdrs=None,
+            fp=None,
+        )
+        with patch("urllib.request.urlopen", side_effect=error):
+            self.assertIsNone(client.complete("system", "user"))
+        self.assertEqual(client.stats()["last_failure"], "HTTP_401")
+
     def test_concurrent_provider_calls_do_not_amplify_work(self) -> None:
         environment = {"LLM_API_KEY": "test-key", "LLM_MODEL": "test-model"}
         with patch.dict("os.environ", environment, clear=False):
