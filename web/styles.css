@@ -460,28 +460,87 @@ h1 {
   background: var(--primary-tint);
 }
 
-.examples {
-  display: flex;
+.module-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 7px;
-  overflow-x: auto;
-  padding-bottom: 12px;
+  margin-bottom: 12px;
 }
 
-.examples button {
-  flex: 0 0 auto;
+.module-tabs button {
   padding: 7px 10px;
   color: var(--ink-soft);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 9px;
   background: var(--surface-soft);
   font-size: 0.72rem;
   transition: 140ms ease;
 }
 
-.examples button:hover {
+.module-tabs button:hover,
+.module-tabs button[aria-selected="true"] {
   color: var(--primary-strong);
   border-color: rgba(99, 91, 219, 0.28);
   background: var(--primary-tint);
+}
+
+.curriculum-content {
+  min-height: 116px;
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid #e2dff8;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #f9f8ff, #fff);
+}
+
+.concept-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 12px;
+}
+
+.concept-list button,
+.concept-actions button {
+  padding: 7px 9px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.concept-list button[aria-pressed="true"] {
+  color: var(--primary-strong);
+  border-color: rgba(99, 91, 219, 0.35);
+  background: var(--primary-tint);
+}
+
+.concept-summary {
+  margin: 0 0 11px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.concept-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.concept-actions .primary-action {
+  color: white;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.concept-activity {
+  margin: 10px 0 0;
+  color: var(--primary-strong);
+  font-size: 0.74rem;
+  line-height: 1.45;
 }
 
 .assessment-bar {

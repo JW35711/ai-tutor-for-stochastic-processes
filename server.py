@@ -20,6 +20,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from src.agent import StochasticTutorAgent
 from src.assessment import AssessmentEngine
 from src.config import env_float, env_int
+from src.curriculum import curriculum_catalog
 from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
 from src.openapi import OPENAPI_SPEC
@@ -90,6 +91,9 @@ def readiness_report() -> dict[str, object]:
         "memory": AGENT.memory.is_ready(),
         "module_catalog": {
             item["module_id"] for item in module_catalog()
+        } == expected_modules,
+        "curriculum": {
+            item["module_id"] for item in curriculum_catalog()["modules"]
         } == expected_modules,
         "tool_registry": len(AGENT.tools) == 15,
         "knowledge_index": AGENT.knowledge.stats()["entries"] >= 11,
@@ -493,6 +497,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             )
         elif path == "/api/topics":
             self._json({"modules": module_catalog()})
+        elif path == "/api/curriculum":
+            self._json(curriculum_catalog())
         elif path == "/api/tools":
             self._json({"tools": build_tool_catalog(AGENT.tools)})
         elif path == "/api/profile":

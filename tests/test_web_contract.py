@@ -31,25 +31,11 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("health.version", self.javascript)
         self.assertIn("SAFETY ${safety?.passed", self.javascript)
 
-    def test_dashboard_has_prompts_covering_all_modules(self) -> None:
-        prompts = re.findall(r'data-question="([^"]+)"', self.html)
-        self.assertGreaterEqual(len(prompts), 11)
-        for concept in (
-            "蒙特卡洛",
-            "伯努利",
-            "泊松",
-            "随机游走",
-            "布朗运动",
-            "马尔可夫链",
-            "连续时间马尔可夫链",
-            "出生死亡",
-            "可靠性",
-            "M/M/1",
-            "非齐次泊松",
-            "自避免游走",
-            "粒子合并",
-        ):
-            self.assertTrue(any(concept in prompt for prompt in prompts), concept)
+    def test_curriculum_is_loaded_from_the_backend_without_hard_coded_modules(self) -> None:
+        self.assertIn('fetchJson("/api/curriculum"', self.javascript)
+        self.assertIn("currentModuleId", self.javascript)
+        self.assertIn("currentConceptId", self.javascript)
+        self.assertNotIn('data-question="', self.html)
 
     def test_static_assets_are_linked(self) -> None:
         self.assertIn('href="/styles.css"', self.html)

@@ -107,21 +107,12 @@
                 <button id="resetButton" class="ghost-button">新会话</button>
               </div>
 
-              <div class="examples" aria-label="示例问题">
-                <button data-question="伯努利过程：时间槽数为100、事件概率为0.3、路径数为500">伯努利</button>
-                <button data-question="模拟强度为2、时长为5的泊松过程，使用200条路径">泊松</button>
-                <button data-question="用500条路径模拟100步随机游走，并比较理论均值">随机游走</button>
-                <button data-question="用500条路径模拟T为1、网格数为200的布朗运动，解释终点方差">布朗运动</button>
-                <button data-question="模拟500步马尔可夫链并比较平稳分布">马尔可夫链</button>
-                <button data-question="连续时间马尔可夫链：故障率为0.25、修复率为0.15、时长为200">CTMC</button>
-                <button data-question="模拟出生死亡过程：出生率为0.35、死亡率为0.3、容量为6、时长为500">出生死亡</button>
-                <button data-question="可靠性模型：部件1故障率为0.8、部件2故障率为1.2">可靠性</button>
-                <button data-question="M/M/1 queue：到达率为0.75、服务率为1、时长为2000">M/M/1</button>
-                <button data-question="非齐次泊松过程 thinning：基础强度为2、峰值增量为6、高峰时刻为13">NHPP</button>
-                <button data-question="自避免游走：最大步数为1000、实验次数为500">自避免游走</button>
-                <button data-question="圆上粒子合并：圆周大小为12、粒子数为9、实验次数为200">粒子合并</button>
-                <button data-question="用10000个样本做蒙特卡洛实验估计π">Monte Carlo</button>
-              </div>
+              <section class="curriculum-browser" aria-label="课程知识点">
+                <div id="moduleTabs" class="module-tabs" role="tablist" aria-label="课程模块"></div>
+                <div id="curriculumContent" class="curriculum-content" aria-live="polite">
+                  正在加载课程知识点…
+                </div>
+              </section>
 
               <div class="assessment-bar">
                 <div>

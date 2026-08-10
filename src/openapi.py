@@ -90,6 +90,16 @@ OPENAPI_SPEC: dict[str, Any] = {
                 },
             }
         },
+        "/api/curriculum": {
+            "get": {
+                "operationId": "getCurriculum",
+                "summary": "List backend-owned modules and knowledge points",
+                "responses": {
+                    "200": _json_response("Curriculum catalog", OBJECT),
+                    "429": ERROR_RESPONSE,
+                },
+            }
+        },
         "/api/tools": {
             "get": {
                 "operationId": "listTools",

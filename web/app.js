@@ -27,11 +27,16 @@ const exportProfileButton = document.querySelector("#exportProfileButton");
 const evaluationCount = document.querySelector("#evaluationCount");
 const evaluationMeta = document.querySelector("#evaluationMeta");
 const appVersion = document.querySelector("#appVersion");
+const moduleTabs = document.querySelector("#moduleTabs");
+const curriculumContent = document.querySelector("#curriculumContent");
 
 let sessionId = window.localStorage.getItem("stochasticTutorSession");
 let activeModuleId = "module01";
 let latestRunPayload = null;
 let mutationInFlight = false;
+let curriculum = null;
+let currentModuleId = window.localStorage.getItem("stochasticTutorCurrentModule");
+let currentConceptId = window.localStorage.getItem("stochasticTutorCurrentConcept");
 
 function setMutationState(isBusy, label = "运行中…") {
   mutationInFlight = isBusy;
@@ -104,6 +109,97 @@ function addMessage(type, text) {
   `;
   conversation.append(article);
   conversation.scrollTop = conversation.scrollHeight;
+}
+
+function selectedCurriculumModule() {
+  return curriculum?.modules.find((module) => module.module_id === currentModuleId);
+}
+
+function selectedConcept() {
+  return selectedCurriculumModule()?.knowledge_points.find(
+    (concept) => concept.id === currentConceptId,
+  );
+}
+
+function saveConceptSelection(moduleId, conceptId) {
+  currentModuleId = moduleId;
+  currentConceptId = conceptId;
+  activeModuleId = moduleId;
+  window.localStorage.setItem("stochasticTutorCurrentModule", moduleId);
+  window.localStorage.setItem("stochasticTutorCurrentConcept", conceptId);
+  renderCurriculum();
+}
+
+function renderCurriculum() {
+  if (!curriculum?.modules?.length) return;
+  const activeModule = selectedCurriculumModule() || curriculum.modules[0];
+  if (activeModule.module_id !== currentModuleId) {
+    currentModuleId = activeModule.module_id;
+  }
+  const activeConcept = selectedConcept()
+    || activeModule.knowledge_points[0];
+  if (activeConcept.id !== currentConceptId) {
+    currentConceptId = activeConcept.id;
+  }
+  activeModuleId = activeModule.module_id;
+
+  moduleTabs.innerHTML = curriculum.modules
+    .map((module) => {
+      const number = module.module_id.slice(-2);
+      const selected = module.module_id === activeModule.module_id;
+      return `<button type="button" role="tab" aria-selected="${selected}" data-module-id="${escapeHtml(module.module_id)}">Module ${number}</button>`;
+    })
+    .join("");
+  curriculumContent.innerHTML = `
+    <p class="section-label">${escapeHtml(activeModule.module_id.toUpperCase())} · KNOWLEDGE POINTS</p>
+    <div class="concept-list" role="list">
+      ${activeModule.knowledge_points.map((concept) => `
+        <button type="button" role="listitem" aria-pressed="${concept.id === activeConcept.id}" data-concept-id="${escapeHtml(concept.id)}">${escapeHtml(concept.title)}</button>
+      `).join("")}
+    </div>
+    <p class="concept-summary"><strong>${escapeHtml(activeConcept.title)}</strong><br>${escapeHtml(activeConcept.summary)}</p>
+    <div class="concept-actions">
+      <button type="button" data-concept-action="learn">Learn</button>
+      <button type="button" data-concept-action="practice">Practice</button>
+      ${activeConcept.simulation_tool ? '<button type="button" class="primary-action" data-concept-action="simulation">Simulation</button>' : ""}
+      <button type="button" data-concept-action="quiz">Quiz</button>
+    </div>
+    <p id="conceptActivity" class="concept-activity"></p>
+  `;
+  moduleTabs.querySelectorAll("[data-module-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const module = curriculum.modules.find((item) => item.module_id === button.dataset.moduleId);
+      saveConceptSelection(module.module_id, module.knowledge_points[0].id);
+    });
+  });
+  curriculumContent.querySelectorAll("[data-concept-id]").forEach((button) => {
+    button.addEventListener("click", () => saveConceptSelection(activeModule.module_id, button.dataset.conceptId));
+  });
+  curriculumContent.querySelectorAll("[data-concept-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const concept = selectedConcept();
+      const activity = curriculumContent.querySelector(".concept-activity");
+      if (button.dataset.conceptAction === "learn") {
+        activity.textContent = concept.summary;
+      } else if (button.dataset.conceptAction === "practice") {
+        input.value = concept.practice_prompt;
+        input.focus();
+      } else if (button.dataset.conceptAction === "simulation") {
+        askAgent(concept.simulation_prompt);
+      } else if (button.dataset.conceptAction === "quiz") {
+        openQuiz();
+      }
+    });
+  });
+}
+
+async function hydrateCurriculum() {
+  try {
+    curriculum = await fetchJson("/api/curriculum", {}, 10_000);
+    renderCurriculum();
+  } catch (error) {
+    curriculumContent.textContent = `课程知识点加载失败：${error.message}`;
+  }
 }
 
 function renderChart(series, chartSpec = {}) {
@@ -411,6 +507,7 @@ async function hydrateHealth() {
 }
 
 hydrateHealth();
+hydrateCurriculum();
 
 document.querySelectorAll("[data-scroll]").forEach((button) => {
   button.addEventListener("click", () => {
