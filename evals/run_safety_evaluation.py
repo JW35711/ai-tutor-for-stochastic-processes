@@ -36,7 +36,20 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
                 failure: dict[str, Any] | None = None
                 try:
                     response = agent.answer(case["question"], session_id=case["id"])
-                    if "expected_exception" in case:
+                    if "expected_intent" in case:
+                        checks = {
+                            "intent": response["intent"] == case["expected_intent"],
+                            "module": response["module_id"] == case.get("expected_module"),
+                            "tool": response["tool"] == case.get("expected_tool"),
+                            "verified": response["verified"] is case.get("expected_verified", False),
+                            "answer": all(
+                                forbidden not in response["answer"]
+                                for forbidden in case.get("answer_not_contains", [])
+                            ),
+                        }
+                        if not all(checks.values()):
+                            failure = {"reason": "scope response contract mismatch", "checks": checks}
+                    elif "expected_exception" in case:
                         failure = {"reason": "expected exception was not raised"}
                     else:
                         checks = {

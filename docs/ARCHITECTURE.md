@@ -1,38 +1,42 @@
 # Architecture
 
 The project separates probabilistic computation from language generation. The
-Python tools own all numerical results; an optional language model may only
-rewrite the verified explanation.
+Python tools own all numerical results; the optional DeepSeek/OpenAI-compatible
+model synthesizes a grounded explanation from the original student question
+and retrieved evidence. This release is one AI Tutor with a conditional
+workflow, not LangGraph and not a true Multi-Agent system.
 
-The rewrite boundary is enforced after generation: every number in the
-verified tool-result summary and every exact Notebook source locator must
-remain present. Numbers that merely occur inside a retrieved teaching excerpt
-are not confused with numerical outputs. A candidate that drops or changes a
-required anchor is discarded, and the offline draft is returned. Prompt
-instructions are therefore not the only grounding control.
+The answer boundary is enforced after generation: every number in a verified
+tool-result summary and every exact Notebook source locator must remain
+present. Numbers that merely occur inside a retrieved teaching excerpt are not
+confused with numerical outputs. A candidate that drops or changes a required
+anchor is discarded, and the offline draft is returned. Prompt instructions
+are therefore not the only grounding control.
 
 ```mermaid
 flowchart LR
-    Q[Student question] --> C[Module router]
-    C --> R[Hybrid notebook RAG]
-    R --> P[Parameter planner]
-    P --> V[Validation]
-    V --> T[One of 15 simulation tools]
-    T --> X[Theory comparison]
-    X --> D[Misconception diagnosis]
-    D --> M[(SQLite learner memory)]
-    M --> A[Adaptive response]
-    A --> UI[Web demo and evidence panel]
-    Z[Concept quiz] --> M
+    Q[Student question] --> I{Intent}
+    I -->|navigation| C[Curriculum]
+    I -->|concept / why / comparison| R[Hybrid RAG]
+    I -->|simulation| R
+    R -->|concept| A[Tutor synthesis]
+    R -->|simulation| P[Plan and validate]
+    P --> T[One of 15 Python tools]
+    T --> A
+    I -->|practice / quiz| X[Assessment]
+    A --> M[(SQLite memory)]
+    X --> M
+    C --> UI[Web UI]
+    M --> UI
 ```
 
 ## Components
 
 | Component | Responsibility | Why it is separate |
 | --- | --- | --- |
-| `workflow.py` | Runs the typed seven-node state graph | Node order and state transitions can be tested without the web layer |
+| `workflow.py` | Runs the typed conditional workflow | Navigation, tutoring, simulation and assessment branches can be tested without the web layer |
 | `module_registry.py` | Routes Chinese and English questions to Modules 00–10 | Routing can be evaluated independently |
-| `knowledge.py` | Indexes curated cards, Markdown cells and reviewed lecture-note chunks, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
+| `knowledge.py` | Indexes curated cards, Markdown cells, reviewed lecture-note chunks and textbook chunks, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
 | `embeddings.py` | Provides local hash and optional OpenAI-compatible vectors | Neural retrieval is optional, while offline behavior remains deterministic |
 | `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
 | `pedagogy.py` | Detects explicitly stated misconceptions | Diagnoses are transparent rather than hidden in a prompt |
@@ -46,15 +50,17 @@ flowchart LR
 | `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
 | `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |
-| `teaching_team.py` | Maps workflow nodes to educational Agent roles | Multi-agent framing is explicit without adding hidden model calls |
+| `teaching_team.py` | Provides an optional role-level trace projection for interview observability | The runtime remains one Tutor and adds no hidden model calls |
 | `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
 | `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
 
 ## Retrieval
 
 At startup, the retriever loads 11 curated knowledge cards, extracts Markdown
-teaching cells from all 11 notebooks, and merges reviewed lecture-note chunks
-from `data/reference_chunks.json`. It combines IDF-weighted sparse terms,
+teaching cells from all 11 notebooks, merges reviewed lecture-note chunks from
+`data/reference_chunks.json`, and loads generated textbook chunks from
+`artifacts/textbook_chunks.json` when present. The current release corpus has
+421 entries across 11 modules and 40 knowledge points. It combines IDF-weighted sparse terms,
 Chinese character bigrams and trigrams, and cosine similarity over a vector
 index. Results are restricted to the routed module and expose sparse, title,
 vector and bonus score components, the backend name, source type and exact
@@ -113,31 +119,31 @@ The assessment bank has its own SHA-256 fingerprint. Each graded attempt stores
 that fingerprint, so a future question edit does not make historical evidence
 look as though it came from the new bank.
 
-## State graph
+## Conditional workflow
 
-`AgentState` is the single object passed through seven named nodes:
+`AgentState` is the single object passed through named handlers. The runtime
+does not execute every handler for every question:
 
 ```text
-classify → retrieve → plan → tool → diagnose → memory → respond
+navigation                  → curriculum → respond
+concept / why / comparison  → retrieve → Tutor synthesis → respond
+simulation                  → retrieve → plan → validate → Python tool → respond
+practice / quiz             → assessment → SQLite memory → respond
 ```
 
 Each handler owns a small set of state fields and returns a trace description.
-The graph validates unique node names and exposes its declared node contract in
-every API response. This local implementation keeps the offline server free of
-framework dependencies; its node signatures are deliberately close to hosted
-graph orchestrators so a LangGraph adapter is an integration change rather
-than another rewrite of the tools.
+The local implementation keeps the offline server free of orchestration
+framework dependencies. It is intentionally a single AI Tutor with
+conditional branches; the role labels shown in debug metadata are an
+observability projection, not independent Agents or hidden model calls.
 
 Every trace entry also records `status` and `duration_ms`. If a node raises,
 the failed node and exception type are appended before the error propagates.
 This gives the UI node-level latency and failure evidence without exposing
 private reasoning text.
 
-The response also exposes `teaching_team`, a role-level projection of the same
-trace. The roles are Curriculum Agent, Content Agent, Simulation Planner,
-Simulation Agent, Assessment Agent, Learner Model Agent and Tutor Agent. This
-keeps the interview-facing multi-agent design inspectable: each role maps to a
-real state-graph node and no extra hidden model call is implied.
+The response may expose `teaching_team`, a role-level projection of the same
+trace for debugging and interviews. It does not change execution semantics.
 
 ## Learner model
 
@@ -187,13 +193,12 @@ with corpus and quiz-bank provenance before deleting the session.
 - Numerical functions receive explicit seeds for reproducible tests.
 - Normal notebook use remains unseeded, matching the thesis teaching design.
 - LLM use is optional; offline mode supports every simulation and assessment.
-- Hosted LLM rewrites must preserve the exact verified result block and every
-  Notebook locator. This prevents categorical conclusions or labeled values
-  from being swapped while still allowing explanation around the block.
-- The rewrite payload excludes session IDs, histories, learner profiles and
-  raw simulation arrays. Only the current question, routed topic, verified
-  block, source locators and deterministic draft leave the process when an
-  operator explicitly enables a provider.
+- Hosted concept synthesis receives only the original question, bounded course
+  context and retrieved evidence. Simulation numbers never enter that path;
+  Python tools remain their sole owner.
+- The provider payload excludes session IDs, histories, learner profiles and
+  raw simulation arrays. A failed or malformed provider response falls back to
+  the concise grounded offline answer.
 - Hosted LLM and embedding calls use bounded timeouts, response-body limits
   and independent cooldown circuits. Concurrent or repeated provider failures
   degrade immediately to a verified offline answer or sparse retrieval path;

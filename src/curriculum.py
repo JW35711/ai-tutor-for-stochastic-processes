@@ -77,4 +77,13 @@ def load_curriculum(path: Path = CURRICULUM_PATH) -> dict[str, Any]:
 def curriculum_catalog() -> dict[str, Any]:
     """Return a fresh JSON-safe curriculum payload for the public API."""
 
-    return json.loads(json.dumps(load_curriculum()))
+    payload = json.loads(json.dumps(load_curriculum()))
+    for module in payload["modules"]:
+        spec = MODULE_BY_ID[module["module_id"]]
+        module["number"] = spec.number
+        module["label"] = spec.label
+        module["summary"] = (
+            f"Explore {spec.label.lower()} through definitions, practice questions, "
+            "and verified simulations."
+        )
+    return payload

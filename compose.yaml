@@ -5,6 +5,13 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
+      # Provider settings are interpolated into the running container only;
+      # they are never part of the Dockerfile or image layer.
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-30}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-2}
       TUTOR_MEMORY_PATH: /app/artifacts/tutor_memory.sqlite3
       MEMORY_RETENTION_DAYS: "30"
       MAX_SESSION_EVENTS: "1000"

@@ -24,7 +24,7 @@ class RecommendationTests(unittest.TestCase):
         )
         self.assertEqual(recommendation["module_id"], "module04")
         self.assertEqual(recommendation["reason_code"], "strengthen_evidence")
-        self.assertIn("概念题", recommendation["reason"])
+        self.assertIn("concept evidence", recommendation["reason"])
         self.assertEqual(recommendation["review_interval_days"], "1")
 
     def test_next_uncovered_module_follows_course_order(self) -> None:

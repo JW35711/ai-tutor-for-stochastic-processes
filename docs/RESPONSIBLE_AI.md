@@ -14,10 +14,13 @@ psychometric assessment.
 - Every tool validates model-specific bounds before returning a chart.
 - Retrieval is restricted to the routed course module and returns exact
   Notebook cell locators plus score components.
-- A language model is optional and only rewrites a deterministic answer.
-- A rewrite is discarded unless the complete verified result block and every
-  Notebook-source locator remain unchanged.
-- The seven-node trace states which module, evidence, parameters and tool were
+- A language model is optional and synthesizes concept explanations from the
+  original question and retrieved evidence; Python tools remain the sole owner
+  of simulation numbers.
+- A generated answer is accepted only after the English, length, Markdown and
+  evidence-grounding checks pass; numerical simulation output is never sent
+  through the language model.
+- The conditional trace states which module, evidence, parameters and tool were
   used; it does not expose hidden chain-of-thought.
 
 The learner can still receive a statistically unusual sample path. The UI
@@ -54,13 +57,12 @@ between users or instances. Model and embedding providers may have separate
 data policies; enabling them is an operator decision, not a requirement for
 the offline application.
 
-When the optional rewrite provider is enabled, it receives only the current
-question, routed topic, immutable verified result block, source locators and
-the deterministic draft. Session IDs, prior questions, learner profiles, quiz
-history and raw simulation arrays are excluded. The draft contains the first
-retrieved teaching excerpt needed for explanation. Operators must still
-disclose that the current question and excerpt leave the local process and
-review the selected provider's retention policy.
+When the optional provider is enabled for a concept answer, it receives only
+the current question, routed course context and bounded retrieved evidence.
+Session IDs, prior questions, learner profiles, quiz history and raw
+simulation arrays are excluded. Simulation requests use the Python result
+directly. Operators must still disclose that the question and evidence leave
+the local process and review the selected provider's retention policy.
 
 The demo supports an optional `MEMORY_RETENTION_DAYS` startup purge. It deletes
 complete stale sessions rather than partial turns, is disabled by default, and
@@ -87,7 +89,7 @@ read-only. Reference PDFs are not published in the repository; only reviewed
 short chunks with page locators are indexed. Retrieved text is evidence, not an
 instruction channel, and a hosted model cannot overwrite the tool result
 accepted by the API.
-Hosted rewrites also have independent response-byte and text-character limits;
+Hosted provider calls also have independent response-byte and text-character limits;
 an oversized provider answer is discarded in favor of the bounded offline
 draft.
 

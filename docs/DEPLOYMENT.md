@@ -7,8 +7,10 @@ cp .env.example .env
 python3 server.py --host 127.0.0.1 --port 8000
 ```
 
-The standard-library server does not load `.env` automatically. Export only
-the variables needed by the process, or use the container command below.
+The standard-library server loads the local, ignored `.env` file when it
+starts. Environment variables already exported by the shell take precedence.
+The file is never copied into the Docker build context; provider credentials
+are supplied to a container only at runtime.
 
 ## Container
 
@@ -19,6 +21,11 @@ docker run --rm -p 8000:8000 \
   -v stochastic-tutor-data:/app/artifacts \
   stochastic-tutor-agent
 ```
+
+The same rule applies to Compose: keep `.env` local and pass provider values
+through the service environment or a runtime `env_file`; do not add them to a
+Dockerfile, image layer, or committed Compose file. The default Compose
+profile intentionally runs without a provider, so it remains safe for CI.
 
 For the hardened local profile, use:
 

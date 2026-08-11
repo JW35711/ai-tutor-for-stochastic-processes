@@ -1,17 +1,11 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="A stateful, source-aware stochastic-process teaching agent with executable simulations."
-    />
-    <title>StochLab · Teaching Agent</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2224%22 fill=%22%23635bdb%22/><path d=%22M24 59 Q38 22 50 56 T77 40%22 fill=%22none%22 stroke=%22white%22 stroke-width=%228%22/></svg>"
-    />
+    <meta name="description" content="A student-focused Stochastic Processes tutor with verified simulations." />
+    <title>Stochastic Processes</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -19,185 +13,58 @@
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark" aria-hidden="true">S</div>
-          <div>
-            <strong>StochLab</strong>
-            <span>Teaching Agent</span>
-          </div>
+          <div><strong>StochLab</strong><span>Course Tutor</span></div>
         </div>
-
-        <nav class="side-nav" aria-label="产品导航">
-          <button class="nav-item active" type="button" data-scroll="tutorLab">
-            <span class="nav-icon">✦</span>
-            <span>教学实验室</span>
-          </button>
-          <button class="nav-item" type="button" data-scroll="learnerProfileSection">
-            <span class="nav-icon">◎</span>
-            <span>学习画像</span>
-          </button>
-          <button class="nav-item" type="button" data-scroll="traceSection">
-            <span class="nav-icon">⌘</span>
-            <span>工作流证据</span>
-          </button>
+        <nav class="side-nav" aria-label="Course navigation">
+          <button class="nav-item active" type="button" data-scroll="courseModules">Course Modules</button>
+          <button class="nav-item" type="button" data-scroll="tutorLab">AI Tutor</button>
+          <button class="nav-item" type="button" data-scroll="progressSection">Your Progress</button>
         </nav>
-
-        <div class="sidebar-note">
-          <span class="live-dot"></span>
-          <div>
-            <strong>Local first</strong>
-            <small>数值工具离线可用</small>
-          </div>
-        </div>
-        <div id="appVersion" class="version">v0.4.0 · Interview build</div>
+        <div class="sidebar-note"><span class="live-dot"></span><div><strong>Ready to learn</strong><small>Verified simulations are available when useful.</small></div></div>
       </aside>
 
       <div class="app-main">
         <header class="topbar">
-          <div>
-            <span class="breadcrumb">STOCHLAB /</span>
-            <strong> Agent Workspace</strong>
-          </div>
-          <div class="topbar-status">
-            <span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i> 正在连接</span>
-            <span id="healthMeta" class="runtime-pill">11 modules</span>
-          </div>
+          <div><span class="breadcrumb">STOCHLAB /</span><strong>Course workspace</strong></div>
+          <div class="topbar-status"><span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i>Connecting</span></div>
         </header>
 
         <main class="dashboard">
           <section class="page-intro">
-            <div>
-              <p class="eyebrow">SOURCE-AWARE STOCHASTIC TUTOR</p>
-              <h1>把随机过程变成<br />可验证的学习实验</h1>
-            </div>
-            <p class="intro-copy">
-              一个有状态的教学 Agent：识别模型、检索 Notebook、执行仿真、
-              对照理论，并持续记录学生的练习证据和概念误区。
-            </p>
+            <div><p class="eyebrow">ENGINEERING MATHEMATICS</p><h1>Stochastic Processes</h1></div>
+            <p class="intro-copy">Learn concepts, practice problems, and explore stochastic models through verified simulations.</p>
           </section>
 
-          <section class="kpi-grid" aria-label="系统指标">
-            <article class="kpi-card indigo">
-              <span>MODULE COVERAGE</span>
-              <strong id="moduleCount">11/11</strong>
-              <small>全部课程模块可执行</small>
-            </article>
-            <article class="kpi-card cyan">
-              <span>SIMULATION TOOLS</span>
-              <strong id="toolCount">15</strong>
-              <small>数值结果由 Python 计算</small>
-            </article>
-            <article class="kpi-card amber">
-              <span>RAG EVIDENCE</span>
-              <strong id="sourceCount">250</strong>
-              <small>知识卡与 Notebook cells</small>
-            </article>
-            <article class="kpi-card green">
-              <span>EVALUATION</span>
-              <strong id="evaluationCount">109/109</strong>
-              <small id="evaluationMeta">对话、RAG 与教学验收</small>
-            </article>
+          <section id="courseModules" class="panel-card course-modules" aria-label="Course modules">
+            <div class="panel-heading"><div><p class="kicker">COURSE MODULES</p><h2>Choose a module</h2></div><button id="resetButton" class="ghost-button" type="button">New chat</button></div>
+            <div id="moduleTabs" class="module-tabs" role="tablist" aria-label="Course modules"></div>
+            <div id="curriculumContent" class="curriculum-content" aria-live="polite">Loading course modules…</div>
           </section>
 
           <section id="tutorLab" class="workspace">
             <article id="conversationPanel" class="chat-panel panel-card">
-              <div class="panel-heading">
-                <div>
-                  <p class="kicker">TUTOR LAB</p>
-                  <h2>对话与实验</h2>
-                </div>
-                <button id="resetButton" class="ghost-button">新会话</button>
+              <div class="panel-heading"><div><p class="kicker">AI TUTOR</p><h2>Ask a question</h2></div><button id="quizButton" type="button">Check your understanding</button></div>
+              <div id="quizPanel" class="quiz-panel hidden" role="region" aria-label="Module quiz" aria-live="polite"></div>
+              <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions">
+                <article class="message agent-message"><span class="message-label">TUTOR</span><p>Ask me about a concept, a module, or a simulation.</p></article>
               </div>
-
-              <section class="curriculum-browser" aria-label="课程知识点">
-                <div id="moduleTabs" class="module-tabs" role="tablist" aria-label="课程模块"></div>
-                <div id="curriculumContent" class="curriculum-content" aria-live="polite">
-                  正在加载课程知识点…
-                </div>
-              </section>
-
-              <div class="assessment-bar">
-                <div>
-                  <span>CONCEPT CHECK</span>
-                  <strong>先预测，再用仿真验证</strong>
-                </div>
-                <button id="quizButton" type="button">当前模块测验</button>
-              </div>
-              <div id="quizPanel" class="quiz-panel hidden" role="region" aria-label="当前模块概念测验" aria-live="polite"></div>
-
-              <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions" aria-atomic="false">
-                <article class="message agent-message">
-                  <span class="message-label">AGENT</span>
-                  <p>
-                    选择一个示例，或者描述你想观察的随机过程。你可以指定强度、
-                    时长、步数和路径数；下一轮只写需要修改的参数即可。
-                  </p>
-                </article>
-              </div>
-
-              <form id="chatForm" class="composer">
-                <label for="questionInput" class="sr-only">输入问题</label>
-                <textarea
-                  id="questionInput"
-                  rows="3"
-                  maxlength="4000"
-                  placeholder="例如：模拟强度为3、时长为4的泊松过程，并比较理论均值"
-                  required
-                ></textarea>
-                <button id="submitButton" type="submit">
-                  运行 Agent <span>→</span>
-                </button>
-              </form>
+              <form id="chatForm" class="composer"><label for="questionInput" class="sr-only">Ask the tutor</label><textarea id="questionInput" rows="3" maxlength="4000" placeholder="For example: What is Brownian motion?" required></textarea><button id="submitButton" type="submit">Ask Tutor <span>→</span></button></form>
             </article>
 
-            <aside class="evidence-panel panel-card">
-              <div class="panel-heading compact">
-                <div>
-                  <p class="kicker">EVIDENCE PANEL</p>
-                  <h2>结果与依据</h2>
-                </div>
-                <div class="evidence-actions">
-                  <button id="exportProfileButton" type="button" disabled>导出档案</button>
-                  <button id="exportRunButton" type="button" disabled>导出 JSON</button>
-                  <span id="verificationBadge" class="verified-badge" role="status">WAITING</span>
-                </div>
-              </div>
-              <div id="emptyEvidence" class="empty-evidence">
-                <div class="empty-visual" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span>
-                </div>
-                <strong>等待一次可执行实验</strong>
-                <p>运行后显示路径、参数、Notebook 来源、学习画像和状态图轨迹。</p>
-              </div>
-              <div id="evidenceContent" class="evidence-content hidden">
-                <div id="runMeta" class="run-meta" aria-label="本次运行元数据"></div>
-                <section>
-                  <p class="section-label">SIMULATION OUTPUT</p>
-                  <div id="chart" class="chart"></div>
-                </section>
-                <section>
-                  <p class="section-label">PARAMETERS</p>
-                  <div id="parameters" class="metric-grid"></div>
-                </section>
-                <section id="learnerProfileSection">
-                  <p class="section-label">LEARNER PROFILE</p>
-                  <p id="learningNote" class="learning-note"></p>
-                  <div id="learnerProfile" class="profile-list"></div>
-                  <div id="misconceptions" class="misconception-list"></div>
-                  <div id="nextRecommendation" class="next-recommendation"></div>
-                </section>
-                <section>
-                  <p class="section-label">RETRIEVED SOURCES</p>
-                  <div id="sources" class="source-list"></div>
-                </section>
-                <section id="traceSection">
-                  <p class="section-label">STATE GRAPH TRACE</p>
-                  <ol id="trace" class="trace-list"></ol>
-                </section>
-              </div>
+            <aside id="resultPanel" class="result-panel panel-card" aria-live="polite">
+              <div class="panel-heading compact"><div><p class="kicker">LEARNING SUPPORT</p><h2>Results</h2></div><span id="verificationBadge" class="verified-badge">READY</span></div>
+              <div id="emptyEvidence" class="empty-evidence"><strong>Ready when you are</strong><p>Simulation charts and useful parameters will appear here after a run.</p></div>
+              <div id="evidenceContent" class="evidence-content hidden"><div id="runMeta" class="run-meta"></div><section id="simulationSection" class="hidden"><p class="section-label">SIMULATION</p><div id="chart" class="chart"></div><div id="parameters" class="metric-grid"></div></section><section id="sourcesSection" class="sources-section"><details><summary>Sources</summary><div id="sources" class="source-list"></div></details></section></div>
             </aside>
           </section>
+
+          <section id="progressSection" class="panel-card progress-section"><div class="panel-heading compact"><div><p class="kicker">YOUR PROGRESS</p><h2>Learning record</h2></div></div><p id="learningNote" class="learning-note">Your practice and quiz activity will appear here.</p><div id="learnerProfile" class="profile-list"><p>No learning record yet.</p></div><div id="misconceptions" class="misconception-list"></div><div id="nextRecommendation" class="next-recommendation"></div></section>
+
+          <section id="debugPanel" class="panel-card debug-panel hidden"><div class="panel-heading compact"><div><p class="kicker">DEBUG</p><h2>Technical diagnostics</h2></div></div><div id="debugContent"></div></section>
         </main>
       </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

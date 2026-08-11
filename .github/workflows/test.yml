@@ -33,6 +33,8 @@ jobs:
         run: python3 evals/run_pedagogy_evaluation.py --output /tmp/pedagogy_report.json
       - name: Bounded-Agent safety evaluation
         run: python3 evals/run_safety_evaluation.py --output /tmp/safety_report.json
+      - name: v1 Tutor acceptance set (offline mock)
+        run: python3 evals/run_v1_acceptance.py --output /tmp/v1_acceptance_report.json
       - name: Record local node-latency benchmark
         run: python3 evals/run_latency_benchmark.py --repetitions 1 --output /tmp/latency_benchmark.json
       - name: Preserve evaluation evidence
@@ -44,6 +46,7 @@ jobs:
             /tmp/retrieval_report.json
             /tmp/pedagogy_report.json
             /tmp/safety_report.json
+            /tmp/v1_acceptance_report.json
             /tmp/latency_benchmark.json
           retention-days: 14
 

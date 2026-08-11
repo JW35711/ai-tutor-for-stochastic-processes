@@ -146,7 +146,11 @@ class LLMGuardTests(unittest.TestCase):
                 OpenAICompatibleLLM()
 
     def test_provider_failure_circuit_skips_then_recovers(self) -> None:
-        environment = {"LLM_API_KEY": "test-key", "LLM_MODEL": "test-model"}
+        environment = {
+            "LLM_API_KEY": "test-key",
+            "LLM_MODEL": "test-model",
+            "LLM_MAX_RETRIES": "0",
+        }
         clock = FakeClock()
         with patch.dict("os.environ", environment, clear=False):
             client = OpenAICompatibleLLM(failure_cooldown=60, clock=clock)
@@ -200,6 +204,56 @@ class LLMGuardTests(unittest.TestCase):
         with patch("urllib.request.urlopen", side_effect=error):
             self.assertIsNone(client.complete("system", "user"))
         self.assertEqual(client.stats()["last_failure"], "HTTP_401")
+
+    def test_transient_429_and_500_are_retried_but_bounded(self) -> None:
+        environment = {
+            "LLM_API_KEY": "test-key",
+            "LLM_MODEL": "test-model",
+            "LLM_MAX_RETRIES": "2",
+        }
+        with patch.dict("os.environ", environment, clear=False):
+            client = OpenAICompatibleLLM(failure_cooldown=0, sleep=lambda _seconds: None)
+        errors = [
+            urllib.error.HTTPError("url", 429, "busy", hdrs=None, fp=None),
+            urllib.error.HTTPError("url", 500, "down", hdrs=None, fp=None),
+        ]
+        body = json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()
+        with patch("urllib.request.urlopen", side_effect=[*errors, ByteResponse(body)]) as call:
+            self.assertEqual(client.complete("system", "user"), "ok")
+        self.assertEqual(call.call_count, 3)
+        self.assertEqual(client.last_request()["retry_count"], 2)
+
+    def test_non_transient_401_is_not_retried(self) -> None:
+        environment = {
+            "LLM_API_KEY": "test-key",
+            "LLM_MODEL": "test-model",
+            "LLM_MAX_RETRIES": "3",
+        }
+        with patch.dict("os.environ", environment, clear=False):
+            client = OpenAICompatibleLLM(failure_cooldown=0, sleep=lambda _seconds: None)
+        error = urllib.error.HTTPError("url", 401, "unauthorized", hdrs=None, fp=None)
+        with patch("urllib.request.urlopen", side_effect=error) as call:
+            self.assertIsNone(client.complete("system", "user"))
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(client.last_request()["retry_count"], 0)
+
+    def test_malformed_response_and_unicode_response_fail_safely(self) -> None:
+        environment = {
+            "LLM_API_KEY": "test-key",
+            "LLM_MODEL": "test-model",
+            "LLM_MAX_RETRIES": "2",
+        }
+        with patch.dict("os.environ", environment, clear=False):
+            client = OpenAICompatibleLLM(failure_cooldown=0, sleep=lambda _seconds: None)
+        with patch("urllib.request.urlopen", return_value=ByteResponse(b"not-json")) as call:
+            self.assertIsNone(client.complete("system", "user"))
+        self.assertEqual(call.call_count, 1)
+        unicode_body = json.dumps(
+            {"choices": [{"message": {"content": "A Unicode tutor answer: π, λ, 中文"}}]},
+            ensure_ascii=False,
+        ).encode("utf-8")
+        with patch("urllib.request.urlopen", return_value=ByteResponse(unicode_body)):
+            self.assertIn("中文", client.complete("system", "user") or "")
 
     def test_concurrent_provider_calls_do_not_amplify_work(self) -> None:
         environment = {"LLM_API_KEY": "test-key", "LLM_MODEL": "test-model"}

@@ -43,6 +43,7 @@ EVALUATION = load_evaluation_manifest()
 EVALUATION["corpus_match"] = (
     EVALUATION["corpus_sha256"] == AGENT.knowledge.corpus_sha256
 )
+EVALUATION["textbook_chunks"] = AGENT.knowledge.stats()["textbook_chunks"]
 RATE_LIMITER = SlidingWindowRateLimiter(
     limit=env_int(
         "API_RATE_LIMIT_PER_MINUTE",
@@ -256,6 +257,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.response_started = False
         self.error_type: str | None = None
         self.rate_limit_remaining: int | None = None
+        self.response_observability: dict[str, object] | None = None
 
     def _end_request(self) -> None:
         latency_ms = (time.monotonic() - self.request_started) * 1000
@@ -269,6 +271,17 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         }
         if self.error_type:
             fields["error_type"] = self.error_type
+        if self.response_observability:
+            for key in (
+                "intent", "concept_sub_intent", "module_id", "concept_id",
+                "llm_enabled", "llm_applied", "provider", "model",
+                "retry_count", "latency_ms", "tool_called", "source_locators",
+            ):
+                if key in self.response_observability:
+                    if key == "latency_ms":
+                        fields["latency_breakdown_ms"] = self.response_observability[key]
+                    else:
+                        fields[key] = self.response_observability[key]
         print(structured_event("http_request", **fields), flush=True)
 
     def _internal_error(self, error: Exception) -> None:
@@ -290,8 +303,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self'; "
-            "script-src 'self'; connect-src 'self'",
+            "default-src 'self'; img-src 'self' data:; "
+            "style-src 'self' https://cdn.jsdelivr.net; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'",
         )
         if self.rate_limit_remaining is not None:
             self.send_header("X-RateLimit-Limit", str(RATE_LIMITER.limit))
@@ -411,6 +426,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         content_type, _ = mimetypes.guess_type(candidate.name)
+        if content_type and content_type.startswith("text/"):
+            content_type = f"{content_type}; charset=utf-8"
+        elif content_type in {"application/javascript", "application/json"}:
+            content_type = f"{content_type}; charset=utf-8"
         self.response_status = int(HTTPStatus.OK)
         self.response_started = True
         self.send_response(HTTPStatus.OK)
@@ -453,6 +472,9 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._json(
                 {
                     "status": "ok",
+                    "service_ready": bool(readiness["ready"]),
+                    "curriculum_loaded": bool(readiness["checks"]["curriculum"]),
+                    "knowledge_base_loaded": bool(readiness["checks"]["knowledge_index"]),
                     "service": "stochastic-tutor-agent",
                     "version": APP_VERSION,
                     "api_version": API_VERSION,
@@ -472,6 +494,9 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "knowledge": AGENT.knowledge.stats(),
                     "llm": {
                         "enabled": AGENT.llm.enabled,
+                        "configured": bool(AGENT.config.llm_api_key and AGENT.config.llm_model),
+                        "provider": AGENT.llm.stats().get("provider"),
+                        "model": AGENT.llm.stats().get("model"),
                         "mode": "verified_rewrite",
                         "max_content_chars": AGENT.llm.max_content_chars,
                         "provider_circuit": AGENT.llm.stats(),
@@ -609,6 +634,9 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "recommendation": recommend_next(profile),
                 }
             response["request_id"] = self.request_id
+            if isinstance(response.get("observability"), dict):
+                response["observability"]["request_id"] = self.request_id
+                self.response_observability = response["observability"]
             self._json(response)
         except (ValueError, json.JSONDecodeError) as error:
             self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_request")

@@ -21,12 +21,14 @@ The same contract is available to tools at `GET /openapi.json` as OpenAPI 3.1.
 }
 ```
 
-The response contains the selected module and tool, validated parameters,
-numerical result, Notebook and lecture-note sources, seven-node trace,
-teaching-team role trace, learner profile and request ID. `llm_enabled` states
+The response contains the selected module and tool when applicable, validated
+parameters and numerical results for simulations, course sources for tutor
+answers, a conditional workflow trace, optional teaching-team role trace,
+learner profile and request ID. `llm_enabled` states
 whether a provider is configured, while
-`llm_applied` is true only when its rewrite passed numeric and source-anchor
-validation. `session_id` can be omitted on the first turn and then reused.
+`llm_applied` is true only when provider synthesis passed the English,
+grounding and answer-contract checks; simulation numbers are always owned by
+Python tools. `session_id` can be omitted on the first turn and then reused.
 `verified` is true only when tool validation and execution completed; the UI
 uses it instead of displaying a static success badge.
 Each trace item contains the public node name, a concise detail, `status` and
@@ -101,7 +103,7 @@ deletion routes.
 `GET /live` is a minimal process-liveness probe. `GET /ready` checks SQLite,
 the 11-module catalog, 15-tool registry, knowledge index, assessment bank and
 evaluation-to-corpus version match; it returns `503` if any check fails.
-`GET /health` reports module and tool coverage, the declared workflow nodes,
+`GET /health` reports module and tool coverage, the declared conditional workflow,
 knowledge-index statistics, embedding backend/fallback state and process-local
 request metrics. It also returns the checked evaluation manifest used by the
 dashboard, including retrieval Hit@3 and MRR. It does not expose API keys,
@@ -111,7 +113,7 @@ cooldown, remaining retry delay, failure and skip counters, and whether a
 recovery probe is in flight. These values reveal provider availability without
 revealing query text or credentials.
 The LLM section exposes the same bounded operational counters for the optional
-rewrite provider. `state=disabled` is normal when no provider is configured;
+provider. `state=disabled` is normal when no provider is configured;
 an open circuit never makes the service unready because the verified offline
 teaching path remains complete.
 Latency metrics include the all-time process average and p95 over a bounded

@@ -3,9 +3,9 @@
 ## 1. Frame the problem (30 seconds)
 
 “The thesis produced 11 computational teaching modules. I converted them into
-a tool-using teaching Agent: it routes a learner question, retrieves the exact
-course evidence, executes a validated stochastic simulation, compares it with
-theory, and remembers learning progress.”
+one AI Tutor with conditional routing: it reads the curriculum for navigation,
+retrieves course evidence for theory questions, executes a validated Python
+simulation only when requested, and remembers learning progress.”
 
 ## 2. Show tool use and evidence (90 seconds)
 
@@ -19,8 +19,8 @@ Point out:
 - empirical versus theoretical mean queue length;
 - the simulation chart;
 - Notebook cell citations;
-- the visible `classify → retrieve → plan → tool → diagnose → memory → respond`
-  state graph.
+- the conditional trace: navigation goes to curriculum, concepts go through
+  retrieval and Tutor synthesis, and simulations add planning and a Python tool.
 
 Then ask:
 
@@ -59,14 +59,15 @@ python3 evals/run_latency_benchmark.py --repetitions 2
 
 Explain that the acceptance set contains 30 Chinese and English prompts and
 measures module routing, tool choice, source scope and execution trace. The
-separate 44-case bilingual retrieval set reports Hit@3 and MRR. Open `/health` to show the
-seven workflow nodes, active vector backend, request counters and latency.
+separate 44-case bilingual retrieval set reports Hit@3 and MRR. Open `/health`
+to show the conditional workflow, active vector backend, request counters and
+latency.
 The 10-case pedagogy set checks misconception corrections, neutral controls and
 the required teaching-response structure.
 The independent 10-case safety set checks prompt injection, unknown tools,
 non-finite inputs, unstable-model claims and multiplicative work bounds.
 The latency report breaks one representative prompt per module into end-to-end
-and seven-node p50/p95 timings. It is explicitly labeled as a local offline
+and per-handler p50/p95 timings. It is explicitly labeled as a local offline
 benchmark rather than a production SLA. CI uploads it with the quality reports
 for comparison instead of enforcing a noisy shared-runner latency threshold.
 
@@ -76,11 +77,12 @@ for comparison instead of enforcing a noisy shared-runner latency threshold.
   neural semantic model; a compatible neural embedding endpoint is optional.
 - Misconception rules are transparent seed rules, not a trained student model.
 - The practice score is a product heuristic, not a validated educational test.
-- A hosted LLM is optional and is not allowed to overwrite verified numbers.
+- A hosted LLM is optional for concept synthesis; it is never allowed to
+  create or overwrite simulation numbers.
 
-If asked how that last boundary is enforced, point to `llm_applied`: a hosted
-rewrite is discarded unless it preserves every numeric and Notebook-source
-anchor from the deterministic answer.
+If asked how that last boundary is enforced, point to the conditional workflow:
+simulation answers come directly from validated Python tools, while provider
+failure or malformed concept output falls back to the grounded offline answer.
 
 These boundaries give a clear next-step discussion: learned reranking,
 LLM-as-judge evaluation with human calibration, richer quiz banks, and a

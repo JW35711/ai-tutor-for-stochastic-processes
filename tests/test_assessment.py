@@ -23,7 +23,7 @@ class AssessmentTests(unittest.TestCase):
     def test_grade_returns_explanation(self) -> None:
         result = self.engine.grade("q04", 2)
         self.assertTrue(result["correct"])
-        self.assertIn("方差为 T", result["explanation"])
+        self.assertIn("variance is T", result["explanation"])
         self.assertEqual(result["bank_sha256"], self.engine.bank_sha256)
 
     def test_grade_rejects_boolean_and_out_of_range_answers(self) -> None:

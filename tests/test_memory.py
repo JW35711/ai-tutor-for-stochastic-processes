@@ -308,7 +308,7 @@ class PedagogyTests(unittest.TestCase):
                 {"module_id": "module02", "attempts": 4, "mastery": 0.7}
             ]
         }
-        self.assertIn("边界情形", adaptive_note(profile, "module02"))
+        self.assertIn("boundary case", adaptive_note(profile, "module02"))
 
 
 if __name__ == "__main__":

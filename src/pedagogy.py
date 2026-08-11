@@ -19,43 +19,43 @@ RULES: tuple[MisconceptionRule, ...] = (
         "simulation_must_repeat_exactly",
         None,
         ("每次必须一样", "每次都一样", "结果完全一样", "固定结果"),
-        "把统计可复现性误解为每次都要产生同一条随机路径。",
-        "不固定 seed 时单次结果会变化，但样本量足够大时统计规律应保持稳定。",
+        "Confuses statistical reproducibility with producing the same random path every time.",
+        "Without a fixed seed, individual paths change; with enough samples, the statistical pattern should remain stable.",
     ),
     MisconceptionRule(
         "poisson_mean_rate_only",
         "module01",
         ("均值就是lambda", "均值就是λ", "mean is lambda"),
-        "忽略了观察区间长度对 Poisson 计数均值的影响。",
-        "在长度为 T 的区间上，N(T) 的均值和方差都是 λT。",
+        "Ignores the observation-interval length when interpreting a Poisson count.",
+        "Over an interval of length T, both the mean and variance of N(T) are λT.",
     ),
     MisconceptionRule(
         "brownian_variance_sqrt_t",
         "module04",
         ("方差是根号t", "方差为根号t", "variance is sqrt"),
-        "混淆了 Brownian motion 的标准差与方差。",
-        "B(T) 的方差为 T，标准差才是 √T。",
+        "Confuses the standard deviation of Brownian motion with its variance.",
+        "B(T) has variance T; its standard deviation is √T.",
     ),
     MisconceptionRule(
         "markov_requires_independence",
         "module05",
         ("马尔可夫链每步独立", "markov states are independent", "状态相互独立"),
-        "把 Markov property 误解为不同时刻的状态相互独立。",
-        "下一状态可以依赖当前状态；Markov property 排除的是给定当前状态后的更早历史。",
+        "Confuses the Markov property with independence across all time points.",
+        "The next state may depend on the current state; the property excludes earlier history once the current state is given.",
     ),
     MisconceptionRule(
         "mm1_stable_at_equality",
         "module07",
         ("lambda等于mu也稳定", "λ=μ稳定", "到达率等于服务率也稳定"),
-        "把零漂移误认为存在平稳队长分布。",
-        "M/M/1 队列只有在 λ<μ 时正再生并具有几何平稳分布。",
+        "Mistakes zero drift for the existence of a stationary queue-length distribution.",
+        "An M/M/1 queue has a geometric stationary distribution only when λ<μ.",
     ),
     MisconceptionRule(
         "saw_position_is_markov",
         "module09",
         ("只看当前位置", "当前位置就够", "position alone is markov"),
-        "忽略了已访问集合对 self-avoiding walk 可选动作的影响。",
-        "若状态只写当前位置，过程通常不是 Markov；把 visited set 纳入状态后才可恢复 Markov 描述。",
+        "Ignores how the visited set changes the available moves of a self-avoiding walk.",
+        "With only the current position as the state, the process is usually not Markov; including the visited set restores a Markov description.",
     ),
 )
 
@@ -88,11 +88,10 @@ def adaptive_note(profile: dict[str, object], module_id: str) -> str:
     }
     current = modules.get(module_id)
     if not current:
-        return "这是你第一次练习该模块，我会先连接仿真结果与一个核心理论量。"
+        return "This is your first practice run for this module. We will connect the simulation with one core theoretical quantity."
     attempts = current["attempts"]
     if attempts <= 1:
-        return "你刚开始练习该模块，下一步适合先改变一个参数并预测方向。"
+        return "You are just starting this module. Next, change one parameter and predict the direction of the change."
     if current["mastery"] < 0.55:
-        return "你已经运行过该模块，但练习证据还不充分；建议先解释理论值再看下一次仿真。"
-    return "你已多次成功运行该模块，下一步适合比较边界情形或检验模型假设。"
-
+        return "You have run this module, but the practice evidence is still limited. Explain the theoretical value before the next simulation."
+    return "You have run this module several times. Next, compare a boundary case or test a model assumption."

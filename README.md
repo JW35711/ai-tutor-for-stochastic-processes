@@ -4,9 +4,9 @@
 [![Python 3.11–3.12](https://img.shields.io/badge/Python-3.11%E2%80%933.12-3776AB)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-248a62.svg)](LICENSE)
 
-| Course coverage | Executable tools | State nodes | RAG evidence | Acceptance cases |
+| Course coverage | Knowledge points | Executable tools | RAG entries | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 15 | 7 | 250 | 109/109 |
+| 11/11 modules | 40 | 15 | 421 | 109/109 regression + 22/22 v1 |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -73,8 +73,9 @@ random-seed policy and submission checklist.
 
 ## AI teaching-agent extension
 
-The current Agent prototype turns all eleven thesis modules into executable
-tools:
+The current system is one AI Tutor with conditional workflow branches. It turns
+all eleven thesis modules into a curriculum-backed learning experience and
+keeps the 15 numerical tools behind explicit simulation requests:
 
 - Monte Carlo estimation;
 - Bernoulli and homogeneous Poisson processes;
@@ -88,49 +89,51 @@ tools:
 - growing self-avoiding walks;
 - coalescing particles on a circle.
 
-For each question, the Agent classifies the topic, retrieves source-aware
-Notebook and lecture-note evidence, validates parameters, chooses a simulation
-tool, compares the empirical result with theory, diagnoses explicit
-misconceptions, and returns a guided explanation with the execution trace.
-SQLite learner memory persists practice and concept-check results across
-server restarts. A transparent recommendation policy uses coverage, practice
-evidence and quiz exposure to propose the next experiment without claiming to
-measure ability. Every response also carries a deterministic `run_sha256` over
-the selected module, tool, parameters, complete result and course-corpus
-version. This is separate from the per-request ID used for log correlation.
+For a navigation question, the Agent reads the backend-owned curriculum. For a
+concept, why, comparison, derivation, example or hint question, it retrieves
+curated Notebook/textbook evidence and produces a grounded tutor answer. Only
+an explicit simulation request continues through planning, validation and one
+of the 15 Python tools. SQLite learner memory persists simulation and
+concept-check results across server restarts. A transparent recommendation
+policy uses coverage, practice evidence and quiz exposure without claiming to
+measure ability. Every response carries a deterministic `run_sha256` for
+verified simulations and a separate request ID for log correlation.
 
 ```mermaid
 flowchart LR
-    U[Student question] --> C[Topic classification]
-    C --> R[Course-material retrieval]
-    R --> P[Parameter planning]
-    P --> T[Simulation tool]
-    T --> D[Misconception diagnosis]
-    D --> M[(Learner memory)]
-    QZ[Concept check] --> M
-    M --> E[Verified guided response]
-    E --> A[Teaching-team role trace]
-    M --> UI[Web UI, profile, sources and trace]
+    U[Student question] --> I{Intent}
+    I -->|navigation| C[Curriculum]
+    I -->|concept / why / comparison| R[Retrieve evidence]
+    I -->|simulation| R
+    R -->|concept| T[Tutor synthesis]
+    R -->|simulation| P[Plan and validate]
+    P --> S[Python simulation tool]
+    S --> T
+    QZ[Practice / quiz] --> A[Assessment and SQLite memory]
+    T --> A
+    C --> UI[Web UI]
+    A --> UI
 ```
 
-The orchestration is an explicit typed state graph with seven independently
-tested nodes: `classify → retrieve → plan → tool → diagnose → memory →
-respond`. It is implemented locally to preserve the zero-dependency offline
-demo, while keeping node boundaries compatible with a future LangGraph
-adapter.
-For interview clarity, the same trace is projected onto named educational
-roles: Curriculum Agent, Content Agent, Simulation Planner, Simulation Agent,
-Assessment Agent, Learner Model Agent and Tutor Agent. These are not hidden
-LLM calls; each role maps to a real workflow node and exposes its responsibility
-in the UI.
+The orchestration is an explicit typed state graph with conditional handlers.
+Its behavior is:
 
-Numerical computation is performed by Python, not by the language model. An
-optional OpenAI-compatible model can improve the wording, but it receives the
-verified numerical result and is not trusted to alter numbers or sources. A
-rewrite is applied only if every numeric anchor and exact Notebook locator from
-the verified result survives; otherwise the Agent automatically returns the
-offline answer. Incidental numbers inside a retrieved excerpt are not treated
-as simulation outputs.
+```text
+navigation                   → curriculum
+concept / why / comparison   → retrieve → Tutor synthesis
+simulation                   → retrieve → plan → Python tool → Tutor
+practice / quiz              → assessment → SQLite learner memory
+```
+
+It is implemented locally to preserve the offline-safe demo. The response may
+project the same trace onto educational role names for observability, but this
+is still one AI Tutor, not LangGraph and not a true Multi-Agent system.
+
+Numerical computation is performed by Python, not by the language model. The
+optional DeepSeek/OpenAI-compatible model synthesizes concept explanations
+from the original question and retrieved evidence. It is never used to create
+or modify simulation numbers. If the provider is unavailable, the same
+question-aware answer path returns a concise grounded fallback.
 
 ### Run the Agent
 
@@ -167,14 +170,14 @@ python3 server.py
 ```
 
 The application remains usable in offline-safe mode when these variables are
-unset. Provider calls have configurable timeouts and bounded response bodies;
-an unavailable or oversized LLM response falls back to the verified offline
-answer. A candidate rewrite must contain the exact immutable result block and
-all Notebook locators; the model may add teaching explanation around that
-block but cannot paraphrase or relabel its conclusions. A failed provider call opens a bounded 60-second circuit by default,
-so later learners receive the offline answer immediately instead of each
-waiting for the same unavailable service. Configure this with
-`LLM_FAILURE_COOLDOWN_SECONDS` between 0 and 3600.
+unset. The current client supports DeepSeek and other OpenAI-compatible
+providers, with validated URLs, explicit timeouts, bounded exponential retries
+for transient failures, and a circuit breaker. Concept answers use the original
+student question as the primary instruction and synthesize retrieved evidence;
+provider failures return a concise grounded fallback. Simulation numbers remain
+owned by Python tools and are never rewritten by the model. Configure bounds in
+`.env.example`, including `LLM_TIMEOUT`, `LLM_MAX_RETRIES`,
+`ANSWER_MAX_WORDS` and `EVIDENCE_MAX_CHARS`.
 
 Retrieval also works without a key. By default it combines IDF-weighted sparse
 matching with a deterministic 384-dimensional local hashing vector. To use a
@@ -248,22 +251,28 @@ curl -X POST http://127.0.0.1:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"question":"模拟100步随机游走，并比较理论均值"}'
 
+LLM_API_KEY= LLM_MODEL= LLM_BASE_URL=https://api.openai.com/v1 python3 -m pytest -q
 python3 -m unittest discover -s tests -v
 python3 evals/run_evaluation.py
 python3 evals/run_retrieval_evaluation.py
 python3 evals/run_pedagogy_evaluation.py
 python3 evals/run_safety_evaluation.py
 python3 evals/run_latency_benchmark.py --repetitions 2
+python3 evals/run_v1_acceptance.py
+# Optional real-provider run; reads local ignored .env and writes no credentials.
+python3 evals/run_v1_acceptance.py --real --output /tmp/v1_acceptance_real.json
 ```
 
-The deterministic acceptance suite currently contains 30 single-turn cases,
-5 multi-turn conversations, 44 module-scoped retrieval cases, 10 pedagogy
-cases and 20 safety cases. The checked local-hash baseline reaches `Hit@3 = 1.0000` and
-`MRR = 1.0000` on the retrieval set. The report preserves every case's rank,
-matched relevance phrase and returned source locators. The pedagogy set checks
-six explicit misconceptions, four neutral prompts, correction grounding and
-answer structure. These figures describe this repository's small regression sets,
-not a general benchmark of tutoring quality.
+The deterministic regression suites contain 30 single-turn cases, 5
+multi-turn conversations, 44 module-scoped retrieval cases, 10 pedagogy cases
+and 20 safety cases. The current local-hash baseline is `Hit@3 = 1.0000` and
+`MRR = 0.9394` on the retrieval set. The separate v1 acceptance file contains
+22 unseen questions spanning definitions, explanations, derivations,
+comparisons, examples, hints, navigation, simulations and scope boundaries;
+the offline mock baseline is 22/22. The report preserves each case's routing,
+tool decision, answer and source locators. These figures describe this
+repository's small regression sets, not a general benchmark of tutoring
+quality.
 
 `data/evaluation_manifest.json` is the checked dashboard summary. A unit test
 ties every displayed suite count to its versioned case file, while CI reruns
@@ -278,7 +287,10 @@ tool execution, citations, persistent memory, misconception diagnosis and
 assessment grading. The 30-case acceptance set measures module routing, tool
 choice, module-scoped evidence and workflow traces in Chinese and English. A
 second five-conversation suite verifies module, tool and parameter inheritance
-across server-backed follow-up turns.
+across server-backed follow-up turns. The optional real-provider v1 command
+writes only question metadata, latency, answers and source locators to the
+selected report path; credentials are read from the ignored local `.env` and
+are never persisted.
 
 Additional endpoints:
 
@@ -321,7 +333,7 @@ examples.
 │   ├── memory.py           # Persistent SQLite learner profile
 │   ├── pedagogy.py         # Transparent misconception diagnosis
 │   ├── assessment.py       # Module concept checks
-│   ├── workflow.py         # Typed seven-node state graph
+│   ├── workflow.py         # Typed conditional workflow
 │   ├── embeddings.py       # Local and optional hosted vector backends
 │   ├── runtime.py          # Rate limiting, metrics and JSON events
 │   ├── openapi.py          # Machine-readable API contract
@@ -367,9 +379,9 @@ For Chinese interviews, use the prepared
 - The practice-evidence score is not a psychometrically validated mastery score.
 - The lightweight web chart does not replace the notebook's Matplotlib figures.
 
-The next Agent iteration can add a LangGraph runtime adapter behind the current
-node contract, a learned reranker, a larger calibrated assessment bank,
-authentication and hosted deployment.
+Future work may add a learned reranker, a larger calibrated assessment bank,
+authentication and hosted deployment. LangGraph/Multi-Agent orchestration is
+outside the v1 release scope.
 
 ## License
 

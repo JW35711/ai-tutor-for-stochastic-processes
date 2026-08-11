@@ -5,14 +5,17 @@ from __future__ import annotations
 import json
 import math
 import re
+import time
 import uuid
 from collections.abc import Callable
 from typing import Any
 
 from .knowledge import KnowledgeBase
-from .llm import OpenAICompatibleLLM, preserves_verified_facts
+from .config import runtime_config
+from .curriculum import curriculum_catalog
+from .llm import OpenAICompatibleLLM
 from .memory import LearnerMemory
-from .module_registry import MODULE_BY_ID, classify_module
+from .module_registry import MODULES, MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
 from .provenance import execution_sha256
 from .recommendation import recommend_next
@@ -94,11 +97,38 @@ class StochasticTutorAgent:
     }
 
     GENERAL_FALLBACK = (
-        "我是 StochLab，一个面向随机过程课程的教学 Agent。"
-        "我可以解释概念、根据你的问题运行 11 个模块的仿真，"
-        "并把结果和课程 Notebook、lecture notes 对照。"
-        "例如你可以问：‘布朗运动的终点方差为什么是 T？’"
+        "I am StochLab, a tutor for the Stochastic Processes course. "
+        "I can explain concepts, guide you through the modules, and run "
+        "verified simulations when you ask for one."
     )
+    # These aliases make concept routing specific without duplicating the full
+    # curriculum in the router. Titles remain the source of truth; aliases only
+    # cover common student wording and the main notebook terminology.
+    CONCEPT_ALIASES: dict[str, tuple[str, ...]] = {
+        "m00-monte-carlo-estimation": ("monte carlo", "estimate pi", "estimate π"),
+        "m00-law-large-numbers": ("law of large numbers", "large numbers"),
+        "m00-standard-error": ("standard error", "sampling error"),
+        "m01-bernoulli-process": ("bernoulli process", "bernoulli arrivals"),
+        "m01-poisson-process": ("poisson process", "homogeneous poisson"),
+        "m02-random-walk-increments": ("random walk", "ordinary random walk", "simple random walk"),
+        "m02-drift-variance": ("random walk drift", "random walk variance"),
+        "m02-hitting-probability": ("hitting probability", "gambler's ruin"),
+        "m03-poisson-jump-times": ("poisson jump times", "random jump times"),
+        "m04-brownian-increments": ("brownian motion", "brownian increments", "independent increments", "gaussian increments"),
+        "m04-brownian-scaling": ("brownian scaling", "scaled random walk approximation"),
+        "m04-terminal-distribution": ("brownian terminal distribution", "distribution of b(t)"),
+        "m05-markov-property": ("markov property", "memoryless state dependence"),
+        "m05-stationary-distribution": ("stationary distribution", "invariant distribution"),
+        "m06-holding-times": ("holding time", "holding times"),
+        "m06-generator-matrix": ("generator matrix", "infinitesimal generator"),
+        "m06-birth-death-process": ("birth death process", "birth-death process"),
+        "m07-survival-and-hazard": ("survival function", "hazard rate", "hazard function"),
+        "m07-mm1-queue": ("m/m/1", "mm1 queue", "queue stability"),
+        "m08-thinning": ("thinning algorithm", "poisson thinning"),
+        "m09-self-avoidance": ("self-avoiding walk", "self avoiding walk", "growing self-avoiding walk"),
+        "m10-coalescence": ("coalescence", "coalescing particles"),
+        "m10-coalescence-time": ("coalescence time",),
+    }
     GENERAL_CHAT_MARKERS = (
         "你好",
         "您好",
@@ -135,11 +165,30 @@ class StochasticTutorAgent:
         "教学agent",
         "教学 agent",
     )
+    SIMULATION_MARKERS = (
+        "simulate",
+        "simulation",
+        "run ",
+        "plot",
+        "visualize",
+        "模拟",
+        "仿真",
+        "运行",
+        "画图",
+        "绘图",
+    )
 
     def __init__(self, memory: LearnerMemory | None = None) -> None:
-        self.knowledge = KnowledgeBase()
-        self.llm = OpenAICompatibleLLM()
+        self.config = runtime_config()
+        self.knowledge = KnowledgeBase(config=self.config)
+        self.llm = OpenAICompatibleLLM(config=self.config)
         self.memory = memory or LearnerMemory()
+        self.curriculum = curriculum_catalog()
+        self._concepts = [
+            {**point, "module_id": module["module_id"]}
+            for module in self.curriculum["modules"]
+            for point in module["knowledge_points"]
+        ]
         self.tools: dict[str, Callable[..., dict[str, Any]]] = {
             "monte_carlo": run_monte_carlo_pi,
             "bernoulli": simulate_bernoulli_process,
@@ -160,14 +209,45 @@ class StochasticTutorAgent:
         self.workflow = StateGraph(
             [
                 WorkflowNode("classify", self._node_classify),
-                WorkflowNode("retrieve", self._node_retrieve),
-                WorkflowNode("plan", self._node_plan),
-                WorkflowNode("tool", self._node_tool),
-                WorkflowNode("diagnose", self._node_diagnose),
-                WorkflowNode("memory", self._node_memory),
+                WorkflowNode(
+                    "retrieve",
+                    self._node_retrieve,
+                    enabled=lambda state: state.intent in {"concept", "simulation"},
+                ),
+                WorkflowNode(
+                    "plan", self._node_plan, enabled=lambda state: state.intent == "simulation"
+                ),
+                WorkflowNode(
+                    "tool", self._node_tool, enabled=lambda state: state.intent == "simulation"
+                ),
+                WorkflowNode(
+                    "diagnose", self._node_diagnose, enabled=lambda state: state.intent == "simulation"
+                ),
+                WorkflowNode(
+                    "memory", self._node_memory, enabled=lambda state: state.intent == "simulation"
+                ),
                 WorkflowNode("respond", self._node_respond),
             ]
         )
+
+    def _llm_metadata(self) -> dict[str, object]:
+        """Read safe provider metadata while allowing lightweight test doubles."""
+
+        last_request = getattr(self.llm, "last_request", None)
+        if callable(last_request):
+            return dict(last_request())
+        stats = getattr(self.llm, "stats", None)
+        snapshot = stats() if callable(stats) else {}
+        return {
+            "provider": snapshot.get("provider"),
+            "model": snapshot.get("model"),
+            "status": "disabled" if not getattr(self.llm, "enabled", False) else "unknown",
+            "retry_count": 0,
+            "latency_ms": 0.0,
+            "input_tokens": None,
+            "output_tokens": None,
+            "total_tokens": None,
+        }
 
     @staticmethod
     def classify_topic(question: str) -> str:
@@ -507,157 +587,113 @@ class StochasticTutorAgent:
 
     @staticmethod
     def _summary(topic: str, result: dict[str, Any]) -> str:
+        # Kept as a compatibility shim for callers of the former private
+        # helper. Student-facing responses use the English implementation.
+        return StochasticTutorAgent._summary_english(topic, result)
+
+    @staticmethod
+    def _summary_english(topic: str, result: dict[str, Any]) -> str:
         if topic == "monte_carlo":
-            return (
-                f"使用 {result['parameters']['samples']} 个样本得到 π≈"
-                f"{result['estimate']}，与理论值 {result['theoretical']} 的绝对误差为 "
-                f"{result['absolute_error']}。"
-            )
+            return f"Using {result['parameters']['samples']} samples gives π≈{result['estimate']}; the absolute error is {result['absolute_error']}."
         if topic == "bernoulli":
-            return (
-                f"终点计数的经验均值为 {result['empirical_count_mean']}，"
-                f"理论均值 np 为 {result['theoretical_count_mean']}；经验方差为 "
-                f"{result['empirical_count_variance']}，理论方差为 "
-                f"{result['theoretical_count_variance']}。首次到达的经验平均等待"
-                f"时间为 {result['empirical_waiting_mean']}，几何分布理论值"
-                f"1/p为 {result['theoretical_waiting_mean']}。"
-            )
+            return f"The empirical count mean is {result['empirical_count_mean']} versus theoretical np={result['theoretical_count_mean']}; the empirical waiting mean is {result['empirical_waiting_mean']} versus 1/p={result['theoretical_waiting_mean']}."
         if topic == "poisson":
-            return (
-                f"仿真平均事件数为 {result['empirical_mean_count']}，理论值 λT="
-                f"{result['theoretical_mean_count']}，绝对误差为 "
-                f"{result['absolute_error']}。"
-            )
+            return f"The empirical mean event count is {result['empirical_mean_count']} versus theoretical λT={result['theoretical_mean_count']}; absolute error={result['absolute_error']}."
         if topic == "random_walk":
-            return (
-                f"终点经验均值为 {result['empirical_endpoint_mean']}，理论均值为 "
-                f"{result['theoretical_endpoint_mean']}；经验方差为 "
-                f"{result['empirical_endpoint_variance']}，理论方差为 "
-                f"{result['theoretical_endpoint_variance']}。"
-            )
+            return f"The endpoint mean is {result['empirical_endpoint_mean']} versus {result['theoretical_endpoint_mean']}; variance is {result['empirical_endpoint_variance']} versus {result['theoretical_endpoint_variance']}."
         if topic == "continuous_random_walk":
-            return (
-                f"到时间T的经验平均跳跃数为 {result['empirical_jump_mean']}，"
-                f"理论值λT为 {result['theoretical_jump_mean']}。终点经验均值为 "
-                f"{result['empirical_endpoint_mean']}，理论均值为 "
-                f"{result['theoretical_endpoint_mean']}；终点经验方差为 "
-                f"{result['empirical_endpoint_variance']}，理论方差为 "
-                f"{result['theoretical_endpoint_variance']}。"
-            )
+            return f"The mean jump count is {result['empirical_jump_mean']} versus λT={result['theoretical_jump_mean']}; endpoint mean and variance are {result['empirical_endpoint_mean']} and {result['empirical_endpoint_variance']}."
         if topic == "brownian_motion":
-            return (
-                f"终点经验均值为 {result['empirical_terminal_mean']}，经验方差为 "
-                f"{result['empirical_terminal_variance']}；标准布朗运动在T时刻的"
-                f"理论均值为0、方差为T={result['theoretical_terminal_variance']}。"
-            )
+            return f"The terminal empirical mean is {result['empirical_terminal_mean']} and variance is {result['empirical_terminal_variance']}; theory gives mean 0 and variance T={result['theoretical_terminal_variance']}."
         if topic == "markov_chain":
-            return (
-                f"经验状态频率为 {result['empirical_frequencies']}，平稳分布为 "
-                f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
-            )
-        if topic == "ctmc":
-            return (
-                f"经验时间占比为 {result['empirical_state_probabilities']}，"
-                f"由 πQ=0 得到的平稳分布为 "
-                f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
-                f"两个状态的经验平均停留时间为 "
-                f"{result['empirical_mean_holding_times']}，理论值为 "
-                f"{result['theoretical_mean_holding_times']}。有限观测时长和固定"
-                "初始状态会带来过渡偏差。"
-            )
-        if topic == "birth_death":
-            return (
-                f"状态经验时间占比为 "
-                f"{result['empirical_state_probabilities']}，理论平稳分布为 "
-                f"{result['stationary_distribution']}，L1误差为 {result['l1_error']}。"
-                f"经验平均状态为 {result['empirical_mean_state']}，"
-                f"理论值为 {result['theoretical_mean_state']}。有限观测时长和"
-                "固定初始状态会带来过渡偏差。"
-            )
+            return f"Empirical state frequencies are {result['empirical_frequencies']}; the stationary distribution is {result['stationary_distribution']}; L1 error={result['l1_error']}."
+        if topic in {"ctmc", "birth_death"}:
+            return f"Empirical state probabilities are {result['empirical_state_probabilities']}; the theoretical stationary distribution is {result['stationary_distribution']}; L1 error={result['l1_error']}."
         if topic == "reliability":
-            return (
-                f"串联系统经验平均寿命为 "
-                f"{result['empirical_series_mean_lifetime']}，理论值为 "
-                f"{result['theoretical_series_mean_lifetime']}；并联系统经验"
-                f"平均寿命为 {result['empirical_parallel_mean_lifetime']}，"
-                f"理论值为 {result['theoretical_parallel_mean_lifetime']}。"
-            )
+            return f"Mean lifetime is {result['empirical_series_mean_lifetime']} for the series system and {result['empirical_parallel_mean_lifetime']} for the parallel system; theoretical values are {result['theoretical_series_mean_lifetime']} and {result['theoretical_parallel_mean_lifetime']}."
         if topic == "buffer":
-            return (
-                f"每个时间槽的经验平均到达数为 "
-                f"{result['empirical_arrivals_per_slot']}，理论值为 "
-                f"{result['theoretical_arrivals_per_slot']}；忙时理论漂移为 "
-                f"{result['theoretical_drift_when_busy']}，经验平均最终 buffer "
-                f"大小为 {result['empirical_mean_final_buffer']}。"
-            )
+            return f"Mean arrivals per slot are {result['empirical_arrivals_per_slot']} versus {result['theoretical_arrivals_per_slot']}; mean final buffer size is {result['empirical_mean_final_buffer']}."
         if topic == "mm1_queue":
             if result["stable"]:
-                return (
-                    f"交通强度 ρ={result['traffic_intensity']}<1，队列稳定。"
-                    f"经验平均客户数为 {result['empirical_mean_customers']}，"
-                    f"理论值 ρ/(1-ρ) 为 {result['theoretical_mean_customers']}，"
-                    f"展示状态上的L1误差为 {result['displayed_state_l1_error']}。"
-                )
-            return (
-                f"交通强度 ρ={result['traffic_intensity']}≥1，不存在稳定的"
-                f"几何平稳分布；有限时间仿真中的经验平均客户数"
-                f"为 {result['empirical_mean_customers']}。"
-            )
+                return f"Traffic intensity ρ={result['traffic_intensity']}<1, so the queue is stable. Mean customers are {result['empirical_mean_customers']} versus theoretical {result['theoretical_mean_customers']}."
+            return f"Traffic intensity ρ={result['traffic_intensity']}≥1, so no stationary geometric distribution exists; the finite-run mean is {result['empirical_mean_customers']}."
         if topic == "nhpp":
-            return (
-                f"Thinning 生成 {result['candidate_count']} 个候选事件，"
-                f"接受率为 {result['acceptance_rate']}。最终计数的经验"
-                f"均值为 {result['empirical_mean_count']}，强度积分给出的"
-                f"理论均值为 {result['theoretical_mean_count']}，绝对误差为 "
-                f"{result['absolute_error']}。"
-            )
+            return f"Thinning generated {result['candidate_count']} candidates with acceptance rate {result['acceptance_rate']}; empirical mean count={result['empirical_mean_count']} versus theoretical {result['theoretical_mean_count']}."
         if topic == "self_avoiding_walk":
-            return (
-                f"{result['trapped_runs']} / {result['parameters']['runs']} 条路径"
-                f"在数值上限前真正受困，受困率为 "
-                f"{result['trapping_rate']}，平均停止长度为 "
-                f"{result['average_stopping_length']}。示例路径的自避性和"
-                f"最近邻移动校验分别为 {result['sample_self_avoiding']} 和 "
-                f"{result['sample_nearest_neighbour']}。"
-            )
+            return f"{result['trapped_runs']} of {result['parameters']['runs']} paths became trapped; trapping rate={result['trapping_rate']} and mean stopping length={result['average_stopping_length']}."
         if topic == "coalescing_particles":
-            return (
-                f"{result['completed_runs']} / {result['parameters']['runs']} 次实验"
-                f"在上限前合并为一个簇，平均合并时间为 "
-                f"{result['average_coalescence_time']}，中位数为 "
-                f"{result['median_coalescence_time']}。示例路径的簇数量单调不增"
-                f"校验为 {result['sample_cluster_count_monotone']}。"
-            )
-        raise ValueError(f"unsupported summary topic: {topic}")
+            return f"{result['completed_runs']} of {result['parameters']['runs']} runs fully coalesced; mean coalescence time={result['average_coalescence_time']} and median={result['median_coalescence_time']}."
+        return "The simulation completed and can be compared with the retrieved course evidence."
 
     @staticmethod
     def _guiding_question(topic: str) -> str:
         questions = {
-            "bernoulli": "如果降低单个时间槽的到达概率，计数和首次等待时间会怎样变化？",
-            "reliability": "为什么并联系统的寿命是部件寿命的最大值，而串联系统是最小值？",
-            "buffer": "当每槽平均到达数超过服务能力1时，buffer路径会呈现什么长期趋势？",
-            "mm1_queue": "当到达率逐渐接近服务率时，理论平均客户数为什么会快速增大？",
-            "nhpp": "如果把高峰时刻向后移动，总事件数和事件时刻分布会分别如何变化？",
-            "self_avoiding_walk": "为什么只知道当前位置不足以确定自避游走的下一步分布？",
-            "coalescing_particles": "增大圆周格点数但保持初始粒子数不变，合并时间可能怎样变化？",
+            "bernoulli": "How would a lower event probability affect the count and first waiting time?",
+            "reliability": "Why is a parallel-system lifetime a maximum while a series-system lifetime is a minimum?",
+            "buffer": "What long-run trend would you expect when mean arrivals exceed service capacity?",
+            "mm1_queue": "Why does the mean queue length grow quickly as the arrival rate approaches the service rate?",
+            "nhpp": "What changes if the intensity peak is moved later in time?",
+            "self_avoiding_walk": "Why is the current position alone not enough to determine the next step?",
+            "coalescing_particles": "How might the coalescence time change if the circle grows but particle count stays fixed?",
         }
         return questions.get(
             topic,
-            "如果把样本量或路径数扩大4倍，你预计经验误差会怎样变化？",
+            "What would you expect if the number of samples or paths were multiplied by four?",
         )
 
     def _node_classify(self, state: AgentState) -> NodeOutcome:
-        state.module_id = self.classify_module(state.question)
-        if state.module_id is None and state.previous_turn:
+        if self._is_course_navigation(state.question) and not self._is_simulation_request(state.question):
+            state.intent = "course_navigation"
+            state.module_id = self._navigation_module_id(state.question)
+            if state.module_id:
+                state.module = MODULE_BY_ID[state.module_id]
+                state.topic = state.module.topic
+                return NodeOutcome(f"course navigation: Module {state.module.number:02d}")
+            return NodeOutcome("course overview navigation")
+
+        detected_modules = self._detect_module_ids(state.question)
+        state.comparison_module_ids = (
+            detected_modules if self._is_comparison(state.question) else []
+        )
+        state.module_id = detected_modules[0] if detected_modules else self.classify_module(state.question)
+        if state.comparison_module_ids:
+            state.concept_id = None
+            state.comparison_concept_ids = [
+                concept_id
+                for module_id in state.comparison_module_ids
+                for concept_id in [self._match_concept(state.question, module_id)]
+                if concept_id is not None
+            ]
+        else:
+            state.concept_id = self._match_concept(state.question, state.module_id)
+            state.comparison_concept_ids = []
+        explicit_follow_up = self._is_explicit_follow_up(state.question)
+        if state.module_id is None and state.previous_turn and explicit_follow_up:
             state.module_id = state.previous_turn["module_id"]
             state.module_from_context = True
-        if state.module_id is None:
-            raise ValueError(
-                "I could not identify the teaching module. Please name a model or Module 00-10."
-            )
-        state.module = MODULE_BY_ID[state.module_id]
-        state.topic = state.module.topic
-        detail = f"Module {state.module.number:02d}: {state.module.label}"
+        if state.module_id is not None:
+            state.module = MODULE_BY_ID[state.module_id]
+            state.topic = state.module.topic
+        if self._is_simulation_request(state.question, explicit_follow_up):
+            state.intent = "simulation" if state.module else "unsupported"
+        elif self._is_general_conversation(state.question):
+            state.intent = "unsupported"
+        else:
+            state.intent = "concept"
+        if (
+            state.module is None
+            and state.intent == "concept"
+            and not self._is_supported_global_concept(state.question)
+        ):
+            state.intent = "unsupported"
+        if state.intent == "concept":
+            state.concept_sub_intent = self._detect_concept_sub_intent(state.question)
+        if state.module is None:
+            if state.intent == "simulation":
+                state.intent = "unsupported"
+                return NodeOutcome("simulation request needs a named course model")
+            return NodeOutcome("global concept or scope question")
+        detail = f"Module {state.module.number:02d}: {state.module.label}; {state.intent}"
         if state.module_from_context:
             detail += " (inherited from previous turn)"
         return NodeOutcome(detail)
@@ -673,12 +709,28 @@ class StochasticTutorAgent:
             state.retrieval_query += " " + self.RETRIEVAL_HINTS.get(
                 previous_tool, previous_tool
             )
-        state.sources = self.knowledge.retrieve(
-            state.retrieval_query,
-            topic=state.topic,
-            module_id=state.module_id,
-            limit=4,
-        )
+        if state.comparison_module_ids:
+            merged: list[dict[str, Any]] = []
+            seen_sources: set[str] = set()
+            for module_id in state.comparison_module_ids:
+                for source in self.knowledge.retrieve(
+                    state.retrieval_query,
+                    topic=MODULE_BY_ID[module_id].topic,
+                    module_id=module_id,
+                    limit=3,
+                ):
+                    if source["source"] not in seen_sources:
+                        seen_sources.add(source["source"])
+                        merged.append(source)
+            state.sources = merged[:6]
+        else:
+            state.sources = self.knowledge.retrieve(
+                state.retrieval_query,
+                topic=state.topic,
+                module_id=state.module_id,
+                concept_id=state.concept_id,
+                limit=4,
+            )
         mode = state.sources[0]["retrieval_mode"] if state.sources else "no_results"
         return NodeOutcome(f"{len(state.sources)} source-aware notes via {mode}")
 
@@ -760,69 +812,116 @@ class StochasticTutorAgent:
         )
 
     def _node_respond(self, state: AgentState) -> NodeOutcome:
+        if state.intent == "course_navigation":
+            if state.module:
+                curriculum_module = next(
+                    item for item in self.curriculum["modules"]
+                    if item["module_id"] == state.module_id
+                )
+                points = "\n".join(
+                    f"- {point['title']}"
+                    for point in curriculum_module["knowledge_points"]
+                )
+                state.answer = (
+                    f"### Module {state.module.number:02d} · {state.module.label}\n\n"
+                    f"{curriculum_module.get('summary', 'This module develops core stochastic-process ideas.')}\n\n"
+                    "### Knowledge points\n"
+                    f"{points}\n\n"
+                    f"### Recommended starting point\nStart with {curriculum_module['knowledge_points'][0]['title']}."
+                )
+                label = state.module.label
+                module_id = state.module_id
+            else:
+                labels = ", ".join(module.label for module in MODULES)
+                state.answer = (
+                    "## Stochastic Processes\n\n"
+                    "This course moves from Monte Carlo estimation through Bernoulli and "
+                    "Poisson processes, random walks, Brownian motion, Markov chains, "
+                    f"and applied stochastic models: {labels}."
+                )
+                label = "Course overview"
+                module_id = None
+            state.response = self._non_simulation_response(
+                state,
+                module_id=module_id,
+                module_label=label,
+                topic="course_navigation",
+                learning_note="Course navigation does not create a practice record.",
+            )
+            return NodeOutcome("answered from the curriculum catalogue")
+        if state.intent == "unsupported":
+            state.answer = self._offline_general_answer(state.question)
+            state.response = self._non_simulation_response(
+                state,
+                module_id="general",
+                module_label="General conversation",
+                topic="general_conversation",
+                learning_note="This was a scope conversation; no simulation was run or recorded.",
+            )
+            return NodeOutcome("scope response without simulation")
+        if state.intent == "concept":
+            if state.sources:
+                # Prefer a directly indexed textbook passage when available;
+                # notebook evidence remains the fallback for course concepts.
+                evidence = next(
+                    (
+                        source
+                        for source in state.sources
+                        if source.get("source_type") == "textbook"
+                        or "lectnotes_technmath.pdf" in str(source.get("source", ""))
+                    ),
+                    state.sources[0],
+                )
+                excerpt = self._relevant_excerpt(state.question, evidence["content"])
+                if state.module_id == "module04":
+                    excerpt = (
+                        "Brownian motion is a continuous-time stochastic process "
+                        "that starts at B(0)=0. Its increments over disjoint time "
+                        "intervals are independent, and their distributions depend "
+                        "only on the interval length, so the increments are stationary. "
+                        "For every t≥0, B(t) ~ N(0,t), and the sample paths are continuous. "
+                        f"{excerpt}"
+                    )
+                state.answer = self._synthesise_concept(state)
+            else:
+                state.answer = "I could not find enough course evidence for that question. Try naming a module or concept."
+            state.response = self._non_simulation_response(
+                state,
+                module_id=state.module_id,
+                module_label=state.module.label if state.module else "Global course material",
+                topic=state.topic or "global_concept",
+                learning_note="This explanation used course evidence and did not run a simulation.",
+            )
+            return NodeOutcome("grounded concept response without simulation")
         if state.tool_key is None or state.topic is None:
             raise RuntimeError("response state is incomplete")
         if state.verified:
-            explanation = self._summary(state.tool_key, state.result)
-            verified_anchor_text = explanation
+            explanation = self._summary_english(state.tool_key, state.result)
             source_text = (
-                state.sources[0]["content"]
-                if state.sources
-                else "本题使用可复现仿真与理论参考值进行比较。"
+                f"This experiment illustrates {state.module.label.lower()} and compares "
+                "empirical output with the corresponding theoretical reference."
             )
             deterministic_answer = (
-                f"### 先看实验结果\n{explanation}\n\n"
-                f"### 如何理解\n{source_text}\n\n"
-                f"### 给你的思考题\n{self._guiding_question(state.tool_key)}"
+                f"## Result\n{explanation}\n\n"
+                f"## What it means\n{source_text}\n\n"
+                f"## Try next\n{self._guiding_question(state.tool_key)}"
             )
-            citations = "；".join(source["source"] for source in state.sources)
-            if citations:
-                deterministic_answer += f"\n\n来源：{citations}"
         else:
             deterministic_answer = (
-                f"参数校验没有通过：{state.result['error']}。请修改参数后再运行，"
-                "我不会用不合法的参数生成看似合理的图。"
+                f"The parameters were not valid: {state.result['error']}. "
+                "Please adjust them and try again."
             )
-            verified_anchor_text = deterministic_answer
 
         if state.misconceptions:
             corrections = "\n".join(
                 f"- {item['correction']}" for item in state.misconceptions
             )
-            deterministic_answer += f"\n\n### 先纠正一个常见误区\n{corrections}"
+            deterministic_answer += f"\n\n## Check this idea\n{corrections}"
 
-        llm_prompt = json.dumps(
-            {
-                "question": state.question,
-                "topic": state.topic,
-                "verified_result_block": verified_anchor_text,
-                "source_locators": [
-                    source["source"] for source in state.sources
-                ],
-                "draft": deterministic_answer,
-            },
-            ensure_ascii=False,
-        )
-        candidate = self.llm.complete(
-            (
-                "You are a Socratic mathematics tutor. Preserve every numerical "
-                "result block and source locator exactly. Explain in concise Chinese "
-                "around the immutable block, distinguish simulation from theory, and "
-                "end with one guiding question."
-            ),
-            llm_prompt,
-        )
-        polished = (
-            candidate
-            if candidate
-            and preserves_verified_facts(
-                candidate,
-                verified_anchor_text,
-                state.sources,
-            )
-            else None
-        )
-        state.answer = polished or deterministic_answer
+        # Simulation output is authoritative numerical evidence from the Python
+        # tool. Do not send it through an LLM rewrite that could add or alter numbers.
+        state.llm_applied = False
+        state.answer = deterministic_answer
         state.response = {
             "session_id": state.session_id,
             "answer": state.answer,
@@ -831,13 +930,19 @@ class StochasticTutorAgent:
             "module_label": state.module.label,
             "topic": state.topic,
             "topic_label": state.module.label,
+            "intent": state.intent,
+            "concept_sub_intent": state.concept_sub_intent,
+            "concept_id": state.concept_id,
+            "related_module_ids": state.comparison_module_ids,
+            "related_concept_ids": state.comparison_concept_ids,
+            "tool_called": True,
             "tool": self.tools[state.tool_key].__name__,
             "parameters": state.parameters,
             "result": state.result,
             "verified": state.verified,
             "sources": state.sources,
             "trace": state.trace,
-            "workflow": {"nodes": list(self.workflow.node_names)},
+            "workflow": {"nodes": [item["node"] for item in state.trace]},
             "memory": state.profile,
             "misconceptions": state.misconceptions,
             "learning_note": state.learning_note,
@@ -847,7 +952,8 @@ class StochasticTutorAgent:
                 "parameters_inherited": sorted(state.inherited_parameters),
             },
             "llm_enabled": self.llm.enabled,
-            "llm_applied": bool(polished),
+            "llm_applied": state.llm_applied,
+            "llm": dict(state.llm_metadata),
         }
         state.response["run_sha256"] = execution_sha256(
             module_id=state.module_id,
@@ -856,11 +962,275 @@ class StochasticTutorAgent:
             result=state.result,
             corpus_sha256=self.knowledge.corpus_sha256,
         )
-        if polished:
-            return NodeOutcome("verified LLM-polished answer")
+        return NodeOutcome("verified tool answer; numerical output kept immutable")
+
+    @staticmethod
+    def _relevant_excerpt(question: str, content: str) -> str:
+        """Show the most relevant textbook sentences instead of a whole PDF page."""
+
+        terms = set(re.findall(r"[a-z][a-z0-9-]{2,}", question.lower()))
+        sentences = re.split(r"(?<=[.!?])\s+", content)
+        selected = [
+            sentence.strip()
+            for sentence in sentences
+            if terms & set(re.findall(r"[a-z][a-z0-9-]{2,}", sentence.lower()))
+        ]
+        excerpt = " ".join(selected[:5]) or content
+        return excerpt[:1200].strip()
+
+    def _synthesise_concept(self, state: AgentState) -> str:
+        """Use the configured LLM for grounded teaching, with a safe short fallback."""
+
+        module_context = []
+        module_ids = state.comparison_module_ids or ([state.module_id] if state.module_id else [])
+        for module_id in module_ids:
+            module = next(item for item in self.curriculum["modules"] if item["module_id"] == module_id)
+            module_context.append({
+                "module": f"Module {module['number']:02d} · {module['label']}",
+                "goal": module.get("summary", ""),
+                "knowledge_points": [point["title"] for point in module["knowledge_points"]],
+            })
+        evidence = [
+            {
+                "source": source["source"],
+                "title": source.get("title", ""),
+                "content": self._clean_evidence(str(source.get("content", "")))[: self.config.evidence_max_chars],
+                "module_id": source.get("module_id"),
+                "concept_id": source.get("concept_id"),
+            }
+            for source in state.sources[:6]
+        ]
+        detailed = self._asks_for_detail(state.question)
+        sub_intent = state.concept_sub_intent
+        system_prompt = f"""You are an English university tutor for Stochastic Processes.
+The original student question is the primary instruction. Answer it directly and
+do not replace it with a module overview.
+
+STUDENT QUESTION: {state.question}
+CONCEPT SUB-INTENT: {sub_intent}
+COURSE CONTEXT: The module descriptions below are navigation metadata only.
+EVIDENCE: Use the supplied curated course and textbook evidence as the factual source.
+
+The first sentence must directly answer the exact student question. Then give only
+the explanation needed for this sub-intent:
+- definition: define the term, state its important properties, then give intuition;
+- why/explanation: give the answer first, then 2–4 reasoning steps and a formula if needed;
+- derivation: show a compact step-by-step derivation;
+- comparison: state the distinction first, then compare both sides in concise bullets or a table;
+- hint: give progressive hints only, without the full solution;
+- example: explain the idea and give one concrete example;
+- how_to: give a short ordered procedure.
+
+Use headings only when they improve clarity. Do not use a universal template, and do
+not output empty sections. Never copy a retrieved passage or mention retrieval,
+chunks, embeddings, scores, tools, prompts, or internal metadata. Do not expose
+garbled PDF extraction. Use standard LaTeX with $...$ or $$...$$ when appropriate.
+Keep the default answer under 180 words{' (up to 260 words when the learner asks for detail)' if detailed else ''}.
+Use concise tutor English only."""
+        candidate = self.llm.complete(
+            system_prompt,
+            json.dumps(
+                {
+                    "student_question": state.question,
+                    "concept_sub_intent": sub_intent,
+                    "comparison": bool(state.comparison_module_ids),
+                    "curriculum_context": module_context,
+                    "evidence": evidence,
+                },
+                ensure_ascii=False,
+            ),
+        )
         if candidate:
-            return NodeOutcome("rejected ungrounded LLM rewrite; offline safe answer")
-        return NodeOutcome("offline safe answer")
+            state.llm_metadata = self._llm_metadata()
+            cleaned = self._clean_llm_answer(
+                candidate,
+                detailed=detailed,
+                question=state.question,
+                sub_intent=sub_intent,
+                max_words=self.config.answer_max_words,
+            )
+            if cleaned:
+                state.llm_applied = True
+                return cleaned
+        state.llm_applied = False
+        state.llm_metadata = self._llm_metadata()
+        return self._short_concept_fallback(state)
+
+    @staticmethod
+    def _clean_evidence(text: str) -> str:
+        """Make extracted evidence safe for the prompt without presenting it to students."""
+
+        cleaned = re.sub(r"\s+", " ", text)
+        cleaned = re.sub(r"\b(?:page|第)\s*\d+\b", " ", cleaned, flags=re.I)
+        cleaned = re.sub(r"(?:PN|P N|pij)\s*[_^]?\s*i\s*=", "", cleaned, flags=re.I)
+        return cleaned.strip()
+
+    @staticmethod
+    def _asks_for_detail(question: str) -> bool:
+        lowered = question.lower()
+        return any(marker in lowered for marker in ("in detail", "more detail", "detailed", "深入", "详细"))
+
+    @staticmethod
+    def _clean_llm_answer(
+        candidate: str,
+        *,
+        detailed: bool,
+        question: str = "",
+        sub_intent: str | None = None,
+        max_words: int = 180,
+    ) -> str | None:
+        """Accept compact English without allowing a generic module overview."""
+
+        text = candidate.strip()
+        if not text:
+            return None
+        if re.search(r"[\u4e00-\u9fff]", text):
+            return None
+        if re.search(r"according to retrieved|retriev(?:ed|al)|embedding|chunk|score|workflow|tool_called", text, re.I):
+            return None
+        if re.search(r"(?:PN|P N|pij)\s*[_^]?\s*i\s*=", text, re.I):
+            return None
+        if re.search(r"(?:this module|the module)\s+(?:studies|explores|covers)", text, re.I):
+            return None
+        if sub_intent == "hint" and re.search(
+            r"(?:\\pi|π)\s*(?:=|=)\s*(?:\\pi|π)\s*P|detailed\s+balance|solve\s+this\s+linear\s+system",
+            text,
+            re.I,
+        ):
+            # A hosted model can turn a request for a hint into a complete
+            # stationary-distribution derivation. Use the progressive offline
+            # hint instead of exposing the solution.
+            return None
+        word_count = len(re.findall(r"\b[\w]+(?:[-'][\w]+)?\b", text))
+        if word_count > (min(max_words + 80, 320) if detailed else max_words):
+            return None
+        return text
+
+    def _short_concept_fallback(self, state: AgentState) -> str:
+        """Give a question-aware answer when the hosted model is unavailable."""
+
+        lowered = state.question.lower()
+        sub_intent = state.concept_sub_intent
+        evidence_text = " ".join(
+            self._clean_evidence(str(source.get("content", "")))
+            for source in state.sources[:6]
+        ).lower()
+
+        if "continuous" in lowered and "random walk" in lowered and "self-avoid" not in lowered:
+            return (
+                "A discrete-time random walk moves at integer time steps, whereas a continuous-time random walk waits a random amount of time between jumps.\n\n"
+                "- Discrete time: the number of jumps is fixed by the time index.\n"
+                "- Continuous time: jump times are random, often driven by a Poisson process.\n"
+                "- The spatial increment rule can be similar, but the clock is different."
+            )
+
+        if state.comparison_module_ids or ("random walk" in lowered and "self-avoid" in lowered):
+            return (
+                "An ordinary random walk uses a fixed increment rule, whereas a self-avoiding walk also depends on the sites already visited.\n\n"
+                "- Random walk: the current position is enough for the usual Markov description.\n"
+                "- Self-avoiding walk: the visited set changes which moves are allowed.\n"
+                "- Consequence: a self-avoiding path can become trapped."
+            )
+
+        if sub_intent == "hint":
+            if "stationary" in lowered:
+                return "Start by writing the balance condition that leaves the state probabilities unchanged after one transition. Then add the normalization condition and solve the resulting equations."
+            return "Begin by identifying the random quantity, its conditioning information, and the theoretical relation you want to verify. Write that relation before substituting numbers."
+
+        if "strict stationarity" in lowered or ("strict" in lowered and "weak" in lowered and "station" in lowered):
+            return (
+                "Strict stationarity preserves every finite-dimensional distribution under a time shift. Weak stationarity asks only for a constant mean and a covariance that depends on the lag.\n\n"
+                "$E[X_t]=m$ and $\\operatorname{Cov}(X_t,X_{t+h})=\\gamma(h)$ are the key weak-stationarity conditions."
+            )
+
+        if "exponential" in lowered and "memoryless" in lowered:
+            return (
+                "The exponential distribution is memoryless because the chance of waiting another interval does not depend on how long you have already waited.\n\n"
+                "For $T\\sim\\operatorname{Exp}(\\lambda)$, $P(T>s+t\\mid T>s)=P(T>t)$. The exponential survival function makes the factor $e^{-\\lambda s}$ cancel."
+            )
+
+        if "poisson" in lowered and sub_intent in {"why/explanation", "derivation"}:
+            if "poisson" in evidence_text and "exponential" in evidence_text:
+                return (
+                    "A Poisson process has exponential waiting times because waiting longer than $t$ means that no arrival has occurred by time $t$.\n\n"
+                    "1. $N(t)\\sim\\operatorname{Poisson}(\\lambda t)$.\n"
+                    "2. Therefore $P(T>t)=P(N(t)=0)$.\n"
+                    "3. The Poisson probability at zero is $e^{-\\lambda t}$.\n"
+                    "Hence $T\\sim\\operatorname{Exp}(\\lambda)$."
+                )
+            return "The waiting time is exponential because its survival probability is determined by the probability of observing zero arrivals during the waiting interval."
+
+        if "poisson" in lowered:
+            return (
+                "A Poisson process counts arrivals over time with independent, stationary increments and rate $\\lambda$. For an interval of length $t$, $N(t)\\sim\\operatorname{Poisson}(\\lambda t)$; its first waiting time is exponentially distributed with rate $\\lambda$."
+            )
+
+        if "brownian" in lowered or state.module_id == "module04":
+            return (
+                "Brownian motion is a continuous process that starts at $B(0)=0$, has independent stationary increments, and satisfies $B(t)\\sim N(0,t)$. Its paths are continuous, so uncertainty grows continuously rather than through jumps."
+            )
+
+        if "stationary distribution" in lowered or ("stationary" in lowered and state.module_id == "module05"):
+            return "A stationary distribution is a probability vector that remains unchanged after one transition. For a transition matrix $P$, it satisfies $\\pi P=\\pi$ together with non-negative entries summing to one."
+
+        if "law of large numbers" in lowered:
+            return "The law of large numbers says that the average of many suitable observations approaches the expected value. This is why repeated Monte Carlo estimates become more stable as the sample size grows."
+
+        if sub_intent == "example":
+            excerpt = self._relevant_excerpt(state.question, evidence_text)
+            return f"The idea becomes concrete when you inspect one sample path and then repeat the experiment. For example, compare a single path with the distribution of its endpoint. {excerpt[:260]}".strip()
+
+        if sub_intent == "how_to":
+            return "First identify the state space and transition mechanism. Next write the governing probability equations, impose normalization, and only then evaluate the resulting expression or simulation."
+
+        if sub_intent == "derivation":
+            return "Start from the model definition, write the relevant probability or balance equation, simplify one step at a time, and check that the final expression satisfies the required normalization or boundary condition."
+
+        excerpt = self._relevant_excerpt(state.question, evidence_text)
+        return f"The key idea is stated by the model evidence: {excerpt[:360]}".strip()
+
+    def _non_simulation_response(
+        self,
+        state: AgentState,
+        *,
+        module_id: str | None,
+        module_label: str,
+        topic: str,
+        learning_note: str,
+    ) -> dict[str, Any]:
+        """Use the existing response contract without inventing a tool run."""
+
+        return {
+            "session_id": state.session_id,
+            "answer": state.answer,
+            "module_id": module_id,
+            "module_number": state.module.number if state.module else None,
+            "module_label": module_label,
+            "topic": topic,
+            "topic_label": module_label,
+            "intent": state.intent,
+            "concept_sub_intent": state.concept_sub_intent,
+            "concept_id": state.concept_id,
+            "related_module_ids": state.comparison_module_ids,
+            "related_concept_ids": state.comparison_concept_ids,
+            "tool_called": False,
+            "tool": "no_simulation",
+            "parameters": {},
+            "result": {"series": []},
+            "verified": False,
+            "sources": state.sources,
+            "trace": state.trace,
+            "workflow": {"nodes": [item["node"] for item in state.trace]},
+            "memory": self.memory.profile(state.session_id),
+            "misconceptions": [],
+            "learning_note": learning_note,
+            "recommendation": None,
+            "context": {"module_inherited": state.module_from_context, "parameters_inherited": []},
+            "llm_enabled": self.llm.enabled,
+            "llm_applied": state.llm_applied,
+            "llm": dict(state.llm_metadata),
+            "run_sha256": None,
+        }
 
     def _general_response(
         self,
@@ -876,13 +1246,17 @@ class StochasticTutorAgent:
 
         candidate = self.llm.complete(
             (
-                "You are StochLab, a friendly Chinese teaching agent for "
+                "You are StochLab, a friendly English tutor for "
                 "stochastic processes. Answer the user's product or casual "
-                "question directly in concise Chinese. Do not claim that a "
+                "question directly in concise English. Do not claim that a "
                 "simulation was run and do not invent course citations."
             ),
             json.dumps({"question": question}, ensure_ascii=False),
         )
+        # Keep the student channel English even if a provider ignores the
+        # language instruction. The local fallback is deliberately concise.
+        if candidate and re.search(r"[\u4e00-\u9fff]", candidate):
+            candidate = None
         answer = candidate or self._offline_general_answer(question)
         detail = "LLM general conversation" if candidate else "offline general conversation"
         trace = [
@@ -910,7 +1284,7 @@ class StochasticTutorAgent:
             "workflow": {"nodes": ["respond"]},
             "memory": self.memory.profile(session_id),
             "misconceptions": [],
-            "learning_note": "这是一轮普通对话，没有运行仿真，也没有写入练习记录。",
+            "learning_note": "This was a general conversation; no simulation was run and no practice record was written.",
             "recommendation": None,
             "context": {"module_inherited": False, "parameters_inherited": []},
             "llm_enabled": self.llm.enabled,
@@ -924,43 +1298,35 @@ class StochasticTutorAgent:
         """Give useful product answers when a hosted model is unavailable."""
 
         lowered = question.lower()
-        if any(marker in lowered for marker in ("这门课", "课程", "学什么")):
+        if any(marker in lowered for marker in ("this course", "course", "学什么", "课程")):
             return (
-                "这门课围绕随机过程的建模、仿真和解释展开。课程先用 Monte Carlo "
-                "建立重复抽样的直觉，再覆盖 Bernoulli 与 Poisson 过程、离散和连续时间 "
-                "随机游走、布朗运动、离散与连续时间马尔可夫链，以及可靠性、缓冲区和 "
-                "M/M/1 排队模型。最后三个探索模块讨论非齐次 Poisson 过程、自避免游走和 "
-                "圆上粒子合并。每个主题都把定义、可执行仿真、图形结果和理论量对照起来。"
+                "This course develops stochastic-process intuition through definitions, "
+                "practice questions, and verified simulations. It covers Monte Carlo "
+                "estimation, Bernoulli and Poisson processes, random walks, Brownian "
+                "motion, Markov chains, and applied reliability, buffer, and queue models."
             )
         if any(
             marker in lowered
             for marker in (
+                "first module",
                 "第一个module",
                 "第一个 module",
-                "第一个模块",
-                "第一模块",
-                "第1个module",
-                "第1个 module",
             )
         ):
             return (
-                "第一个正式教学模块是 Module 01：Bernoulli and Poisson processes。"
-                "它先从离散时间的 Bernoulli 到达开始，说明累计计数和首次等待时间，"
-                "再过渡到连续时间 Poisson 过程，比较计数分布、指数等待时间和理论均值 λT。"
-                "课程在它之前还有 Module 00，作为 Monte Carlo 仿真的准备模块。"
+                "Module 00 introduces Monte Carlo estimation. The first main teaching "
+                "module is Module 01 — Bernoulli and Poisson processes."
             )
-        if any(marker in lowered for marker in ("技术栈", "架构", "rag", "agent")):
+        if any(marker in lowered for marker in ("technical stack", "architecture", "rag", "agent")):
             return (
-                "这个项目采用 Python 本地服务和浏览器端 Dashboard。Agent 先识别问题是否属于 "
-                "11 个课程模块，再检索 Notebook 与 lecture notes 证据，选择受限的数值工具运行仿真，"
-                "随后校验结果、记录学习状态并生成回答。ChatGPT 只负责自然语言讲解；数值结果、"
-                "参数和来源仍由本地工具链锁定，因此可以追溯和复现。"
+                "The tutor uses a local Python service, course-material retrieval, "
+                "bounded simulation tools, and a browser workspace."
             )
-        if any(marker in lowered for marker in ("你叫什么", "你是谁", "介绍一下你自己")):
+        if any(marker in lowered for marker in ("what is your name", "who are you", "你是谁", "你叫什么")):
             return cls.GENERAL_FALLBACK
         return (
-            "我可以先帮你定位问题属于哪个随机过程主题，再解释概念或运行对应仿真。"
-            "你可以直接问课程总览、某个模型的原理，或给出参数让我比较模拟结果。"
+            "I can explain a course concept, describe a module, or run a verified "
+            "simulation when you provide explicit simulation instructions."
         )
 
     @classmethod
@@ -968,7 +1334,208 @@ class StochasticTutorAgent:
         """Allow a narrow chat lane without swallowing unknown tool requests."""
 
         lowered = question.lower().strip()
-        return any(marker in lowered for marker in cls.GENERAL_CHAT_MARKERS)
+        for marker in cls.GENERAL_CHAT_MARKERS:
+            # Short English markers such as ``hi`` must match a word, not a
+            # substring (otherwise ``finding`` is misclassified as a greeting).
+            if marker.isascii() and marker.isalpha() and len(marker) <= 3:
+                if re.search(rf"\b{re.escape(marker)}\b", lowered):
+                    return True
+            elif marker in lowered:
+                return True
+        return False
+
+    @staticmethod
+    def _is_course_navigation(question: str) -> bool:
+        lowered = question.lower().strip()
+        return bool(
+            re.search(r"\bmodule\s*0*(?:10|[0-9])\b", lowered)
+            or re.search(r"模块\s*0*(?:10|[0-9])", lowered)
+            or any(
+                phrase in lowered
+                for phrase in (
+                    "what is this course",
+                    "what do we learn in this course",
+                    "course overview",
+                    "这门课学什么",
+                    "课程概览",
+                )
+            )
+        )
+
+    @staticmethod
+    def _navigation_module_id(question: str) -> str | None:
+        match = re.search(r"(?:module|模块)\s*0*(10|[0-9])(?:\b|$)", question.lower())
+        return f"module{int(match.group(1)):02d}" if match else None
+
+    @staticmethod
+    def _is_comparison(question: str) -> bool:
+        lowered = question.lower()
+        return any(
+            marker in lowered
+            for marker in ("compare", "difference", " vs ", "versus", "compare with", "区别", "比较")
+        )
+
+    @staticmethod
+    def _detect_concept_sub_intent(question: str) -> str:
+        """Classify the teaching task with deterministic, low-risk cues."""
+
+        lowered = question.lower().strip()
+        if StochasticTutorAgent._is_comparison(lowered):
+            return "comparison"
+        if any(marker in lowered for marker in ("give me a hint", "hint", "clue", "提示")):
+            return "hint"
+        if any(
+            marker in lowered
+            for marker in ("derive", "derivation", "prove", "show that", "step by step", "推导", "证明")
+        ):
+            return "derivation"
+        if any(
+            marker in lowered
+            for marker in ("why", "explain why", "how come", "reason", "原因", "为什么", "解释")
+        ):
+            return "why/explanation"
+        if any(
+            marker in lowered
+            for marker in ("give an example", "for example", "example of", "illustrate", "举例", "例子")
+        ):
+            return "example"
+        if any(
+            marker in lowered
+            for marker in ("how do i", "how to", "how can i", "find a", "calculate", "compute", "怎么求", "如何找")
+        ):
+            return "how_to"
+        return "definition"
+
+    @staticmethod
+    def _is_supported_global_concept(question: str) -> bool:
+        """Keep recognized theory questions on the global RAG lane."""
+
+        lowered = question.lower()
+        return any(
+            marker in lowered
+            for marker in (
+                "law of large numbers",
+                "strict stationarity",
+                "weak stationarity",
+                "stationarity",
+                "stationary distribution",
+                "exponential distribution",
+                "memoryless",
+                "ergodic",
+                "martingale",
+                "stochastic process",
+            )
+        )
+
+    @staticmethod
+    def _detect_module_ids(question: str) -> list[str]:
+        lowered = question.lower().replace("‑", "-").replace("–", "-")
+        scores: list[tuple[int, int, str]] = []
+        for module in MODULES:
+            matched = [keyword for keyword in module.keywords if keyword in lowered]
+            if matched:
+                scores.append((max(len(item) for item in matched), len(matched), module.module_id))
+        scores.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [item[2] for item in scores]
+
+    def _match_concept(self, question: str, module_id: str | None) -> str | None:
+        """Resolve a concept only when title/alias evidence is sufficiently specific."""
+
+        lowered = " ".join(
+            question.lower().replace("‑", "-").replace("–", "-").replace("-", " ").split()
+        )
+        # Strict/weak stationarity is a process-level distinction, not the
+        # discrete Markov-chain stationary-distribution concept in Module 05.
+        if "strict stationarity" in lowered or "weak stationarity" in lowered:
+            return None
+        candidates = [
+            point
+            for point in self._concepts
+            if module_id is None or point["module_id"] == module_id
+        ]
+        stopwords = {
+            "and", "the", "for", "from", "with", "what", "why", "how",
+            "does", "this", "that", "process", "model", "time", "state",
+            "distribution", "function", "system", "chain", "random",
+        }
+        query_tokens = {
+            token
+            for token in re.findall(r"[a-z][a-z0-9-]{2,}", lowered)
+            if token not in stopwords
+        }
+        scored: list[tuple[int, int, str]] = []
+        for point in candidates:
+            concept_id = str(point["id"])
+            title = " ".join(str(point["title"]).lower().replace("-", " ").split())
+            aliases = set(self.CONCEPT_ALIASES.get(concept_id, ()))
+            aliases.add(title)
+            aliases.add(str(point["summary"]).lower())
+            best = 0
+            for alias in aliases:
+                normalized_alias = " ".join(alias.replace("-", " ").split())
+                if len(normalized_alias) >= 5 and normalized_alias in lowered:
+                    best = max(best, 100 + len(normalized_alias.split()))
+            title_tokens = {
+                token for token in re.findall(r"[a-z][a-z0-9-]{2,}", title)
+                if token not in stopwords
+            }
+            overlap = len(query_tokens & title_tokens)
+            if overlap >= 2:
+                best = max(best, 20 + overlap * 8)
+            if best:
+                scored.append((best, overlap, concept_id))
+        if not scored:
+            return self._retrieval_concept_fallback(question, module_id)
+        scored.sort(reverse=True)
+        best_score, _, best_id = scored[0]
+        second_score = scored[1][0] if len(scored) > 1 else 0
+        if best_score < 20 or (best_score < 100 and best_score - second_score < 8):
+            return self._retrieval_concept_fallback(question, module_id)
+        return best_id
+
+    def _retrieval_concept_fallback(
+        self, question: str, module_id: str | None
+    ) -> str | None:
+        """Use repeated concept-tagged evidence only when lexical confidence is low."""
+
+        if module_id is None:
+            return None
+        evidence = self.knowledge.retrieve(
+            question,
+            module_id=module_id,
+            limit=5,
+        )
+        counts: dict[str, int] = {}
+        for source in evidence:
+            concept_id = source.get("concept_id")
+            if concept_id:
+                counts[str(concept_id)] = counts.get(str(concept_id), 0) + 1
+        candidates = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+        if not candidates or candidates[0][1] < 2:
+            return None
+        if len(candidates) > 1 and candidates[0][1] == candidates[1][1]:
+            return None
+        return candidates[0][0]
+
+    @classmethod
+    def _is_simulation_request(cls, question: str, explicit_follow_up: bool = False) -> bool:
+        lowered = question.lower().strip()
+        if any(marker in lowered for marker in cls.SIMULATION_MARKERS):
+            return True
+        # Legacy course prompts often provide model parameters without the
+        # English word "simulate" (for example, a Bernoulli process followed
+        # by a slot count and probability). Treat those as experiments while
+        # keeping definition-only questions on the concept path.
+        if classify_module(question) is not None and any(
+            cls._parameter_mentioned(key, question)
+            for key in cls.PARAMETER_LABELS
+        ):
+            return True
+        # A parameter-only continuation such as “rate to 3” remains a
+        # simulation follow-up, but a normal definition question never does.
+        return explicit_follow_up and any(
+            cls._parameter_mentioned(key, question) for key in cls.PARAMETER_LABELS
+        )
 
     @staticmethod
     def _is_explicit_follow_up(question: str) -> bool:
@@ -992,22 +1559,52 @@ class StochasticTutorAgent:
         return any(marker in lowered for marker in follow_up_markers)
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
+        started = time.perf_counter()
         normalized_question = validate_question(question)
         resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
         history = self.memory.history(resolved_session, limit=1)
-        classified_module = self.classify_module(normalized_question)
-        if classified_module is None:
-            if self._is_general_conversation(normalized_question):
-                return self._general_response(normalized_question, resolved_session)
-            if not history or not self._is_explicit_follow_up(normalized_question):
-                raise ValueError(
-                    "I could not identify the teaching module. Please name a model or Module 00-10."
-                )
         state = AgentState(
             question=normalized_question,
             session_id=resolved_session,
             previous_turn=history[-1] if history else None,
+            llm_metadata={**self._llm_metadata(), "status": "not_called", "latency_ms": 0.0, "retry_count": 0},
         )
         completed = self.workflow.invoke(state)
+        # The respond node builds the payload before the graph appends its own
+        # trace entry. Refresh both views so API consumers see the complete
+        # workflow, including respond.
+        if completed.response:
+            completed.response["trace"] = completed.trace
+            completed.response["workflow"] = {
+                "nodes": [item["node"] for item in completed.trace]
+            }
+            durations = {
+                item["node"]: item.get("duration_ms", 0.0)
+                for item in completed.trace
+            }
+            completed.response["observability"] = {
+                "request_id": None,
+                "intent": completed.intent,
+                "concept_sub_intent": completed.concept_sub_intent,
+                "module_id": completed.module_id,
+                "concept_id": completed.concept_id,
+                "llm_enabled": self.llm.enabled,
+                "llm_applied": completed.llm_applied,
+                "provider": completed.llm_metadata.get("provider"),
+                "model": completed.llm_metadata.get("model"),
+                "retry_count": completed.llm_metadata.get("retry_count", 0),
+                "latency_ms": {
+                    "routing": durations.get("classify", 0.0),
+                    "retrieval": durations.get("retrieve", 0.0),
+                    "llm": completed.llm_metadata.get("latency_ms", 0.0),
+                    "simulation": durations.get("tool", 0.0),
+                    "total": round((time.perf_counter() - started) * 1000, 2),
+                },
+                "input_tokens": completed.llm_metadata.get("input_tokens"),
+                "output_tokens": completed.llm_metadata.get("output_tokens"),
+                "total_tokens": completed.llm_metadata.get("total_tokens"),
+                "tool_called": bool(completed.response.get("tool_called")),
+                "source_locators": [source.get("source") for source in completed.sources if source.get("source")],
+            }
         completed.response["teaching_team"] = build_team_trace(completed.trace)
         return completed.response

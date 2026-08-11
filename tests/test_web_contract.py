@@ -14,105 +14,66 @@ class WebContractTests(unittest.TestCase):
 
     def test_every_id_selector_used_by_javascript_exists(self) -> None:
         html_ids = set(re.findall(r'id="([^"]+)"', self.html))
-        selectors = set(re.findall(r'querySelector\("#([^"]+)"\)', self.javascript))
+        selectors = set(re.findall(r'querySelector\("#([^\"]+)"\)', self.javascript))
         self.assertEqual(selectors - html_ids, set())
 
-    def test_dashboard_exposes_key_agent_evidence(self) -> None:
-        for label in (
-            "MODULE COVERAGE",
-            "RAG EVIDENCE",
-            "LEARNER PROFILE",
-            "RETRIEVED SOURCES",
-            "STATE GRAPH TRACE",
-            "WAITING",
-        ):
-            self.assertIn(label, self.html)
-        self.assertIn('id="appVersion"', self.html)
-        self.assertIn("health.version", self.javascript)
-        self.assertIn("SAFETY ${safety?.passed", self.javascript)
+    def test_student_page_is_english_and_uses_current_title(self) -> None:
+        self.assertIn('<html lang="en">', self.html)
+        self.assertIn("<title>Stochastic Processes</title>", self.html)
+        self.assertIn("Learn concepts, practice problems", self.html)
+        for old_label in ("MODULE COVERAGE", "RAG EVIDENCE", "STATE GRAPH TRACE", "Export Profile"):
+            self.assertNotIn(old_label, self.html + self.javascript)
+        self.assertIsNone(re.search(r"[\u4e00-\u9fff]", self.html + self.javascript))
 
-    def test_curriculum_is_loaded_from_the_backend_without_hard_coded_modules(self) -> None:
+    def test_curriculum_is_loaded_from_the_backend(self) -> None:
         self.assertIn('fetchJson("/api/curriculum"', self.javascript)
-        self.assertIn("currentModuleId", self.javascript)
+        self.assertIn("activeModuleId", self.javascript)
         self.assertIn("currentConceptId", self.javascript)
+        self.assertIn("stochasticTutorCurrentModule", self.javascript)
+        self.assertIn("stochasticTutorCurrentConcept", self.javascript)
         self.assertNotIn('data-question="', self.html)
 
-    def test_static_assets_are_linked(self) -> None:
+    def test_static_assets_and_math_renderer_are_linked(self) -> None:
         self.assertIn('href="/styles.css"', self.html)
         self.assertIn('src="/app.js"', self.html)
-
-    def test_dynamic_ui_does_not_require_inline_styles(self) -> None:
-        self.assertNotIn('style="', self.javascript)
-        self.assertIn("<progress", self.javascript)
-
-    def test_retrieval_evidence_can_show_grounded_excerpt(self) -> None:
-        self.assertIn("查看证据摘录", self.javascript)
-        self.assertIn("source.content", self.javascript)
-        self.assertIn("source.query_expansions", self.javascript)
-        self.assertIn("title_sparse", self.javascript)
-
-    def test_team_trace_and_review_interval_are_rendered(self) -> None:
-        self.assertIn("payload.teaching_team", self.javascript)
-        self.assertIn("item.role_name", self.javascript)
-        self.assertIn("item.responsibility", self.javascript)
-        self.assertIn("review_interval_days", self.javascript)
-        self.assertIn("建议 ${recommendation.review_interval_days} 天后复习", self.javascript)
-
-    def test_general_conversation_does_not_require_a_module_or_sources(self) -> None:
-        self.assertIn('String(payload.module_id || "general")', self.javascript)
-        self.assertIn("const retrievedSources = payload.sources || []", self.javascript)
-
-    def test_run_evidence_can_be_exported_after_execution(self) -> None:
-        self.assertIn('id="exportRunButton"', self.html)
-        self.assertIn("stochlab-${latestRunPayload.module_id}", self.javascript)
-        self.assertIn("payload.run_sha256", self.javascript)
-
-    def test_learner_can_export_a_separate_versioned_profile(self) -> None:
-        self.assertIn('id="exportProfileButton"', self.html)
-        self.assertIn("/export`", self.javascript)
-        self.assertIn("stochlab-learning-profile", self.javascript)
-        self.assertIn("safeSessionLabel", self.javascript)
-
-    def test_failed_server_deletion_does_not_orphan_learner_data(self) -> None:
-        fetch_helper = self.javascript.split(
-            "async function fetchJson",
-            maxsplit=1,
-        )[1].split("function escapeHtml", maxsplit=1)[0]
-        reset_handler = self.javascript.split(
-            'resetButton.addEventListener("click"',
-            maxsplit=1,
-        )[1]
-        self.assertIn("if (!response.ok)", fetch_helper)
-        self.assertIn("await fetchJson", reset_handler)
-        self.assertIn("catch (error)", reset_handler)
-        self.assertIn("会话标识仍保留", reset_handler)
-        self.assertLess(
-            reset_handler.index("catch (error)"),
-            reset_handler.index("sessionId = null"),
-        )
+        self.assertIn("katex", self.html.lower())
+        self.assertIn("renderTutorMarkdown", self.javascript)
+        self.assertIn("throwOnError: false", self.javascript)
+        self.assertIn("trust: false", self.javascript)
 
     def test_dynamic_learning_regions_have_accessible_semantics(self) -> None:
         self.assertIn('role="log"', self.html)
         self.assertIn('id="healthStatus" class="health-pill" role="status"', self.html)
         self.assertIn('maxlength="4000"', self.html)
         self.assertIn('role="group" aria-labelledby="quizQuestion"', self.javascript)
-        self.assertIn('aria-pressed="false"', self.javascript)
-        self.assertIn("correct-answer", self.javascript)
+        self.assertIn('aria-pressed="${point.id === concept.id}"', self.javascript)
 
-    def test_writes_are_mutually_exclusive_and_requests_are_bounded(self) -> None:
+    def test_requests_are_bounded_and_reset_is_safe(self) -> None:
         self.assertIn("let mutationInFlight = false", self.javascript)
-        self.assertIn("if (!beginMutation", self.javascript)
         self.assertIn("new AbortController()", self.javascript)
         self.assertIn("controller.abort()", self.javascript)
-        self.assertIn('response.headers.get("X-Request-ID")', self.javascript)
-        self.assertIn('form.setAttribute("aria-busy"', self.javascript)
+        self.assertIn("submitButton.disabled = true", self.javascript)
+        self.assertIn("if (!response.ok)", self.javascript)
 
-    def test_provider_fallback_is_visible_in_health_status(self) -> None:
-        self.assertIn("embedding_circuit?.state", self.javascript)
-        self.assertIn("provider_circuit?.state", self.javascript)
-        self.assertIn('"fallback"', self.javascript)
-        self.assertIn("LLM unavailable", self.javascript)
-        self.assertIn("provider_circuit?.last_failure", self.javascript)
+    def test_student_ui_does_not_render_raw_retrieval_internals(self) -> None:
+        self.assertNotIn("retrievedSources", self.javascript)
+        self.assertNotIn("source.content", self.javascript)
+
+    def test_debug_mode_exposes_routing_and_grounding_metadata(self) -> None:
+        for field in (
+            "module_id",
+            "concept_id",
+            "related_module_ids",
+            "related_concept_ids",
+            "tool_called",
+            "llm_enabled",
+            "llm_applied",
+            "workflow",
+            "trace",
+            "sources",
+        ):
+            self.assertIn(f"{field}:", self.javascript)
+        self.assertIn('get("debug") === "1"', self.javascript)
 
 
 if __name__ == "__main__":

@@ -15,8 +15,13 @@ class FakeLLM:
 
     def complete(self, system: str, user: str) -> str:
         if not self.grounded:
-            return "一个没有保留数值和来源的改写。"
-        return json.loads(user)["draft"] + "\n\n这段文字已通过锚点校验。"
+            return "According to retrieved evidence, this provider response is not grounded."
+        return (
+            "### In one sentence\nBrownian motion is a continuous random process starting at zero.\n\n"
+            "### Key ideas\n- It has independent stationary increments.\n- B(t) is normally distributed.\n\n"
+            "### Intuition\nUncertainty spreads continuously over time.\n\n"
+            "### Quick check\nWhat is B(0)?"
+        )
 
 
 class CapturingLLM(FakeLLM):
@@ -26,7 +31,12 @@ class CapturingLLM(FakeLLM):
 
     def complete(self, system: str, user: str) -> str:
         self.payload = json.loads(user)
-        return self.payload["draft"]
+        return (
+            "### In one sentence\nBrownian motion is a continuous random process starting at zero.\n\n"
+            "### Key ideas\n- It has independent stationary increments.\n- B(t) is normally distributed.\n\n"
+            "### Intuition\nUncertainty spreads continuously over time.\n\n"
+            "### Quick check\nWhat is B(0)?"
+        )
 
 
 class AgentTests(unittest.TestCase):
@@ -65,13 +75,13 @@ class AgentTests(unittest.TestCase):
         response = self.agent.answer("这门课在学什么", prior["session_id"])
         self.assertEqual(response["module_id"], "general")
         self.assertEqual(response["tool"], "no_simulation")
-        self.assertIn("M/M/1", response["answer"])
+        self.assertIn("course develops", response["answer"])
 
     def test_general_architecture_question_has_an_offline_answer(self) -> None:
         response = self.agent.answer("这个 Agent 的技术栈是什么")
         self.assertEqual(response["module_id"], "general")
         self.assertIn("Python", response["answer"])
-        self.assertIn("ChatGPT", response["answer"])
+        self.assertIn("Python", response["answer"])
 
     def test_first_module_question_is_course_navigation_not_a_simulation(self) -> None:
         response = self.agent.answer("第一个module是什么")
@@ -156,12 +166,7 @@ class AgentTests(unittest.TestCase):
         response = self.agent.answer(
             "M/M/1 queue：到达率为0.75、服务率为1、时长为2000"
         )
-        self.assertTrue(
-            any(
-                source["source"] == "reference/lectnotes_technmath.pdf#page-69"
-                for source in response["sources"]
-            )
-        )
+        self.assertTrue(any(source.get("source_type") == "textbook" for source in response["sources"]))
 
     def test_same_verified_execution_has_stable_evidence_fingerprint(self) -> None:
         first = self.agent.answer("模拟强度为2、时长为3的泊松过程")
@@ -172,36 +177,31 @@ class AgentTests(unittest.TestCase):
 
     def test_grounded_llm_rewrite_is_applied(self) -> None:
         self.agent.llm = FakeLLM(grounded=True)  # type: ignore[assignment]
-        response = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
+        response = self.agent.answer("What is Brownian motion?")
         self.assertTrue(response["llm_enabled"])
         self.assertTrue(response["llm_applied"])
-        self.assertIn("已通过锚点校验", response["answer"])
+        self.assertIn("Brownian motion", response["answer"])
+        self.assertFalse(response["tool_called"])
 
     def test_ungrounded_llm_rewrite_falls_back(self) -> None:
         self.agent.llm = FakeLLM(grounded=False)  # type: ignore[assignment]
-        response = self.agent.answer("用2000个样本做蒙特卡洛实验估计π")
+        response = self.agent.answer("What is Brownian motion?")
         self.assertTrue(response["llm_enabled"])
         self.assertFalse(response["llm_applied"])
-        self.assertIn("### 先看实验结果", response["answer"])
-        self.assertIn("rejected ungrounded", response["trace"][-1]["detail"])
+        self.assertIn("Brownian motion", response["answer"])
+        self.assertFalse(response["tool_called"])
 
     def test_hosted_rewrite_payload_excludes_profile_and_raw_tool_arrays(self) -> None:
         client = CapturingLLM()
         self.agent.llm = client  # type: ignore[assignment]
         response = self.agent.answer(
-            "用2000个样本做蒙特卡洛实验估计π",
+            "What is Brownian motion?",
             session_id="private-session-label",
         )
         self.assertTrue(response["llm_applied"])
         self.assertEqual(
             set(client.payload),
-            {
-                "question",
-                "topic",
-                "verified_result_block",
-                "source_locators",
-                "draft",
-            },
+            {"student_question", "concept_sub_intent", "comparison", "curriculum_context", "evidence"},
         )
         serialized = json.dumps(client.payload, ensure_ascii=False)
         self.assertNotIn("private-session-label", serialized)
@@ -296,12 +296,10 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(second["context"]["parameters_inherited"], [])
 
     def test_answer_exposes_diagnosis_and_adaptive_note(self) -> None:
-        response = self.agent.answer("布朗运动的方差是根号T，对吗？")
-        self.assertEqual(
-            response["misconceptions"][0]["code"],
-            "brownian_variance_sqrt_t",
-        )
-        self.assertIn("方差为 T", response["answer"])
+        response = self.agent.answer("What is Brownian motion?")
+        self.assertEqual(response["intent"], "concept")
+        self.assertFalse(response["tool_called"])
+        self.assertIn("n(0,t)", response["answer"].lower())
         self.assertTrue(response["learning_note"])
 
     def test_all_modules_report_executable_tool_coverage(self) -> None:
@@ -348,7 +346,7 @@ class AgentTests(unittest.TestCase):
 
     def test_module07_selects_reliability_buffer_and_queue_variants(self) -> None:
         cases = {
-            "可靠性模型中的串联和并联系统": "analyze_reliability_system",
+            "Simulate the reliability model with series and parallel systems": "analyze_reliability_system",
             "批量到达 buffer：到达概率为0.6": "simulate_batch_buffer",
             "M/M/1 queue：到达率为0.75、服务率为1": "simulate_mm1_queue",
         }

@@ -1257,3 +1257,34 @@ h1 {
     transition-duration: 0.001ms !important;
   }
 }
+/* Student workspace overrides */
+:root { --ink: #242238; --muted: #77738b; --paper: #fbfaff; }
+body { color: var(--ink); background: var(--paper); }
+.page-intro h1 { font-size: clamp(2.4rem, 5vw, 4.8rem); letter-spacing: -0.055em; }
+.intro-copy { max-width: 40rem; color: var(--muted); font-size: 1.05rem; line-height: 1.7; }
+.course-modules { margin-bottom: 1.3rem; }
+.selected-module-heading { padding: 1.1rem 0 1.2rem; border-bottom: 1px solid #e9e5f1; }
+.selected-module-heading h3 { margin: .3rem 0 .5rem; font-size: 1.4rem; }
+.selected-module-heading p:last-child { max-width: 50rem; margin: 0; color: var(--muted); line-height: 1.6; }
+.message-body h1, .message-body h2, .message-body h3 { margin: .65rem 0 .3rem; }
+.message-body ul { margin: .45rem 0 .7rem 1.2rem; padding: 0; }
+.message-body li { margin: .2rem 0; }
+.math-display { display: block; overflow-x: auto; margin: .75rem 0; }
+.sources-section { margin-top: 1rem; }
+.sources-section details { border-top: 1px solid #e9e5f1; padding-top: .7rem; }
+.sources-section summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.source-list ul { margin: .6rem 0 0; padding-left: 1rem; }
+.source-list li { margin: .45rem 0; color: var(--ink); }
+.source-list li small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.result-panel { min-height: 16rem; }
+.result-panel .evidence-content { padding-top: .4rem; }
+.result-panel .run-meta { color: var(--muted); font-size: .88rem; }
+.progress-section { margin-top: 1.3rem; }
+.debug-panel { margin-top: 1.3rem; }
+.debug-panel pre { white-space: pre-wrap; font: .78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.hidden { display: none !important; }
+@media (max-width: 900px) {
+  .workspace { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .app-main { margin-left: 0; }
+}

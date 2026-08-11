@@ -5,3 +5,6 @@ __pycache__
 artifacts
 reference
 research/open_source/vendor
+.env
+.env.*
+!.env.example

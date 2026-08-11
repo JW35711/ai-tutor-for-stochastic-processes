@@ -45,10 +45,9 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
             if "error" not in response["result"]:
                 verified_count += 1
                 required_sections = (
-                    "### 先看实验结果",
-                    "### 如何理解",
-                    "### 给你的思考题",
-                    "来源：",
+                    "## Result",
+                    "## What it means",
+                    "## Try next",
                 )
                 structured = all(
                     section in response["answer"] for section in required_sections

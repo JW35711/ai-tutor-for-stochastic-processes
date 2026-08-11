@@ -26,6 +26,11 @@ class AgentState:
     module_id: str | None = None
     module: Any = None
     topic: str | None = None
+    intent: str = "unsupported"
+    concept_sub_intent: str = "definition"
+    concept_id: str | None = None
+    comparison_module_ids: list[str] = field(default_factory=list)
+    comparison_concept_ids: list[str] = field(default_factory=list)
     module_from_context: bool = False
 
     retrieval_query: str = ""
@@ -42,6 +47,8 @@ class AgentState:
     learning_note: str = ""
     recommendation: dict[str, str] = field(default_factory=dict)
     answer: str = ""
+    llm_applied: bool = False
+    llm_metadata: dict[str, Any] = field(default_factory=dict)
     response: dict[str, Any] = field(default_factory=dict)
 
 
@@ -57,6 +64,7 @@ NodeHandler = Callable[[AgentState], NodeOutcome]
 class WorkflowNode:
     name: str
     handler: NodeHandler
+    enabled: Callable[[AgentState], bool] | None = None
 
 
 class StateGraph:
@@ -76,6 +84,8 @@ class StateGraph:
 
     def invoke(self, state: AgentState) -> AgentState:
         for node in self.nodes:
+            if node.enabled is not None and not node.enabled(state):
+                continue
             started = perf_counter()
             try:
                 outcome = node.handler(state)

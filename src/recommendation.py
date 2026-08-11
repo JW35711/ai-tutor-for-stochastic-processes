@@ -8,17 +8,17 @@ from .module_registry import MODULES
 
 
 PRACTICE_PROMPTS: dict[str, str] = {
-    "module00": "用10000个样本估计π，并解释样本量增大后误差如何变化",
-    "module01": "比较伯努利等待时间和泊松过程等待时间",
-    "module02": "改变向上概率，预测随机游走终点均值的方向",
-    "module03": "改变跳跃率，比较连续时间随机游走的跳跃次数",
-    "module04": "先预测B(T)的方差，再用布朗运动仿真验证",
-    "module05": "模拟马尔可夫链并比较经验分布与平稳分布",
-    "module06": "改变故障率，预测连续时间链的平稳概率",
-    "module07": "改变M/M/1到达率并解释稳定性边界",
-    "module08": "改变峰值强度，预测非齐次泊松计数均值",
-    "module09": "比较普通随机游走与自避免游走的停止机制",
-    "module10": "改变初始粒子数，比较合并时间分布",
+    "module00": "Estimate π with 10000 samples and explain how the error changes as sample size grows",
+    "module01": "Compare Bernoulli waiting times with Poisson-process waiting times",
+    "module02": "Change the up-step probability and predict the direction of the endpoint mean",
+    "module03": "Change the jump rate and compare jump counts in a continuous-time random walk",
+    "module04": "Predict the variance of B(T), then verify it with a Brownian-motion simulation",
+    "module05": "Simulate a Markov chain and compare empirical frequencies with a stationary distribution",
+    "module06": "Change the failure rate and predict the long-run probability of the up state",
+    "module07": "Change the M/M/1 arrival rate and explain the stability boundary",
+    "module08": "Change the peak intensity and predict the nonhomogeneous Poisson count mean",
+    "module09": "Compare the stopping mechanisms of an ordinary and a self-avoiding walk",
+    "module10": "Change the initial particle count and compare coalescence-time distributions",
 }
 
 
@@ -44,7 +44,7 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
         target = MODULES[0]
         selected_module = None
         reason_code = "start_foundation"
-        reason = "还没有练习记录，先用 Monte Carlo 熟悉重复抽样和理论对照。"
+        reason = "There is no practice record yet. Start with Monte Carlo to learn repeated sampling and theoretical comparison."
     else:
         needs_evidence = sorted(
             (
@@ -67,16 +67,16 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
             )
             reason_code = "strengthen_evidence"
             if selected.get("quiz_attempts", 0) == 0:
-                reason = "该模块已有仿真实践，但还没有概念题证据，适合先预测再验证。"
+                reason = "This module has a simulation record but no concept evidence yet; predict first, then verify."
             else:
-                reason = "该模块的练习证据仍较少，先改变一个参数并解释变化方向。"
+                reason = "Practice evidence for this module is still limited; change one parameter and explain the direction of change."
         else:
             uncovered = [module for module in MODULES if module.module_id not in modules]
             if uncovered:
                 target = uncovered[0]
                 selected_module = modules.get(target.module_id)
                 reason_code = "expand_coverage"
-                reason = "已练习模块的证据较完整，可以按课程顺序扩展到下一个模型。"
+                reason = "Evidence for practiced modules is fairly complete; continue in course order to the next model."
             else:
                 selected = min(
                     modules.values(),
@@ -89,7 +89,7 @@ def recommend_next(profile: dict[str, Any]) -> dict[str, str]:
                     if module.module_id == selected["module_id"]
                 )
                 reason_code = "boundary_challenge"
-                reason = "所有模块都已有记录，下一步适合检验边界情形和模型假设。"
+                reason = "Every module has a record; next, test a boundary case or a model assumption."
     return {
         "module_id": target.module_id,
         "module_label": target.label,

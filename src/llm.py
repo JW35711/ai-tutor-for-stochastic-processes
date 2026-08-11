@@ -6,13 +6,15 @@ import json
 import math
 import os
 import re
+import socket
 import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
 from threading import Lock
+from urllib.parse import urlparse
 
-from .config import env_float, env_int
+from .config import RuntimeConfig, runtime_config
 
 
 class OpenAICompatibleLLM:
@@ -21,37 +23,21 @@ class OpenAICompatibleLLM:
     def __init__(
         self,
         *,
+        config: RuntimeConfig | None = None,
         failure_cooldown: float | None = None,
         clock: Callable[[], float] | None = None,
+        sleep: Callable[[float], None] | None = None,
     ) -> None:
-        self.api_key = os.getenv("LLM_API_KEY", "")
-        self.model = os.getenv("LLM_MODEL", "")
-        self.base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-        self.timeout = env_float(
-            "LLM_TIMEOUT_SECONDS",
-            30,
-            minimum=0.1,
-            maximum=300,
-        )
-        self.max_response_bytes = env_int(
-            "LLM_MAX_RESPONSE_BYTES",
-            1_000_000,
-            minimum=1_024,
-            maximum=20_000_000,
-        )
-        self.max_content_chars = env_int(
-            "LLM_MAX_CONTENT_CHARS",
-            12_000,
-            minimum=256,
-            maximum=100_000,
-        )
+        self.config = config or runtime_config()
+        self.api_key = self.config.llm_api_key
+        self.model = self.config.llm_model
+        self.base_url = self.config.llm_base_url
+        self.timeout = self.config.llm_timeout
+        self.max_retries = self.config.llm_max_retries
+        self.max_response_bytes = self.config.llm_max_response_bytes
+        self.max_content_chars = self.config.llm_max_content_chars
         self.failure_cooldown = (
-            env_float(
-                "LLM_FAILURE_COOLDOWN_SECONDS",
-                60,
-                minimum=0,
-                maximum=3600,
-            )
+            self.config.llm_failure_cooldown
             if failure_cooldown is None
             else float(failure_cooldown)
         )
@@ -60,6 +46,7 @@ class OpenAICompatibleLLM:
         ):
             raise ValueError("failure_cooldown must be between 0 and 3600")
         self._clock = clock or time.monotonic
+        self._sleep = sleep or time.sleep
         self._circuit_lock = Lock()
         self._retry_after = 0.0
         self._request_in_flight = False
@@ -68,6 +55,16 @@ class OpenAICompatibleLLM:
         self._failures = 0
         self._skips = 0
         self._last_failure: str | None = None
+        self._last_request: dict[str, object] = {
+            "provider": urlparse(self.base_url).netloc,
+            "model": self.model or None,
+            "status": "not_started",
+            "retry_count": 0,
+            "latency_ms": 0.0,
+            "input_tokens": None,
+            "output_tokens": None,
+            "total_tokens": None,
+        }
 
     @property
     def enabled(self) -> bool:
@@ -79,91 +76,123 @@ class OpenAICompatibleLLM:
         user: str,
         timeout: float | None = None,
     ) -> str | None:
+        started = time.perf_counter()
         if not self.enabled:
+            self._set_last_request("disabled", 0, started)
             return None
         now = self._clock()
         with self._circuit_lock:
             if now < self._retry_after or self._request_in_flight:
                 self._skips += 1
-                return None
-            self._request_in_flight = True
-            self._attempts += 1
+                skipped = True
+            else:
+                skipped = False
+                self._request_in_flight = True
+                self._attempts += 1
+        if skipped:
+            self._set_last_request("circuit_open", 0, started)
+            return None
         effective_timeout = self.timeout if timeout is None else float(timeout)
         if not math.isfinite(effective_timeout) or not 0 < effective_timeout <= 300:
             with self._circuit_lock:
                 self._request_in_flight = False
             raise ValueError("completion timeout must be between 0 and 300 seconds")
-        try:
-            request = urllib.request.Request(
-                f"{self.base_url}/chat/completions",
-                data=json.dumps(
-                    {
-                        "model": self.model,
-                        "temperature": 0.2,
-                        "messages": [
-                            {"role": "system", "content": system},
-                            {"role": "user", "content": user},
-                        ],
-                    }
-                ).encode("utf-8"),
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                method="POST",
-            )
-            with urllib.request.urlopen(
-                request,
-                timeout=effective_timeout,
-            ) as response:
-                body = response.read(self.max_response_bytes + 1)
-            if len(body) > self.max_response_bytes:
-                raise RuntimeError("LLM response exceeds configured limit")
-            payload = json.loads(body.decode("utf-8"))
-            content = payload["choices"][0]["message"]["content"]
-            if (
-                not isinstance(content, str)
-                or not content.strip()
-                or len(content) > self.max_content_chars
-            ):
-                raise RuntimeError("LLM content violates configured contract")
-        except urllib.error.HTTPError as error:
-            # Keep a useful operational signal without storing the provider body,
-            # which can contain request details or provider-generated text.
-            with self._circuit_lock:
-                self._failures += 1
-                self._last_failure = f"HTTP_{error.code}"
-                self._retry_after = self._clock() + self.failure_cooldown
-                self._request_in_flight = False
-            return None
-        except (
-            urllib.error.URLError,
-            TimeoutError,
-            AttributeError,
-            KeyError,
-            IndexError,
-            TypeError,
-            ValueError,
-            UnicodeDecodeError,
-            json.JSONDecodeError,
-            RuntimeError,
-        ) as error:
-            with self._circuit_lock:
-                self._failures += 1
-                self._last_failure = type(error).__name__
-                self._retry_after = self._clock() + self.failure_cooldown
-                self._request_in_flight = False
-            return None
-        except BaseException:
-            with self._circuit_lock:
-                self._request_in_flight = False
-            raise
+        for attempt in range(self.max_retries + 1):
+            try:
+                request = urllib.request.Request(
+                    f"{self.base_url}/chat/completions",
+                    data=json.dumps(
+                        {
+                            "model": self.model,
+                            "temperature": 0.2,
+                            "messages": [
+                                {"role": "system", "content": system},
+                                {"role": "user", "content": user},
+                            ],
+                        },
+                        ensure_ascii=False,
+                    ).encode("utf-8"),
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json; charset=utf-8",
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(request, timeout=effective_timeout) as response:
+                    body = response.read(self.max_response_bytes + 1)
+                if len(body) > self.max_response_bytes:
+                    raise RuntimeError("LLM response exceeds configured limit")
+                payload = json.loads(body.decode("utf-8"))
+                content = payload["choices"][0]["message"]["content"]
+                if (
+                    not isinstance(content, str)
+                    or not content.strip()
+                    or len(content) > self.max_content_chars
+                ):
+                    raise RuntimeError("LLM content violates configured contract")
+                usage = payload.get("usage") if isinstance(payload, dict) else None
+                self._finish_success(attempt, started, usage if isinstance(usage, dict) else None)
+                return content.strip()
+            except urllib.error.HTTPError as error:
+                status_code = int(error.code or 0)
+                retryable = status_code == 429 or 500 <= status_code < 600
+                if retryable and attempt < self.max_retries:
+                    self._sleep(min(2.0, 0.2 * (2**attempt)))
+                    continue
+                self._finish_failure(f"HTTP_{status_code}", attempt, started)
+                return None
+            except (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError, OSError) as error:
+                if attempt < self.max_retries:
+                    self._sleep(min(2.0, 0.2 * (2**attempt)))
+                    continue
+                self._finish_failure(type(error).__name__, attempt, started)
+                return None
+            except (AttributeError, KeyError, IndexError, TypeError, ValueError,
+                    UnicodeDecodeError, json.JSONDecodeError, RuntimeError) as error:
+                self._finish_failure(type(error).__name__, attempt, started)
+                return None
+            except BaseException:
+                with self._circuit_lock:
+                    self._request_in_flight = False
+                raise
+        self._finish_failure("retry_exhausted", self.max_retries, started)
+        return None
+
+    def _set_last_request(self, status: str, retry_count: int, started: float, **extra: object) -> None:
+        with self._circuit_lock:
+            self._last_request = {
+                "provider": urlparse(self.base_url).netloc,
+                "model": self.model or None,
+                "status": status,
+                "retry_count": retry_count,
+                "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                "input_tokens": extra.get("input_tokens"),
+                "output_tokens": extra.get("output_tokens"),
+                "total_tokens": extra.get("total_tokens"),
+            }
+
+    def _finish_success(self, attempt: int, started: float, usage: dict[str, object] | None) -> None:
         with self._circuit_lock:
             self._successes += 1
             self._last_failure = None
             self._retry_after = 0.0
             self._request_in_flight = False
-        return content.strip()
+        self._set_last_request(
+            "success",
+            attempt,
+            started,
+            input_tokens=usage.get("prompt_tokens") if usage else None,
+            output_tokens=usage.get("completion_tokens") if usage else None,
+            total_tokens=usage.get("total_tokens") if usage else None,
+        )
+
+    def _finish_failure(self, reason: str, attempt: int, started: float) -> None:
+        with self._circuit_lock:
+            self._failures += 1
+            self._last_failure = reason
+            self._retry_after = self._clock() + self.failure_cooldown
+            self._request_in_flight = False
+        self._set_last_request("failed", attempt, started)
 
     def stats(self) -> dict[str, object]:
         """Return bounded provider state without prompts or credentials."""
@@ -187,7 +216,16 @@ class OpenAICompatibleLLM:
                 "failures": self._failures,
                 "skips": self._skips,
                 "last_failure": self._last_failure,
+                "retry_count": self._last_request.get("retry_count", 0),
+                "provider": self._last_request.get("provider"),
+                "model": self._last_request.get("model"),
             }
+
+    def last_request(self) -> dict[str, object]:
+        """Return safe timing/usage metadata without credentials or prompts."""
+
+        with self._circuit_lock:
+            return dict(self._last_request)
 
 
 def preserves_verified_facts(
