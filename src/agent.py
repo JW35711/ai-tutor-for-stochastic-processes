@@ -688,6 +688,11 @@ class StochasticTutorAgent:
             state.intent = "unsupported"
         if state.intent == "concept":
             state.concept_sub_intent = self._detect_concept_sub_intent(state.question)
+        state.question_requirements = self._analyze_question_requirements(state.question)
+        if state.intent == "unsupported":
+            state.answerability_status = "OUT_OF_SCOPE"
+        elif state.intent == "course_navigation":
+            state.answerability_status = "SUPPORTED"
         if state.module is None:
             if state.intent == "simulation":
                 state.intent = "unsupported"
@@ -709,12 +714,53 @@ class StochasticTutorAgent:
             state.retrieval_query += " " + self.RETRIEVAL_HINTS.get(
                 previous_tool, previous_tool
             )
+        state.question_requirements = self._analyze_question_requirements(state.question)
+        state.retrieval_rounds = 0
+        state.sources = self._retrieve_for_state(state, state.retrieval_query)
+        state.retrieval_rounds = 1
+        self._update_answerability(state)
+
+        # A relevant but incomplete hit gets at most two targeted follow-up
+        # retrievals. The query is built from missing course requirements, not
+        # from an unconstrained model loop.
+        while (
+            state.intent == "concept"
+            and state.answerability_status == "PARTIAL"
+            and state.retrieval_rounds < 3
+            and not state.question_requirements.get("missing_user_requirements")
+        ):
+            supplement = self._supplementary_query(state)
+            if not supplement or supplement == state.retrieval_query:
+                break
+            extra = self._retrieve_for_state(state, supplement)
+            before = {str(source.get("source")) for source in state.sources}
+            for source in extra:
+                if str(source.get("source")) not in before:
+                    state.sources.append(source)
+                    before.add(str(source.get("source")))
+            limit = 6 if state.comparison_module_ids else 4
+            state.sources = state.sources[:limit]
+            state.retrieval_query = supplement
+            state.retrieval_rounds += 1
+            self._update_answerability(state)
+            if not extra:
+                break
+
+        mode = state.sources[0]["retrieval_mode"] if state.sources else "no_results"
+        return NodeOutcome(
+            f"{len(state.sources)} source-aware notes via {mode}; "
+            f"answerability={state.answerability_status}, rounds={state.retrieval_rounds}"
+        )
+
+    def _retrieve_for_state(self, state: AgentState, query: str) -> list[dict[str, Any]]:
+        """Retrieve for one bounded round while preserving comparison behavior."""
+
         if state.comparison_module_ids:
             merged: list[dict[str, Any]] = []
             seen_sources: set[str] = set()
             for module_id in state.comparison_module_ids:
                 for source in self.knowledge.retrieve(
-                    state.retrieval_query,
+                    query,
                     topic=MODULE_BY_ID[module_id].topic,
                     module_id=module_id,
                     limit=3,
@@ -722,17 +768,228 @@ class StochasticTutorAgent:
                     if source["source"] not in seen_sources:
                         seen_sources.add(source["source"])
                         merged.append(source)
-            state.sources = merged[:6]
-        else:
-            state.sources = self.knowledge.retrieve(
-                state.retrieval_query,
-                topic=state.topic,
-                module_id=state.module_id,
-                concept_id=state.concept_id,
-                limit=4,
+            return merged[:6]
+        return self.knowledge.retrieve(
+            query,
+            topic=state.topic,
+            module_id=state.module_id,
+            concept_id=state.concept_id,
+            limit=4,
+        )
+
+    def _analyze_question_requirements(self, question: str) -> dict[str, Any]:
+        """Extract small stochastic-process-specific requirements deterministically."""
+
+        lowered = question.lower().replace("‑", "-").replace("–", "-")
+        concepts: list[str] = []
+        concept_titles: list[str] = []
+        for concept in self._concepts:
+            aliases = self.CONCEPT_ALIASES.get(concept["id"], ())
+            if any(alias in lowered for alias in (concept["title"].lower(), *aliases)):
+                concepts.append(concept["id"])
+                concept_titles.append(concept["title"])
+
+        groups: list[dict[str, Any]] = []
+        user_groups: list[dict[str, Any]] = []
+        if "poisson" in lowered and any(
+            term in lowered for term in ("waiting", "wait", "interarrival", "arrival time")
+        ):
+            groups.extend(
+                [
+                    {"label": "Poisson process", "terms": ["poisson process", "poisson"]},
+                    {"label": "waiting or interarrival time", "terms": ["waiting time", "waiting", "interarrival"]},
+                    {"label": "exponential waiting-time law", "terms": ["exponential"]},
+                ]
             )
-        mode = state.sources[0]["retrieval_mode"] if state.sources else "no_results"
-        return NodeOutcome(f"{len(state.sources)} source-aware notes via {mode}")
+        elif "poisson" in lowered:
+            groups.extend(
+                [
+                    {"label": "Poisson process", "terms": ["poisson process", "poisson"]},
+                    {"label": "independent increments or counts", "terms": ["independent increment", "independent increments", "count", "n(t)"]},
+                ]
+            )
+        if "memoryless" in lowered:
+            groups.extend(
+                [
+                    {"label": "exponential distribution", "terms": ["exponential"]},
+                    {"label": "memoryless property", "terms": ["memoryless", "lack of memory"]},
+                ]
+            )
+        if "brownian" in lowered:
+            groups.extend(
+                [
+                    {"label": "Brownian motion", "terms": ["brownian"]},
+                    {"label": "continuous paths or increments", "terms": ["continuous", "increment"]},
+                    {"label": "normal terminal distribution", "terms": ["normal", "gaussian", "n(0,t)"]},
+                ]
+            )
+        if "strict stationarity" in lowered or "weak stationarity" in lowered:
+            groups.extend(
+                [
+                    {"label": "strict stationarity", "terms": ["strict stationarity"]},
+                    {"label": "weak stationarity", "terms": ["weak stationarity", "covariance", "constant mean"]},
+                ]
+            )
+        if "random walk" in lowered and "self-avoid" in lowered:
+            groups.extend(
+                [
+                    {"label": "ordinary random walk", "terms": ["random walk"]},
+                    {"label": "self-avoiding walk", "terms": ["self-avoiding", "self avoiding", "visited set"]},
+                ]
+            )
+        if "hitting time" in lowered and any(
+            marker in lowered for marker in ("exact", "formula", "result", "calculate", "compute")
+        ):
+            for label, terms in (
+                ("initial state", ["initial", "start", "starting"]),
+                ("boundary or target", ["boundary", "target", "level"]),
+                ("step or transition probabilities", ["probability", "drift", "transition"]),
+            ):
+                user_groups.append({"label": label, "terms": terms})
+
+        # A valid course keyword can coexist with a non-course policy claim.
+        # Keep that condition explicit so a Poisson hit cannot answer it.
+        if "poisson" in lowered and any(
+            marker in lowered for marker in ("external contractor", "taxi", "travel expense", "reimburse", "claim")
+        ):
+            groups.extend(
+                [
+                    {"label": "external-contractor eligibility", "terms": ["external contractor", "contractor"]},
+                    {"label": "travel or taxi reimbursement rule", "terms": ["travel", "taxi", "reimburse", "expense"]},
+                ]
+            )
+
+        relation = None
+        if self._is_comparison(question):
+            relation = "comparison"
+        elif any(marker in lowered for marker in (" imply ", " depends on ", " consequence", " can .* answer")):
+            relation = "implication"
+        target_quantity = next(
+            (term for term in ("hitting time", "waiting time", "stationary distribution", "variance", "mean", "probability") if term in lowered),
+            None,
+        )
+        assumptions = [
+            marker
+            for marker in ("initial state", "starting point", "boundary", "rate", "horizon", "capacity", "probability")
+            if marker in lowered
+        ]
+        return {
+            "concepts": concepts,
+            "concept_titles": concept_titles,
+            "sub_intent": self._detect_concept_sub_intent(question),
+            "requested_claim": question.strip(),
+            "assumptions": assumptions,
+            "target_quantity": target_quantity,
+            "relation_between_concepts": relation,
+            "requirement_groups": groups,
+            "user_requirement_groups": user_groups,
+        }
+
+    @staticmethod
+    def _source_text(source: dict[str, Any]) -> str:
+        return " ".join(
+            str(source.get(field, "")) for field in ("title", "content", "claim", "summary")
+        ).lower()
+
+    def _update_answerability(self, state: AgentState) -> None:
+        """Classify evidence support separately from retrieval relevance."""
+
+        if state.intent == "unsupported":
+            state.answerability_status = "OUT_OF_SCOPE"
+            state.missing_requirements = []
+            state.supporting_source_locators = []
+            state.conflicting_source_locators = []
+            return
+        requirements = state.question_requirements or self._analyze_question_requirements(state.question)
+        sources = state.sources
+        if not sources:
+            state.answerability_status = "NONE"
+            state.missing_requirements = [
+                group["label"] for group in requirements.get("requirement_groups", [])
+            ] or ["course evidence for the requested claim"]
+            state.supporting_source_locators = []
+            state.conflicting_source_locators = []
+            return
+
+        missing: list[str] = []
+        corpus = " ".join(self._source_text(source) for source in sources)
+        for group in requirements.get("requirement_groups", []):
+            if not any(term.lower() in corpus for term in group["terms"]):
+                missing.append(group["label"])
+        missing_user: list[str] = []
+        lowered_question = state.question.lower()
+        for group in requirements.get("user_requirement_groups", []):
+            if not any(term.lower() in lowered_question for term in group["terms"]):
+                missing_user.append(group["label"])
+        requirements["missing_user_requirements"] = missing_user
+        state.question_requirements = requirements
+        state.missing_requirements = missing + missing_user
+
+        supporting: list[str] = []
+        for source in sources:
+            locator = str(source.get("source") or "")
+            text = self._source_text(source)
+            if any(
+                any(term.lower() in text for term in group["terms"])
+                for group in requirements.get("requirement_groups", [])
+            ) and locator:
+                supporting.append(locator)
+        state.supporting_source_locators = list(dict.fromkeys(supporting))
+        conflicting = self._detect_conflicting_sources(sources)
+        state.conflicting_source_locators = conflicting
+        if conflicting:
+            state.answerability_status = "CONFLICT"
+        elif missing or missing_user:
+            state.answerability_status = "PARTIAL"
+        elif not state.supporting_source_locators and requirements.get("requirement_groups"):
+            state.answerability_status = "NONE"
+        else:
+            state.answerability_status = "SUPPORTED"
+
+    @staticmethod
+    def _detect_conflicting_sources(sources: list[dict[str, Any]]) -> list[str]:
+        """Detect explicit material contradictions, not ordinary wording changes."""
+
+        claims: dict[str, dict[str, set[str]]] = {}
+        patterns = (
+            ("memoryless", r"\bmemoryless\b", r"\b(?:not|isn't|is not)\s+memoryless\b"),
+            ("independent_increments", r"\bindependent\s+increments?\b", r"\b(?:not|aren't|are not)\s+independent\s+increments?\b"),
+            ("stationary", r"\bstationary\b", r"\b(?:not|isn't|is not)\s+stationary\b"),
+        )
+        for source in sources:
+            locator = str(source.get("source") or "")
+            text = StochasticTutorAgent._source_text(source)
+            explicit_key = source.get("claim_key")
+            explicit_polarity = source.get("claim_polarity")
+            if explicit_key and explicit_polarity in {"positive", "negative"}:
+                claims.setdefault(str(explicit_key), {"positive": set(), "negative": set()})[str(explicit_polarity)].add(locator)
+            for key, positive, negative in patterns:
+                if re.search(negative, text, re.I):
+                    claims.setdefault(key, {"positive": set(), "negative": set()})["negative"].add(locator)
+                elif re.search(positive, text, re.I):
+                    claims.setdefault(key, {"positive": set(), "negative": set()})["positive"].add(locator)
+        conflicting: list[str] = []
+        for claim in claims.values():
+            if claim["positive"] and claim["negative"]:
+                conflicting.extend(sorted(claim["positive"] | claim["negative"]))
+        return list(dict.fromkeys(locator for locator in conflicting if locator))
+
+    def _supplementary_query(self, state: AgentState) -> str:
+        expansions = {
+            "exponential waiting-time law": "exponential distribution interarrival time P(N(t)=0)",
+            "waiting or interarrival time": "waiting time interarrival time survival probability",
+            "independent increments or counts": "independent increments count distribution N(t)",
+            "continuous paths or increments": "continuous sample paths independent increments",
+            "normal terminal distribution": "Gaussian normal distribution B(t) N(0,t)",
+            "strict stationarity": "strict stationarity finite-dimensional distributions",
+            "weak stationarity": "weak stationarity constant mean covariance lag",
+            "external-contractor eligibility": "external contractor eligibility policy",
+            "travel or taxi reimbursement rule": "travel taxi reimbursement rule",
+        }
+        missing = [item for item in state.missing_requirements if item in expansions]
+        if not missing:
+            return ""
+        return f"{state.question} " + " ".join(expansions[item] for item in missing)
 
     def _node_plan(self, state: AgentState) -> NodeOutcome:
         default_tool = state.module.tool_key
@@ -860,7 +1117,13 @@ class StochasticTutorAgent:
             )
             return NodeOutcome("scope response without simulation")
         if state.intent == "concept":
-            if state.sources:
+            if state.answerability_status == "CONFLICT":
+                state.answer = self._conflict_answer(state)
+            elif state.answerability_status == "PARTIAL":
+                state.answer = self._partial_answer(state)
+            elif state.answerability_status == "NONE":
+                state.answer = self._none_answer(state)
+            elif state.sources:
                 # Prefer a directly indexed textbook passage when available;
                 # notebook evidence remains the fallback for course concepts.
                 evidence = next(
@@ -935,6 +1198,12 @@ class StochasticTutorAgent:
             "concept_id": state.concept_id,
             "related_module_ids": state.comparison_module_ids,
             "related_concept_ids": state.comparison_concept_ids,
+            "answerability_status": state.answerability_status,
+            "missing_requirements": state.missing_requirements,
+            "supporting_source_locators": state.supporting_source_locators,
+            "conflicting_source_locators": state.conflicting_source_locators,
+            "retrieval_rounds": state.retrieval_rounds,
+            "question_requirements": state.question_requirements,
             "tool_called": True,
             "tool": self.tools[state.tool_key].__name__,
             "parameters": state.parameters,
@@ -963,6 +1232,52 @@ class StochasticTutorAgent:
             corpus_sha256=self.knowledge.corpus_sha256,
         )
         return NodeOutcome("verified tool answer; numerical output kept immutable")
+
+    def _partial_answer(self, state: AgentState) -> str:
+        """Answer only supported material and expose the missing requirement."""
+
+        concepts = state.question_requirements.get("concept_titles", [])
+        supported = ", ".join(concepts[:2]) if concepts else "the related stochastic-process concept"
+        missing = ", ".join(state.missing_requirements[:3]) or "a condition needed for the requested claim"
+        if state.question_requirements.get("missing_user_requirements"):
+            question = state.question_requirements["missing_user_requirements"][0]
+            return (
+                f"The course material can explain {supported}, but it does not determine the requested result without the {question}. "
+                f"Please provide the {question} so I can check the claim rather than guess."
+            )
+        return (
+            f"The retrieved course material supports discussion of {supported}, but it does not establish the requested conclusion. "
+            f"The missing evidence is: {missing}. I can explain the supported concept, but I cannot give a definitive answer from these materials."
+        )
+
+    @staticmethod
+    def _none_answer(state: AgentState) -> str:
+        if state.question_requirements.get("missing_user_requirements"):
+            missing = state.question_requirements["missing_user_requirements"][0]
+            return f"I do not have enough course evidence to answer that exactly. What is the {missing}?"
+        return (
+            "The course materials do not provide enough evidence for that claim. "
+            "Please name the stochastic model or specify the quantity you want to determine."
+        )
+
+    def _conflict_answer(self, state: AgentState) -> str:
+        """Surface explicit source disagreement instead of selecting silently."""
+
+        excerpts: list[str] = []
+        for source in state.sources:
+            locator = str(source.get("source") or "")
+            if locator not in state.conflicting_source_locators:
+                continue
+            text = self._clean_evidence(str(source.get("content") or source.get("claim") or ""))
+            sentence = re.split(r"(?<=[.!?])\s+", text)[0][:180]
+            if sentence:
+                excerpts.append(f"- {sentence} [Source: {locator}]")
+        detail = "\n".join(excerpts[:4])
+        return (
+            "The supplied course sources make materially different claims, so I cannot give one definitive answer without more context.\n\n"
+            f"The supported positions are:\n{detail}\n\n"
+            "Which model, convention, or source should govern this question?"
+        )
 
     @staticmethod
     def _relevant_excerpt(question: str, content: str) -> str:
@@ -1008,8 +1323,10 @@ do not replace it with a module overview.
 
 STUDENT QUESTION: {state.question}
 CONCEPT SUB-INTENT: {sub_intent}
+QUESTION REQUIREMENTS: {json.dumps(state.question_requirements, ensure_ascii=False)}
+ANSWERABILITY STATUS: {state.answerability_status}
 COURSE CONTEXT: The module descriptions below are navigation metadata only.
-EVIDENCE: Use the supplied curated course and textbook evidence as the factual source.
+SUPPORTED EVIDENCE: Use only the supplied curated course and textbook evidence as the factual source.
 
 The first sentence must directly answer the exact student question. Then give only
 the explanation needed for this sub-intent:
@@ -1024,7 +1341,9 @@ the explanation needed for this sub-intent:
 Use headings only when they improve clarity. Do not use a universal template, and do
 not output empty sections. Never copy a retrieved passage or mention retrieval,
 chunks, embeddings, scores, tools, prompts, or internal metadata. Do not expose
-garbled PDF extraction. Use standard LaTeX with $...$ or $$...$$ when appropriate.
+garbled PDF extraction. Every substantive claim must be supported by the supplied
+evidence; do not infer a conclusion merely because related concepts were retrieved.
+Use standard LaTeX with $...$ or $$...$$ when appropriate.
 Keep the default answer under 180 words{' (up to 260 words when the learner asks for detail)' if detailed else ''}.
 Use concise tutor English only."""
         candidate = self.llm.complete(
@@ -1213,6 +1532,12 @@ Use concise tutor English only."""
             "concept_id": state.concept_id,
             "related_module_ids": state.comparison_module_ids,
             "related_concept_ids": state.comparison_concept_ids,
+            "answerability_status": state.answerability_status,
+            "missing_requirements": state.missing_requirements,
+            "supporting_source_locators": state.supporting_source_locators,
+            "conflicting_source_locators": state.conflicting_source_locators,
+            "retrieval_rounds": state.retrieval_rounds,
+            "question_requirements": state.question_requirements,
             "tool_called": False,
             "tool": "no_simulation",
             "parameters": {},
@@ -1280,6 +1605,12 @@ Use concise tutor English only."""
             "result": {"series": []},
             "verified": False,
             "sources": [],
+            "answerability_status": "OUT_OF_SCOPE",
+            "missing_requirements": [],
+            "supporting_source_locators": [],
+            "conflicting_source_locators": [],
+            "retrieval_rounds": 0,
+            "question_requirements": self._analyze_question_requirements(question),
             "trace": trace,
             "workflow": {"nodes": ["respond"]},
             "memory": self.memory.profile(session_id),
@@ -1588,6 +1919,11 @@ Use concise tutor English only."""
                 "concept_sub_intent": completed.concept_sub_intent,
                 "module_id": completed.module_id,
                 "concept_id": completed.concept_id,
+                "answerability_status": completed.answerability_status,
+                "missing_requirements": completed.missing_requirements,
+                "supporting_source_locators": completed.supporting_source_locators,
+                "conflicting_source_locators": completed.conflicting_source_locators,
+                "retrieval_rounds": completed.retrieval_rounds,
                 "llm_enabled": self.llm.enabled,
                 "llm_applied": completed.llm_applied,
                 "provider": completed.llm_metadata.get("provider"),

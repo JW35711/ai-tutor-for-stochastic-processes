@@ -103,8 +103,9 @@ not a hostile multi-tenant service.
 
 ## Evaluation interpretation
 
-The repository's 109 acceptance cases are regression tests for this curriculum:
-30 single-turn, 5 multi-turn, 44 retrieval, 10 pedagogy and 20 safety cases. A
+The current repository baseline contains 116 governance cases for this curriculum:
+30 single-turn, 5 multi-turn, 44 retrieval, 10 pedagogy, 20 safety and 7
+answerability cases. A
 perfect pass rate means the checked behaviors did not regress. It is not evidence of
 general mathematical reasoning quality, fairness across learner populations or
 improved learning outcomes. A course deployment would require instructor

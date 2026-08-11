@@ -84,6 +84,7 @@ If asked how that last boundary is enforced, point to the conditional workflow:
 simulation answers come directly from validated Python tools, while provider
 failure or malformed concept output falls back to the grounded offline answer.
 
-These boundaries give a clear next-step discussion: learned reranking,
-LLM-as-judge evaluation with human calibration, richer quiz banks, and a
-deployed multi-user identity layer.
+These boundaries give a clear next-step discussion: a deterministic
+answerability gate is already in place. An optional hybrid design could add a
+semantic/LLM entailment judge only for ambiguous low-confidence cases, followed
+by richer quiz banks and a deployed multi-user identity layer.

@@ -6,7 +6,7 @@
 
 | Course coverage | Knowledge points | Executable tools | RAG entries | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 40 | 15 | 421 | 109/109 regression + 22/22 v1 |
+| 11/11 modules | 40 | 15 | 421 | 116/116 current governance + 22/22 v1 |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -259,6 +259,7 @@ python3 evals/run_pedagogy_evaluation.py
 python3 evals/run_safety_evaluation.py
 python3 evals/run_latency_benchmark.py --repetitions 2
 python3 evals/run_v1_acceptance.py
+python3 evals/run_answerability_evaluation.py
 # Optional real-provider run; reads local ignored .env and writes no credentials.
 python3 evals/run_v1_acceptance.py --real --output /tmp/v1_acceptance_real.json
 ```
@@ -274,9 +275,23 @@ tool decision, answer and source locators. These figures describe this
 repository's small regression sets, not a general benchmark of tutoring
 quality.
 
-`data/evaluation_manifest.json` is the checked dashboard summary. A unit test
-ties every displayed suite count to its versioned case file, while CI reruns
-all suites before a release can pass. Each CI run also retains the JSON
+The current answerability gate uses deterministic evidence-coverage rules and
+bounded supplementary retrieval. It checks whether retrieved evidence is
+sufficient for the requested stochastic-process claim, distinguishes
+`SUPPORTED`, `PARTIAL`, `CONFLICT`, `NONE` and `OUT_OF_SCOPE`, and records
+supplementary retrieval rounds. Its metrics include answerability accuracy,
+unsupported-answer rate, abstention precision, supplementary-retrieval success
+and conflict-detection accuracy. Conflict detection currently handles explicit
+contradictory claims; complex implicit contradiction and entailment are future
+work. A future optional hybrid design can keep the deterministic gate first and
+invoke a semantic/LLM entailment judge only for ambiguous low-confidence cases.
+
+`data/evaluation_manifest.json` is the checked current baseline and now totals
+116 cases across single-turn, multi-turn, retrieval, pedagogy, safety and
+answerability suites. The previous 109-case v1.0.0 result is preserved in
+`data/evaluation_manifest_v1.0.0.json` and is not presented as current. A unit
+test ties every displayed suite count to its versioned case file, while CI
+reruns all suites before a release can pass. Each CI run also retains the JSON
 evaluation reports as downloadable artifacts for 14 days.
 The manifest stores the evaluated corpus SHA; the Dashboard replaces its score
 with `STALE` if the running knowledge index no longer matches that version.

@@ -35,6 +35,17 @@ jobs:
         run: python3 evals/run_safety_evaluation.py --output /tmp/safety_report.json
       - name: v1 Tutor acceptance set (offline mock)
         run: python3 evals/run_v1_acceptance.py --output /tmp/v1_acceptance_report.json
+      - name: Evidence sufficiency evaluation
+        run: python3 evals/run_answerability_evaluation.py > /tmp/answerability_report.json
+      - name: Generate current evaluation manifest
+        run: |
+          python3 evals/generate_evaluation_manifest.py \
+            --main /tmp/evaluation_report.json \
+            --retrieval /tmp/retrieval_report.json \
+            --pedagogy /tmp/pedagogy_report.json \
+            --safety /tmp/safety_report.json \
+            --answerability /tmp/answerability_report.json \
+            --output /tmp/evaluation_manifest.json
       - name: Record local node-latency benchmark
         run: python3 evals/run_latency_benchmark.py --repetitions 1 --output /tmp/latency_benchmark.json
       - name: Preserve evaluation evidence
@@ -47,6 +58,8 @@ jobs:
             /tmp/pedagogy_report.json
             /tmp/safety_report.json
             /tmp/v1_acceptance_report.json
+            /tmp/answerability_report.json
+            /tmp/evaluation_manifest.json
             /tmp/latency_benchmark.json
           retention-days: 14
 

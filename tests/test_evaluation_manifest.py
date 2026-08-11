@@ -21,6 +21,7 @@ class EvaluationManifestTests(unittest.TestCase):
             "retrieval": len(json.loads((ROOT / "evals/retrieval_cases.json").read_text("utf-8"))),
             "pedagogy": len(json.loads((ROOT / "evals/pedagogy_cases.json").read_text("utf-8"))),
             "safety": len(json.loads((ROOT / "evals/safety_cases.json").read_text("utf-8"))),
+            "answerability": len(json.loads((ROOT / "evals/answerability_cases.json").read_text("utf-8"))),
         }
         case_files = {
             "single_turn": ROOT / "evals/cases.json",
@@ -28,6 +29,7 @@ class EvaluationManifestTests(unittest.TestCase):
             "retrieval": ROOT / "evals/retrieval_cases.json",
             "pedagogy": ROOT / "evals/pedagogy_cases.json",
             "safety": ROOT / "evals/safety_cases.json",
+            "answerability": ROOT / "evals/answerability_cases.json",
         }
         self.assertEqual(
             {suite_id: suite["cases"] for suite_id, suite in suites.items()},
@@ -36,6 +38,9 @@ class EvaluationManifestTests(unittest.TestCase):
         self.assertEqual(manifest["total"], sum(expected.values()))
         self.assertEqual(manifest["passed"], manifest["total"])
         self.assertEqual(manifest["corpus_sha256"], KnowledgeBase().corpus_sha256)
+        self.assertEqual(manifest["version"], 3)
+        self.assertEqual(manifest["baseline_id"], "current-evidence-sufficiency")
+        self.assertEqual(manifest["historical_baseline"]["total"], 109)
         for suite_id, path in case_files.items():
             self.assertEqual(
                 suites[suite_id]["cases_file"],

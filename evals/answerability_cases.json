@@ -1,0 +1,20 @@
+[
+  {"id": "supported_poisson_waiting", "question": "Why does a Poisson process have exponential waiting times?", "expected": "SUPPORTED"},
+  {"id": "partial_hitting_conditions", "question": "What is the exact hitting time result for a random walk?", "expected": "PARTIAL"},
+  {"id": "partial_unsupported_implication", "question": "Does a Poisson process answer whether an external contractor can claim travel expenses?", "expected": "PARTIAL"},
+  {"id": "out_of_scope_policy", "question": "Can an external contractor claim travel expenses?", "expected": "OUT_OF_SCOPE"},
+  {"id": "supported_brownian", "question": "What is Brownian motion?", "expected": "SUPPORTED"},
+  {
+    "id": "conflicting_memoryless_claims",
+    "mode": "synthetic_conflict",
+    "question": "Why is the exponential distribution memoryless?",
+    "expected": "CONFLICT"
+  },
+  {
+    "id": "supplementary_waiting_evidence",
+    "mode": "synthetic_supplement",
+    "question": "Why does a Poisson process have exponential waiting times?",
+    "expected": "SUPPORTED",
+    "expected_rounds_min": 2
+  }
+]

@@ -35,6 +35,12 @@ class AgentState:
 
     retrieval_query: str = ""
     sources: list[dict[str, Any]] = field(default_factory=list)
+    question_requirements: dict[str, Any] = field(default_factory=dict)
+    answerability_status: str = "NONE"
+    missing_requirements: list[str] = field(default_factory=list)
+    supporting_source_locators: list[str] = field(default_factory=list)
+    conflicting_source_locators: list[str] = field(default_factory=list)
+    retrieval_rounds: int = 0
 
     tool_key: str | None = None
     parameters: dict[str, Any] = field(default_factory=dict)
