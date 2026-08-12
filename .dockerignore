@@ -2,7 +2,8 @@
 .venv
 __pycache__
 *.pyc
-artifacts
+artifacts/*
+!artifacts/textbook_chunks.json
 reference
 research/open_source/vendor
 .env

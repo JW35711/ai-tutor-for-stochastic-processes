@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY . /app
 
 RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p /app/artifacts \
-    && chown -R appuser:appuser /app/artifacts
+    && mkdir -p /app/runtime \
+    && chown -R appuser:appuser /app/runtime
 
 USER appuser
 

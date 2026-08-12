@@ -12,13 +12,13 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_TIMEOUT: ${LLM_TIMEOUT:-30}
       LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-2}
-      TUTOR_MEMORY_PATH: /app/artifacts/tutor_memory.sqlite3
+      TUTOR_MEMORY_PATH: /app/runtime/tutor_memory.sqlite3
       MEMORY_RETENTION_DAYS: "30"
       MAX_SESSION_EVENTS: "1000"
       API_RATE_LIMIT_PER_MINUTE: "60"
       API_RATE_LIMIT_CLIENT_CAP: "10000"
     volumes:
-      - tutor-data:/app/artifacts
+      - tutor-data:/app/runtime
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m

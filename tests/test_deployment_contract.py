@@ -45,9 +45,9 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertNotRegex(self.compose, r"sk-[A-Za-z0-9]{20,}")
 
     def test_only_artifact_volume_and_bounded_tmp_are_writable(self) -> None:
-        self.assertIn("tutor-data:/app/artifacts", self.compose)
+        self.assertIn("tutor-data:/app/runtime", self.compose)
         self.assertIn("/tmp:rw,noexec,nosuid,size=64m", self.compose)
-        self.assertIn("TUTOR_MEMORY_PATH: /app/artifacts/", self.compose)
+        self.assertIn("TUTOR_MEMORY_PATH: /app/runtime/", self.compose)
 
     def test_ci_starts_checks_and_cleans_hardened_service(self) -> None:
         self.assertIn("docker compose config --quiet", self.workflow)
