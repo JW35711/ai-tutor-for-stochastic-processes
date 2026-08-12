@@ -20,6 +20,11 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("USER appuser", self.dockerfile)
         self.assertIn("useradd --create-home --uid 10001", self.dockerfile)
 
+    def test_container_installs_the_declared_langgraph_runtime(self) -> None:
+        self.assertIn("COPY requirements.txt /app/requirements.txt", self.dockerfile)
+        self.assertIn("pip install --no-cache-dir -r /app/requirements.txt", self.dockerfile)
+        self.assertRegex((ROOT / "requirements.txt").read_text("utf-8"), r"(?m)^langgraph>=")
+
     def test_compose_limits_network_and_kernel_surface(self) -> None:
         for contract in (
             '"127.0.0.1:8000:8000"',

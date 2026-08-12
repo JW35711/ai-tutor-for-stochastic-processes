@@ -128,6 +128,24 @@ def simulate_poisson_process(
     first_events = event_paths[0] if event_paths else []
     step_times = [0.0, *first_events, horizon]
     step_counts = list(range(len(first_events) + 1)) + [counts[0]]
+    convergence_panels: list[dict[str, Any]] = []
+    for n_value in (10, 50, 200):
+        m = int(n_value * horizon)
+        p = min(1.0, rate / n_value)
+        support = list(range(0, 21))
+        binomial = [
+            math.comb(m, k) * p**k * (1 - p) ** (m - k) if k <= m else 0.0
+            for k in support
+        ]
+        poisson = [
+            math.exp(-rate * horizon)
+            * (rate * horizon) ** k
+            / math.factorial(k)
+            for k in support
+        ]
+        convergence_panels.append(
+            {"parameter": {"n": n_value}, "x": support, "binomial": binomial, "poisson": poisson}
+        )
     return {
         "topic": "poisson",
         "parameters": {
@@ -150,6 +168,10 @@ def simulate_poisson_process(
                 "x": _compress_series(step_times),
                 "values": _compress_series(step_counts),
             }
+        ],
+        "panels": convergence_panels,
+        "visualizations": [
+            {"id": "module01-viz-08", "renderer": "multi_panel", "panels": convergence_panels}
         ],
         "chart": {"x_label": "time", "y_label": "N(t)"},
     }
@@ -321,6 +343,32 @@ def simulate_brownian_motion(
 
     mean = sum(endpoints) / paths
     variance = sum((endpoint - mean) ** 2 for endpoint in endpoints) / paths
+    # The first sample path is also exposed as a particle trajectory.  Two
+    # additional independent coordinates use separate streams so the original
+    # one-dimensional result remains unchanged while the notebook's 2-D/3-D
+    # particle figures can be reproduced from structured data.
+    def particle_path(dimension: int, stream: int) -> list[list[float]]:
+        particle_rng = random.Random(seed + stream)
+        values = [0.0] * dimension
+        points = [[0.0] * dimension]
+        for _ in range(steps):
+            for coordinate in range(dimension):
+                values[coordinate] += particle_rng.gauss(0.0, scale)
+            points.append([round(value, 6) for value in values])
+        return points
+
+    particle_2d = particle_path(2, 101)
+    particle_3d = particle_path(3, 202)
+    particle_times = [index * dt for index in range(steps + 1)]
+
+    def compress_points(points: list[list[float]], max_points: int = 240) -> list[list[float]]:
+        if len(points) <= max_points:
+            return points
+        stride = math.ceil((len(points) - 1) / (max_points - 1))
+        selected = points[::stride]
+        if selected[-1] != points[-1]:
+            selected.append(points[-1])
+        return selected
     return {
         "topic": "brownian_motion",
         "parameters": {
@@ -337,6 +385,26 @@ def simulate_brownian_motion(
         "series": [
             {"name": f"path {index + 1}", "values": _compress_series(path)}
             for index, path in enumerate(sample_paths)
+        ],
+        "particle_paths": {
+            "two_dimensional": {
+                "time": _compress_series(particle_times),
+                "points": compress_points(particle_2d),
+                "start": particle_2d[0],
+                "end": particle_2d[-1],
+                "dimensions": 2,
+            },
+            "three_dimensional": {
+                "time": _compress_series(particle_times),
+                "points": compress_points(particle_3d),
+                "start": particle_3d[0],
+                "end": particle_3d[-1],
+                "dimensions": 3,
+            },
+        },
+        "visualizations": [
+            {"id": "module04-viz-05", "renderer": "scatter_path", "data": {"points": compress_points(particle_2d), "dimensions": 2}},
+            {"id": "module04-viz-06", "renderer": "scatter_path", "data": {"points": compress_points(particle_3d), "dimensions": 3}},
         ],
         "chart": {"x_label": "time step", "y_label": "B(t)"},
     }
@@ -389,6 +457,53 @@ def _stationary_distribution(
     return distribution
 
 
+def _gambler_ruin_summary(
+    target: int = 10,
+    initial: int = 4,
+    probability_up: float = 0.5,
+    runs: int = 400,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Return bounded absorption data for the notebook's ruin example."""
+    target = _positive_int(target, "absorption_target", 100)
+    if not 0 < initial < target:
+        raise ValueError("absorption_initial must lie between the absorbing boundaries")
+    probability_up = _probability(probability_up, "absorption_probability", allow_zero=False)
+    runs = _positive_int(runs, "absorption_runs", 10_000)
+    rng = random.Random(seed)
+    final_states: list[int] = []
+    times: list[int] = []
+    for _ in range(runs):
+        state = initial
+        time = 0
+        while 0 < state < target and time < 20_000:
+            state += 1 if rng.random() < probability_up else -1
+            time += 1
+        final_states.append(state)
+        times.append(time)
+    success = sum(state == target for state in final_states) / runs
+    if math.isclose(probability_up, 0.5):
+        theoretical_success = initial / target
+    else:
+        ratio = (1 - probability_up) / probability_up
+        theoretical_success = (1 - ratio**initial) / (1 - ratio**target)
+    return {
+        "target": target,
+        "initial": initial,
+        "probability_up": probability_up,
+        "runs": runs,
+        "success_probability": round(success, 6),
+        "theoretical_success_probability": round(theoretical_success, 6),
+        "ruin_probability": round(1 - success, 6),
+        "absorption_times": times[:500],
+        "final_states": final_states[:500],
+        "distribution": [
+            {"state": 0, "probability": round(1 - success, 6)},
+            {"state": target, "probability": round(success, 6)},
+        ],
+    }
+
+
 def analyze_markov_chain(
     transition_matrix: Sequence[Sequence[float]] | None = None,
     initial_state: int = 0,
@@ -416,6 +531,26 @@ def analyze_markov_chain(
     total = len(path)
     empirical = [count / total for count in counts]
     stationary = _stationary_distribution(matrix)
+    absorption = _gambler_ruin_summary()
+    graph_nodes = [{"id": index, "label": str(index), "value": stationary[index]} for index in range(len(matrix))]
+    graph_edges = [
+        {"source": source, "target": target, "weight": probability}
+        for source, row in enumerate(matrix)
+        for target, probability in enumerate(row)
+        if probability > 0
+    ]
+    page_names = ["Search", "News", "University", "Blog"]
+    page_edges = [
+        {"source": source, "target": target, "weight": 1.0}
+        for source, target in ((0, 1), (0, 2), (1, 2), (2, 0), (3, 0), (3, 2))
+    ]
+    pagerank_graph = {
+        "nodes": [{"id": index, "label": label} for index, label in enumerate(page_names)],
+        "edges": page_edges,
+        "damping": 0.85,
+    }
+    # PageRank is the stationary distribution of the supplied directed graph;
+    # keep topology and values separate so a renderer never recomputes it.
     return {
         "topic": "markov_chain",
         "parameters": {
@@ -431,6 +566,20 @@ def analyze_markov_chain(
             6,
         ),
         "series": [{"name": "state path", "values": _compress_series(path)}],
+        "graph": {
+            "nodes": graph_nodes,
+            "edges": graph_edges,
+            "transition_matrix": matrix,
+            "stationary_values": [round(value, 6) for value in stationary],
+        },
+        "absorption": absorption,
+        "visualizations": [
+            {"id": "module05-viz-02", "renderer": "state_graph", "graph": {"nodes": graph_nodes, "edges": graph_edges}},
+            {"id": "module05-viz-03", "renderer": "state_graph", "graph": {"nodes": graph_nodes, "edges": graph_edges}},
+            {"id": "module05-viz-08", "renderer": "state_graph", "graph": pagerank_graph, "values": stationary},
+            {"id": "module05-viz-06", "renderer": "absorption", "data": absorption},
+            {"id": "module05-viz-07", "renderer": "absorption", "data": absorption},
+        ],
         "chart": {"x_label": "step", "y_label": "state"},
     }
 

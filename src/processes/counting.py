@@ -54,6 +54,30 @@ def simulate_bernoulli_process(
     empirical_wait = sum(waits) / paths
     theoretical_mean = slots * probability
     theoretical_variance = slots * probability * (1.0 - probability)
+    comparison_ps = [0.1, 0.3, 0.6]
+    comparison_slots = min(slots, 240)
+    comparison_panels: list[dict[str, Any]] = []
+    comparison_rng = random.Random(seed + 11)
+    for panel_probability in comparison_ps:
+        panel_counts = [
+            sum(comparison_rng.random() < panel_probability for _ in range(comparison_slots))
+            for _ in range(min(paths, 400))
+        ]
+        support = list(range(comparison_slots + 1))
+        empirical = [panel_counts.count(k) / len(panel_counts) for k in support]
+        exact = [
+            math.comb(comparison_slots, k) * panel_probability**k * (1 - panel_probability) ** (comparison_slots - k)
+            for k in support
+        ]
+        waiting_support = list(range(1, 61))
+        waiting_exact = [(1 - panel_probability) ** (k - 1) * panel_probability for k in waiting_support]
+        waiting_samples = [_geometric_wait(panel_probability, comparison_rng) for _ in range(min(paths, 400))]
+        waiting_empirical = [waiting_samples.count(k) / len(waiting_samples) for k in waiting_support]
+        comparison_panels.append({
+            "parameter": {"probability": panel_probability},
+            "count_distribution": {"x": support, "empirical": empirical, "theoretical": exact},
+            "waiting_time_distribution": {"x": waiting_support, "empirical": waiting_empirical, "theoretical": waiting_exact},
+        })
     return {
         "topic": "bernoulli",
         "parameters": {
@@ -71,6 +95,11 @@ def simulate_bernoulli_process(
         "counts": counts[:200],
         "waiting_times": waits[:200],
         "series": sample_series,
+        "panels": comparison_panels,
+        "visualizations": [
+            {"id": "module01-viz-04", "renderer": "multi_panel", "panels": [p["count_distribution"] for p in comparison_panels]},
+            {"id": "module01-viz-07", "renderer": "multi_panel", "panels": [p["waiting_time_distribution"] for p in comparison_panels]},
+        ],
         "chart": {"x_label": "slot", "y_label": "number of events", "step": "post"},
     }
 
@@ -144,6 +173,8 @@ def simulate_nhpp_thinning(
     first_candidates: list[float] = []
     first_accepted: list[float] = []
     first_rejected: list[float] = []
+    raster_event_times: list[list[float]] = []
+    pooled_event_times: list[float] = []
 
     for path_index in range(paths):
         time = 0.0
@@ -166,6 +197,10 @@ def simulate_nhpp_thinning(
         candidate_total += len(candidates)
         accepted_total += len(accepted)
         accepted_counts.append(len(accepted))
+        if path_index < 8:
+            raster_event_times.append(accepted[:])
+        if len(pooled_event_times) < 2_000:
+            pooled_event_times.extend(accepted[: max(0, 2_000 - len(pooled_event_times))])
         if path_index == 0:
             first_candidates = candidates
             first_accepted = accepted
@@ -190,6 +225,23 @@ def simulate_nhpp_thinning(
         _gaussian_intensity(time, base_rate, peak_rate, peak_center, peak_width)
         for time in grid
     ]
+    # Bernoulli-to-Poisson convergence panels from the notebook.
+    convergence_panels: list[dict[str, Any]] = []
+    for n_value in (10, 50, 200):
+        m = int(n_value * min(horizon, 2.0))
+        p = min(1.0, base_rate / max(n_value, 1))
+        support = list(range(0, 21))
+        binomial = [
+            math.comb(m, k) * p**k * (1 - p) ** (m - k) if k <= m else 0.0
+            for k in support
+        ]
+        poisson = [
+            math.exp(-base_rate * min(horizon, 2.0))
+            * (base_rate * min(horizon, 2.0)) ** k
+            / math.factorial(k)
+            for k in support
+        ]
+        convergence_panels.append({"parameter": {"n": n_value}, "x": support, "binomial": binomial, "poisson": poisson})
     return {
         "topic": "nonhomogeneous_poisson",
         "parameters": {
@@ -215,6 +267,17 @@ def simulate_nhpp_thinning(
         "first_rejected_times": [round(value, 6) for value in first_rejected],
         "intensity_grid": [round(value, 6) for value in grid],
         "intensity_values": [round(value, 6) for value in intensity_values],
+        "raster_event_times": raster_event_times,
+        "pooled_event_times": [round(value, 6) for value in pooled_event_times],
         "series": sample_series,
+        "candidate_events": [{"time": value, "accepted": value in first_accepted} for value in first_candidates],
+        "accepted_events": first_accepted,
+        "rejected_events": first_rejected,
+        "intensity_curve": {"x": grid, "values": intensity_values},
+        "panels": convergence_panels,
+        "visualizations": [
+            {"id": "module08-viz-03", "renderer": "thinning", "candidate_events": first_candidates, "accepted_events": first_accepted, "rejected_events": first_rejected, "intensity_curve": {"x": grid, "values": intensity_values}},
+            {"id": "module08-viz-05", "renderer": "event_raster", "event_times": raster_event_times, "pooled_event_times": pooled_event_times, "intensity_curve": {"x": grid, "values": intensity_values}},
+        ],
         "chart": {"x_label": "time", "y_label": "N(t)", "step": "post"},
     }

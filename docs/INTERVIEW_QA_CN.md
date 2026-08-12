@@ -7,7 +7,7 @@
 检索证据，选择 15 个受控 Python 工具之一完成仿真，把经验结果与理论值对照，
 识别明确的概念误区，并将练习和测验记录写入 SQLite 学习档案。
 
-整个过程由七个显式状态节点组成，API 会返回工具参数、Notebook cell、混合检索
+整个过程由官方 LangGraph StateGraph 的显式条件节点和三类职责 Agent 组成，API 会返回工具参数、Notebook cell、混合检索
 分数和执行轨迹。语言模型只是可选的表达层，任何改动数值或丢失来源的改写都会被
 程序拒绝。当前 baseline 有 116 个 Agent 治理案例，覆盖单轮、多轮、检索、教学、安全和证据充分性行为，
 并保留完全离线运行能力。
@@ -16,25 +16,23 @@
 
 它不是把问题直接交给大模型生成答案，而是完成一个有状态的决策与执行闭环：
 
-1. 根据输入和上一轮状态选择模块；
-2. 检索受课程范围约束的证据；
-3. 选择工具并补全或继承参数；
-4. 执行工具并处理参数失败；
-5. 根据结果更新学习档案；
-6. 返回可验证的答案和下一步教学问题。
+1. Curriculum Agent 根据输入、先修关系和学习状态决定学习目标；
+2. 检索受课程范围约束的证据，并经过 answerability gate；
+3. Tutor Agent 解释概念，或选择工具并解释已验证结果；
+4. Assessment Agent 独立评估 quiz/practice 结果；
+5. Assessment → Curriculum → Tutor 的 handoff 更新学习建议和反馈。
 
-这是一个 bounded tool agent，而不是开放式自主 Agent。边界是有意设计的：教育和
+这是三个职责清晰的 bounded agents，而不是开放式自主 Agent。边界是有意设计的：教育和
 数学场景更重视可验证性，不应该让模型任意生成函数名、代码或数据源。
 
-## 为什么没有直接使用 LangGraph
+## 三个 Agent 如何分工
 
-第一版需要离线、低依赖地在面试电脑上稳定运行，因此我先实现了一个很小的 typed
-state graph。`AgentState`、节点输入输出和 trace 都是显式契约，结构与图编排框架
-接近。以后接入 LangGraph 是替换运行时，不需要重写仿真工具、RAG 或 API。
+Curriculum Agent 只读取 `data/curriculum.json`、先修关系和 SQLite 学习状态，输出
+下一学习目标；Assessment Agent 只评估 quiz/practice 结果并标记是否需要复习；Tutor
+Agent 只负责证据充分性约束下的解释、提示、比较和仿真反馈。
 
-这样做也便于说明取舍：我不是为了简历关键词引入框架，而是先确认状态边界和测试
-需求。若项目进入多 Agent、人工审批、并行分支或长任务恢复阶段，再使用成熟图运行
-时会更合理。
+官方 LangGraph `StateGraph` 显式表达这些 handoff。RAG、Python 工具和 SQLite 是共享
+服务，不被包装成 Agent，也不会因为多 Agent 名称而增加额外 LLM 调用。
 
 ## RAG 是怎么做的
 

@@ -14,6 +14,24 @@ class AssessmentTests(unittest.TestCase):
     def test_all_eleven_modules_have_a_question(self) -> None:
         self.assertEqual(set(self.engine.by_module), {f"module{i:02d}" for i in range(11)})
 
+    def test_assessment_covers_all_curriculum_knowledge_points(self) -> None:
+        self.assertEqual(set(self.engine.by_concept), set(self.engine.concepts))
+        self.assertEqual(len(self.engine.questions), 40)
+
+    def test_concept_question_and_hint_are_structured(self) -> None:
+        question = self.engine.question_for_concept("m05-markov-property")
+        self.assertEqual(question["concept_id"], "m05-markov-property")
+        hint = self.engine.hint(concept_id="m05-markov-property")
+        self.assertEqual(hint["hint_level"], 1)
+
+    def test_free_text_assessment_returns_concept_evidence(self) -> None:
+        result = self.engine.grade_free_text(
+            "kp-m05-markov-property",
+            "The next state depends on the present state, not the full past.",
+        )
+        self.assertTrue(result["correct"])
+        self.assertEqual(result["concept_id"], "m05-markov-property")
+
     def test_public_question_does_not_leak_answer(self) -> None:
         question = self.engine.question("module04")
         self.assertNotIn("correct_index", question)

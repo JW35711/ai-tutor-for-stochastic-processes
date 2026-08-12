@@ -490,7 +490,10 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "schema_version": AGENT.memory.schema_version,
                         "purged_sessions_on_startup": PURGED_SESSIONS_ON_STARTUP,
                     },
-                    "workflow": {"nodes": list(AGENT.workflow.node_names)},
+                    "workflow": {
+                        "nodes": list(AGENT.workflow.get_graph().nodes),
+                        "runtime": "langgraph",
+                    },
                     "knowledge": AGENT.knowledge.stats(),
                     "llm": {
                         "enabled": AGENT.llm.enabled,
@@ -584,7 +587,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
 
     def _do_post(self) -> None:
         path = urlparse(self.path).path
-        if path not in {"/api/chat", "/api/quiz/submit"}:
+        if path not in {"/api/chat", "/api/quiz/submit", "/api/practice", "/api/hint"}:
             self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         if not self._allow_api_request():
@@ -603,6 +606,55 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     question,
                     session_id=raw_session_id,
                 )
+            elif path == "/api/hint":
+                validate_payload_fields(
+                    payload,
+                    allowed={"concept_id", "question_id", "hint_level", "session_id"},
+                    required={"concept_id"},
+                )
+                session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
+                concept_id = payload.get("concept_id")
+                if not isinstance(concept_id, str) or concept_id not in AGENT.curriculum_agent.concepts:
+                    raise ValueError("concept_id is not in the curriculum")
+                hint = ASSESSMENTS.hint(
+                    concept_id=concept_id,
+                    question_id=payload.get("question_id"),
+                    hint_level=payload.get("hint_level", 1),
+                )
+                AGENT.memory.record_learning_event(
+                    session_id=session_id,
+                    event_type="HINT_REQUEST",
+                    concept_id=concept_id,
+                    question_id=hint["question_id"],
+                    payload={"hint_level": hint["hint_level"]},
+                )
+                AGENT.memory.record_learning_event(
+                    session_id=session_id,
+                    event_type="HINT_USED",
+                    concept_id=concept_id,
+                    question_id=hint["question_id"],
+                    payload={"hint_level": hint["hint_level"]},
+                )
+                hint["session_id"] = session_id
+                hint["event_type"] = "HINT_USED"
+                response = hint
+            elif path == "/api/practice":
+                validate_payload_fields(
+                    payload,
+                    allowed={"concept_id", "question_id", "student_answer", "hint_level", "attempt_number", "session_id"},
+                    required={"concept_id", "student_answer"},
+                )
+                session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
+                concept_id = payload.get("concept_id")
+                if not isinstance(concept_id, str) or concept_id not in AGENT.curriculum_agent.concepts:
+                    raise ValueError("concept_id is not in the curriculum")
+                question_id = payload.get("question_id")
+                if not isinstance(question_id, str):
+                    question = ASSESSMENTS.question_for_concept(concept_id)
+                    question_id = question["id"]
+                result = ASSESSMENTS.grade_free_text(question_id, payload.get("student_answer", ""))
+                result.update({"answer_index": 0, "hints_used": max(0, int(payload.get("hint_level", 0) or 0)), "attempt_number": payload.get("attempt_number", 1), "event_type": "PRACTICE_ANSWER"})
+                response = AGENT.handle_assessment(result, session_id)
             else:
                 validate_payload_fields(
                     payload,
@@ -618,21 +670,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     question_id,
                     payload.get("answer_index"),
                 )
-                AGENT.memory.record_assessment(
-                    session_id=session_id,
-                    question_id=result["question_id"],
-                    module_id=result["module_id"],
-                    answer_index=result["answer_index"],
-                    correct=result["correct"],
-                    bank_sha256=result["bank_sha256"],
-                )
-                profile = AGENT.memory.profile(session_id)
-                response = {
-                    "session_id": session_id,
-                    "result": result,
-                    "memory": profile,
-                    "recommendation": recommend_next(profile),
-                }
+                response = AGENT.handle_assessment(result, session_id)
             response["request_id"] = self.request_id
             if isinstance(response.get("observability"), dict):
                 response["observability"]["request_id"] = self.request_id

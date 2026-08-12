@@ -30,7 +30,7 @@ DEFAULT_MEMORY_PATH = (
         )
     )
 )
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class LearnerMemory:
@@ -125,6 +125,34 @@ class LearnerMemory:
 
                 CREATE INDEX IF NOT EXISTS assessments_session_index
                     ON assessments(session_id, id);
+
+                CREATE TABLE IF NOT EXISTS concept_mastery (
+                    session_id TEXT NOT NULL,
+                    concept_id TEXT NOT NULL,
+                    mastery_score REAL NOT NULL DEFAULT 0,
+                    attempt_count INTEGER NOT NULL DEFAULT 0,
+                    correct_count INTEGER NOT NULL DEFAULT 0,
+                    hint_count INTEGER NOT NULL DEFAULT 0,
+                    recent_misconceptions TEXT NOT NULL DEFAULT '[]',
+                    last_practiced_at TEXT,
+                    status TEXT NOT NULL DEFAULT 'NOT_STARTED',
+                    PRIMARY KEY(session_id, concept_id),
+                    FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS learning_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    concept_id TEXT,
+                    question_id TEXT,
+                    payload TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+                );
+
+                CREATE INDEX IF NOT EXISTS learning_events_session_index
+                    ON learning_events(session_id, id);
                 """
             )
             # Existing local demos may have created the first schema version.
@@ -195,6 +223,66 @@ class LearnerMemory:
             )
             self._prune_session_events("assessments", session_id)
 
+    def record_learning_event(
+        self,
+        *,
+        session_id: str,
+        event_type: str,
+        concept_id: str | None = None,
+        question_id: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        now = self._now()
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO sessions(session_id, created_at, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(session_id) DO UPDATE SET updated_at=excluded.updated_at",
+                (session_id, now, now),
+            )
+            self._connection.execute(
+                "INSERT INTO learning_events(session_id, event_type, concept_id, question_id, payload, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (session_id, event_type, concept_id, question_id, json.dumps(payload or {}, ensure_ascii=False), now),
+            )
+            self._prune_session_events("learning_events", session_id)
+
+    def update_concept_mastery(self, *, session_id: str, state: dict[str, Any]) -> None:
+        now = self._now()
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO sessions(session_id, created_at, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(session_id) DO UPDATE SET updated_at=excluded.updated_at",
+                (session_id, now, now),
+            )
+            self._connection.execute(
+                """INSERT INTO concept_mastery(session_id, concept_id, mastery_score, attempt_count, correct_count, hint_count, recent_misconceptions, last_practiced_at, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(session_id, concept_id) DO UPDATE SET mastery_score=excluded.mastery_score, attempt_count=excluded.attempt_count, correct_count=excluded.correct_count, hint_count=excluded.hint_count, recent_misconceptions=excluded.recent_misconceptions, last_practiced_at=excluded.last_practiced_at, status=excluded.status""",
+                (session_id, state["concept_id"], state.get("mastery_score", 0), state.get("attempt_count", 0), state.get("correct_count", 0), state.get("hint_count", 0), json.dumps(state.get("recent_misconceptions", []), ensure_ascii=False), state.get("last_practiced_at"), state.get("status", "NOT_STARTED")),
+            )
+
+    def concept_mastery(self, session_id: str, concept_id: str | None = None) -> list[dict[str, Any]]:
+        query = "SELECT * FROM concept_mastery WHERE session_id=?"
+        params: list[Any] = [session_id]
+        if concept_id:
+            query += " AND concept_id=?"
+            params.append(concept_id)
+        query += " ORDER BY concept_id"
+        with self._lock:
+            rows = self._connection.execute(query, params).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item.pop("session_id", None)
+            item["recent_misconceptions"] = json.loads(item["recent_misconceptions"])
+            result.append(item)
+        return result
+
+    def learning_events(self, session_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(int(limit), self.max_events_per_session))
+        with self._lock:
+            rows = self._connection.execute("SELECT event_type, concept_id, question_id, payload, created_at FROM learning_events WHERE session_id=? ORDER BY id DESC LIMIT ?", (session_id, safe_limit)).fetchall()
+        return [{**dict(row), "payload": json.loads(row["payload"])} for row in reversed(rows)]
+
     def record_turn(
         self,
         *,
@@ -239,7 +327,7 @@ class LearnerMemory:
             self._prune_session_events("turns", session_id)
 
     def _prune_session_events(self, table: str, session_id: str) -> None:
-        if table not in {"turns", "assessments"}:
+        if table not in {"turns", "assessments", "learning_events"}:
             raise ValueError("unsupported learner event table")
         # The table name is selected only from the internal allowlist above.
         self._connection.execute(
@@ -269,6 +357,7 @@ class LearnerMemory:
                 """,
                 (session_id,),
             ).fetchall()
+        concept_rows = self.concept_mastery(session_id)
 
         modules: dict[str, dict[str, Any]] = {}
         module_question_ids: dict[str, set[str]] = {}
@@ -337,6 +426,30 @@ class LearnerMemory:
             )
 
         ordered_modules = sorted(modules.values(), key=lambda item: item["module_id"])
+        concept_by_module: dict[str, list[dict[str, Any]]] = {}
+        for concept in concept_rows:
+            prefix = concept["concept_id"].split("-", 1)[0]
+            module_id = f"module{prefix[1:]}" if prefix.startswith("m") else prefix
+            concept_by_module.setdefault(module_id, []).append(concept)
+            modules.setdefault(
+                module_id,
+                {
+                    "module_id": module_id,
+                    "topic": "knowledge_point",
+                    "attempts": 0,
+                    "successful_runs": 0,
+                    "mastery": 0.0,
+                    "quiz_attempts": 0,
+                    "quiz_correct": 0,
+                    "distinct_quiz_questions": 0,
+                },
+            )
+        ordered_modules = sorted(modules.values(), key=lambda item: item["module_id"])
+        for module in ordered_modules:
+            children = concept_by_module.get(module["module_id"], [])
+            if children:
+                module["knowledge_points"] = children
+                module["mastery"] = round(sum(float(item["mastery_score"]) for item in children) / len(children), 2)
         weak_modules = [
             item["module_id"]
             for item in ordered_modules
@@ -354,6 +467,7 @@ class LearnerMemory:
                 misconception_counts.values(),
                 key=lambda item: (-item["count"], item["code"]),
             ),
+            "knowledge_points": concept_rows,
         }
 
     def history(self, session_id: str, limit: int = 20) -> list[dict[str, Any]]:
@@ -407,6 +521,8 @@ class LearnerMemory:
             "assessments": self.assessment_history(
                 session_id, self.max_events_per_session
             ),
+            "knowledge_points": self.concept_mastery(session_id),
+            "learning_events": self.learning_events(session_id, self.max_events_per_session),
         }
 
     def reset(self, session_id: str) -> None:
@@ -415,6 +531,8 @@ class LearnerMemory:
             self._connection.execute(
                 "DELETE FROM assessments WHERE session_id=?", (session_id,)
             )
+            self._connection.execute("DELETE FROM concept_mastery WHERE session_id=?", (session_id,))
+            self._connection.execute("DELETE FROM learning_events WHERE session_id=?", (session_id,))
             self._connection.execute(
                 "DELETE FROM sessions WHERE session_id=?", (session_id,)
             )
@@ -444,6 +562,8 @@ class LearnerMemory:
                 self._connection.execute(
                     "DELETE FROM assessments WHERE session_id=?", (session_id,)
                 )
+                self._connection.execute("DELETE FROM concept_mastery WHERE session_id=?", (session_id,))
+                self._connection.execute("DELETE FROM learning_events WHERE session_id=?", (session_id,))
                 self._connection.execute(
                     "DELETE FROM sessions WHERE session_id=?", (session_id,)
                 )

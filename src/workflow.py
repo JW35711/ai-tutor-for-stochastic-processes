@@ -1,10 +1,9 @@
-"""Small explicit state graph used by the teaching Agent.
+"""Compatibility domain-state contracts for the teaching Agent.
 
-The graph is deliberately dependency-free so the offline demo keeps working.
-Its node and state contracts mirror production graph orchestrators: every node
-receives one typed state object, mutates only its owned fields, and returns a
-human-readable trace detail.  A LangGraph adapter can therefore be added
-without rewriting numerical tools or API responses.
+The runtime graph now lives in :mod:`src.graph.workflow` and is compiled with
+the official LangGraph ``StateGraph``.  These dataclasses remain public so
+service code and older integrations can still construct and inspect a domain
+state without depending on LangGraph internals.
 """
 
 from __future__ import annotations
@@ -32,6 +31,9 @@ class AgentState:
     comparison_module_ids: list[str] = field(default_factory=list)
     comparison_concept_ids: list[str] = field(default_factory=list)
     module_from_context: bool = False
+    curriculum_decision: dict[str, Any] = field(default_factory=dict)
+    assessment_input: dict[str, Any] = field(default_factory=dict)
+    assessment_result: dict[str, Any] = field(default_factory=dict)
 
     retrieval_query: str = ""
     sources: list[dict[str, Any]] = field(default_factory=list)

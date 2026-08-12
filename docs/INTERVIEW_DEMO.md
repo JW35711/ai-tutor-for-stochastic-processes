@@ -3,9 +3,10 @@
 ## 1. Frame the problem (30 seconds)
 
 “The thesis produced 11 computational teaching modules. I converted them into
-one AI Tutor with conditional routing: it reads the curriculum for navigation,
-retrieves course evidence for theory questions, executes a validated Python
-simulation only when requested, and remembers learning progress.”
+three bounded educational agents: Curriculum Agent decides what to study,
+Assessment Agent evaluates quiz evidence, and Tutor Agent decides how to teach.
+LangGraph makes their handoffs explicit while RAG, Python simulations and
+SQLite remain shared services.”
 
 ## 2. Show tool use and evidence (90 seconds)
 

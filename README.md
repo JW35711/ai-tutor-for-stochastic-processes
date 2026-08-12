@@ -71,10 +71,25 @@ Open the notebooks in `notebooks/` and run them in numerical order. See
 [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the clean-environment procedure,
 random-seed policy and submission checklist.
 
+The notebooks are also the authoritative source for the Simulation layer. The
+generated `data/notebook_experiments.json` registry preserves their cell order,
+teaching context, experiment-to-KP mapping and visualization targets. Rebuild
+and audit it with:
+
+```bash
+python scripts/audit_notebook_visualizations.py --write
+```
+
+The audit currently detects 74 notebook visualization targets across Modules
+00–10, registers all 74, and reports which targets are directly covered by a
+reusable Python engine versus those needing a specialized renderer or richer
+returned data. It treats a multi-panel output as one notebook visualization
+target and detects future unregistered plotting cells automatically.
+
 ## AI teaching-agent extension
 
-The current system is one AI Tutor with conditional workflow branches. It turns
-all eleven thesis modules into a curriculum-backed learning experience and
+The current system is a responsibility-bounded three-agent educational system
+with conditional LangGraph workflow branches. It turns all eleven thesis modules into a curriculum-backed learning experience and
 keeps the 15 numerical tools behind explicit simulation requests:
 
 - Monte Carlo estimation;
@@ -89,8 +104,10 @@ keeps the 15 numerical tools behind explicit simulation requests:
 - growing self-avoiding walks;
 - coalescing particles on a circle.
 
-For a navigation question, the Agent reads the backend-owned curriculum. For a
-concept, why, comparison, derivation, example or hint question, it retrieves
+The Curriculum Agent decides what to study next from the backend-owned
+curriculum, prerequisites and learner state. The Assessment Agent scores
+practice/quiz evidence and flags review needs. The Tutor Agent decides how to
+teach. For a concept, why, comparison, derivation, example or hint question, it retrieves
 curated Notebook/textbook evidence and produces a grounded tutor answer. Only
 an explicit simulation request continues through planning, validation and one
 of the 15 Python tools. SQLite learner memory persists simulation and
@@ -102,32 +119,40 @@ verified simulations and a separate request ID for log correlation.
 ```mermaid
 flowchart LR
     U[Student question] --> I{Intent}
-    I -->|navigation| C[Curriculum]
+    I -->|navigation| C[Curriculum Agent]
     I -->|concept / why / comparison| R[Retrieve evidence]
     I -->|simulation| R
-    R -->|concept| T[Tutor synthesis]
-    R -->|simulation| P[Plan and validate]
+    R --> E[Evidence gate]
+    E -->|bounded supplement| R
+    E -->|concept| T[Tutor Agent]
+    E -->|simulation| P[Plan and validate]
     P --> S[Python simulation tool]
     S --> T
-    QZ[Practice / quiz] --> A[Assessment and SQLite memory]
-    T --> A
+    QZ[Practice / quiz] --> A[Assessment Agent]
+    A --> C
+    A --> M[(SQLite memory)]
+    C --> T
     C --> UI[Web UI]
-    A --> UI
+    M --> UI
 ```
 
-The orchestration is an explicit typed state graph with conditional handlers.
+The orchestration is an official LangGraph `StateGraph` with conditional edges.
 Its behavior is:
 
 ```text
-navigation                   → curriculum
-concept / why / comparison   → retrieve → Tutor synthesis
-simulation                   → retrieve → plan → Python tool → Tutor
-practice / quiz              → assessment → SQLite learner memory
+START → route
+route → Curriculum Agent → navigation → Tutor Agent
+route → concept / why / comparison → retrieve → evidence gate → Tutor Agent
+route → simulation → retrieve → evidence gate → plan → Python tool → Tutor Agent
+route → Assessment Agent → SQLite learner memory → Curriculum Agent → Tutor Agent
+route → out_of_scope → Tutor Agent safe scope response
 ```
 
-It is implemented locally to preserve the offline-safe demo. The response may
-project the same trace onto educational role names for observability, but this
-is still one AI Tutor, not LangGraph and not a true Multi-Agent system.
+The evidence gate can take at most two supplementary retrieval rounds before
+the existing answerability policy responds. A normal concept question skips
+Curriculum and Assessment to avoid unnecessary work; quiz feedback uses the
+explicit Assessment → Curriculum → Tutor handoff. These are three bounded
+responsibility agents, not open-ended autonomous planners.
 
 Numerical computation is performed by Python, not by the language model. The
 optional DeepSeek/OpenAI-compatible model synthesizes concept explanations
@@ -137,7 +162,8 @@ question-aware answer path returns a concise grounded fallback.
 
 ### Run the Agent
 
-The Agent core and web demo require no third-party packages:
+The Agent core and web demo use the pinned dependencies in `requirements.txt`,
+including the official LangGraph runtime:
 
 ```bash
 python3 server.py
@@ -341,14 +367,23 @@ examples.
 ├── evals/                  # Routing, retrieval and pedagogy evaluations
 ├── exercises/              # Additional exercises
 ├── figures/                # Selected thesis figures
-├── notebooks/              # Modules 0–10
+├── notebooks/              # Modules 0–10; authoritative teaching sequence
+├── data/notebook_experiments.json # Notebook experiment/visualization registry
 ├── src/
 │   ├── agent.py            # Agent orchestration
 │   ├── knowledge.py        # Retrieval and source metadata
 │   ├── memory.py           # Persistent SQLite learner profile
 │   ├── pedagogy.py         # Transparent misconception diagnosis
 │   ├── assessment.py       # Module concept checks
-│   ├── workflow.py         # Typed conditional workflow
+│   ├── agents/
+│   │   ├── contracts.py    # Typed agent handoff structures
+│   │   ├── curriculum.py   # What to study next
+│   │   ├── assessment.py   # What the learner knows
+│   │   └── tutor.py        # How to teach
+│   ├── graph/
+│   │   ├── state.py        # Typed LangGraph TutorState
+│   │   └── workflow.py     # Official StateGraph and conditional edges
+│   ├── workflow.py         # Backwards-compatible domain AgentState
 │   ├── embeddings.py       # Local and optional hosted vector backends
 │   ├── runtime.py          # Rate limiting, metrics and JSON events
 │   ├── openapi.py          # Machine-readable API contract
@@ -357,7 +392,8 @@ examples.
 │   ├── tool_catalog.py      # Executable tool parameter contracts
 │   ├── recommendation.py   # Explainable next-practice policy
 │   ├── llm.py              # Optional compatible LLM client
-│   └── processes/          # Reusable simulation tools
+│   └── processes/          # Reusable simulation engines (15 tools)
+├── scripts/audit_notebook_visualizations.py # Registry coverage audit
 ├── tests/                  # Numerical and Agent tests
 ├── web/                    # Interview-demo interface
 ├── REPRODUCIBILITY.md
@@ -395,8 +431,8 @@ For Chinese interviews, use the prepared
 - The lightweight web chart does not replace the notebook's Matplotlib figures.
 
 Future work may add a learned reranker, a larger calibrated assessment bank,
-authentication and hosted deployment. LangGraph/Multi-Agent orchestration is
-outside the v1 release scope.
+authentication and hosted deployment. LangGraph is now the orchestration
+runtime; true Multi-Agent coordination remains outside the current scope.
 
 ## License
 

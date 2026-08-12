@@ -50,6 +50,7 @@ def simulate_self_avoiding_walk(
     trapped_distances: list[float] = []
     unfinished_runs = 0
     sample_path: list[tuple[int, int]] = []
+    ordinary_path: list[tuple[int, int]] = []
     sample_trapped = False
     for run in range(runs):
         path, trapped = _self_avoiding_path(max_steps, rng)
@@ -62,6 +63,25 @@ def simulate_self_avoiding_walk(
             trapped_distances.append(math.hypot(x, y))
         else:
             unfinished_runs += 1
+
+    ordinary_rng = random.Random(seed + 1)
+    ordinary_path = [(0, 0)]
+    for _ in range(max_steps):
+        dx, dy = ordinary_rng.choice(NEIGHBOURS)
+        ordinary_path.append((ordinary_path[-1][0] + dx, ordinary_path[-1][1] + dy))
+
+    blocked_sites = {(1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)}
+    obstacle_path = [(0, 0)]
+    obstacle_rng = random.Random(seed + 2)
+    for _ in range(min(max_steps, 80)):
+        available = [
+            (obstacle_path[-1][0] + dx, obstacle_path[-1][1] + dy)
+            for dx, dy in NEIGHBOURS
+            if (obstacle_path[-1][0] + dx, obstacle_path[-1][1] + dy) not in blocked_sites
+        ]
+        if not available:
+            break
+        obstacle_path.append(obstacle_rng.choice(available))
 
     visited = set(sample_path)
     nearest_neighbour = all(
@@ -100,6 +120,22 @@ def simulate_self_avoiding_walk(
                 "x": _compress_series([point[0] for point in sample_path]),
                 "values": _compress_series([point[1] for point in sample_path]),
             }
+        ],
+        "paths": {
+            "self_avoiding": sample_path,
+            "ordinary_random_walk": ordinary_path[:500],
+            "obstacle": obstacle_path,
+        },
+        "scatter": {
+            "stopping_lengths": trapped_lengths[:500],
+            "final_distances": trapped_distances[:500],
+            "blocked_sites": sorted(blocked_sites),
+            "obstacle_path": obstacle_path,
+        },
+        "visualizations": [
+            {"id": "module09-viz-02", "renderer": "multi_panel", "paths": {"ordinary": ordinary_path[:500], "self_avoiding": sample_path}},
+            {"id": "module09-viz-04", "renderer": "scatter", "x": trapped_lengths[:500], "y": trapped_distances[:500]},
+            {"id": "module09-viz-05", "renderer": "scatter_path", "obstacles": sorted(blocked_sites), "path": obstacle_path},
         ],
         "chart": {"x_label": "x", "y_label": "y"},
     }
@@ -165,6 +201,20 @@ def simulate_coalescing_particles(
         else:
             completion_times.append(completion_time)
 
+    # Keep one deterministic replay history for the configuration snapshots
+    # and the interactive slider used in the notebook.
+    replay_rng = random.Random(seed + 99)
+    positions = set(replay_rng.sample(range(circle_size), particles))
+    configuration_history = [sorted(positions)]
+    for _ in range(min(max_steps, 240)):
+        if len(positions) <= 1:
+            break
+        old_position = replay_rng.choice(sorted(positions))
+        new_position = (old_position + replay_rng.choice((-1, 1))) % circle_size
+        positions.remove(old_position)
+        positions.add(new_position)
+        configuration_history.append(sorted(positions))
+
     monotone = all(
         later <= earlier for earlier, later in zip(sample_counts, sample_counts[1:])
     )
@@ -197,6 +247,21 @@ def simulate_coalescing_particles(
         "sample_final_cluster_count": sample_counts[-1],
         "sample_cluster_count_monotone": monotone,
         "coalescence_times": completion_times[:500],
+        "configuration_history": configuration_history,
+        "snapshots": [
+            {"step": index, "positions": configuration_history[index], "cluster_count": len(configuration_history[index])}
+            for index in sorted({0, len(configuration_history) // 4, len(configuration_history) // 2, len(configuration_history) - 1})
+        ],
+        "interactive": {
+            "min_step": 0,
+            "max_step": max(0, len(configuration_history) - 1),
+            "step": 0,
+            "states": configuration_history,
+        },
+        "visualizations": [
+            {"id": "module10-viz-02", "renderer": "configuration", "snapshots": configuration_history},
+            {"id": "module10-viz-03", "renderer": "interactive", "states": configuration_history, "circle_size": circle_size},
+        ],
         "series": [
             {
                 "name": "cluster count",

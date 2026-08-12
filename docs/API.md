@@ -33,9 +33,13 @@ Python tools. `session_id` can be omitted on the first turn and then reused.
 uses it instead of displaying a static success badge.
 Each trace item contains the public node name, a concise detail, `status` and
 `duration_ms` for node-level observability.
-`teaching_team` maps the same trace onto stable educational roles such as
-Curriculum Agent, Content Agent, Simulation Agent, Assessment Agent and Tutor
-Agent, each with a short responsibility string.
+`teaching_team` is a backwards-compatible projection of the public workflow
+trace; it is not the source of agent invocation truth. The `observability`
+object reports actual agent handoffs. `teaching_team` maps the same trace onto
+legacy educational and shared-service labels for compatibility. The `observability` object
+also reports `agents_invoked`, explicit `handoffs`, the curriculum decision,
+assessment result and bounded `llm_call_count`; these fields are intended for
+debugging and are not rendered in the normal student answer.
 The response also includes an explainable `recommendation` with its module,
 reason code, learner-facing reason, suggested next question and conservative
 review interval in days.
@@ -51,6 +55,19 @@ separate per-call log-correlation key.
 - `POST /api/quiz/submit` accepts `question_id`, zero-based `answer_index` and
   an optional `session_id`; the result carries the same quiz-bank hash. Boolean,
   string and out-of-range answer indices are rejected rather than coerced.
+
+## Knowledge-point practice and hints
+
+- `POST /api/practice` accepts `concept_id`, `student_answer`, and optional
+  `question_id`, `hint_level`, `attempt_number` and `session_id`. The
+  Assessment Agent evaluates the free-text response and the deterministic
+  mastery service records the corresponding KP evidence.
+- `POST /api/hint` accepts `concept_id`, optional `question_id`, `hint_level`
+  and `session_id`. It returns one bounded hint and records `HINT_REQUEST` and
+  `HINT_USED` events; requesting a hint alone does not increase mastery.
+- `GET /api/profile` also returns `knowledge_points`, with statuses
+  `NOT_STARTED`, `LEARNING`, `NEEDS_REVIEW` or `MASTERED`, plus derived module
+  aggregates.
 
 ## Discovery
 

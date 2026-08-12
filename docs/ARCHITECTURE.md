@@ -3,8 +3,10 @@
 The project separates probabilistic computation from language generation. The
 Python tools own all numerical results; the optional DeepSeek/OpenAI-compatible
 model synthesizes a grounded explanation from the original student question
-and retrieved evidence. This release is one AI Tutor with a conditional
-workflow, not LangGraph and not a true Multi-Agent system.
+and retrieved evidence. This release is a responsibility-bounded three-agent
+educational system (`Curriculum Agent`, `Assessment Agent` and `Tutor Agent`)
+orchestrated by LangGraph. RAG, Python tools and SQLite remain shared services,
+not agents.
 
 The answer boundary is enforced after generation: every number in a verified
 tool-result summary and every exact Notebook source locator must remain
@@ -16,16 +18,20 @@ are therefore not the only grounding control.
 ```mermaid
 flowchart LR
     Q[Student question] --> I{Intent}
-    I -->|navigation| C[Curriculum]
+    I -->|navigation| C[Curriculum Agent]
     I -->|concept / why / comparison| R[Hybrid RAG]
     I -->|simulation| R
-    R -->|concept| A[Tutor synthesis]
+    R -->|concept| E[Evidence gate]
+    E -->|bounded supplement| R
+    E -->|answerability decision| A[Tutor Agent]
     R -->|simulation| P[Plan and validate]
     P --> T[One of 15 Python tools]
     T --> A
-    I -->|practice / quiz| X[Assessment]
+    I -->|practice / quiz| X[Assessment Agent]
+    X --> C
     A --> M[(SQLite memory)]
     X --> M
+    C --> A
     C --> UI[Web UI]
     M --> UI
 ```
@@ -34,14 +40,23 @@ flowchart LR
 
 | Component | Responsibility | Why it is separate |
 | --- | --- | --- |
-| `workflow.py` | Runs the typed conditional workflow | Navigation, tutoring, simulation and assessment branches can be tested without the web layer |
+| `graph/workflow.py` | Compiles the official LangGraph `StateGraph` and conditional edges | One explicit graph preserves navigation, tutoring, bounded evidence retrieval and simulation branches |
+| `graph/state.py` | Defines the typed `TutorState` carried by LangGraph | Graph observability is separated from domain services and API state |
+| `agents/curriculum.py` | Decides what the learner should study next from curriculum, prerequisites and mastery | Course progression cannot be invented by a model |
+| `agents/assessment.py` | Scores quiz/practice evidence and flags review needs | Learning evaluation is separate from teaching explanation |
+| `agents/tutor.py` | Applies answerability and chooses the teaching response policy | The Tutor explains; it does not rescore or compute simulations |
+| `agents/contracts.py` | Defines `CurriculumDecision`, `AssessmentResult` and `TutorContext` | Agent handoffs are structured and independently testable |
+| `workflow.py` | Keeps the backwards-compatible `AgentState` and node contracts | Existing integrations can inspect domain state without depending on LangGraph internals |
 | `module_registry.py` | Routes Chinese and English questions to Modules 00–10 | Routing can be evaluated independently |
 | `knowledge.py` | Indexes curated cards, Markdown cells, reviewed lecture-note chunks and textbook chunks, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
 | `embeddings.py` | Provides local hash and optional OpenAI-compatible vectors | Neural retrieval is optional, while offline behavior remains deterministic |
 | `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
 | `pedagogy.py` | Detects explicitly stated misconceptions | Diagnoses are transparent rather than hidden in a prompt |
 | `assessment.py` | Serves and grades module concept checks | Quiz results provide evidence beyond tool execution |
-| `memory.py` | Persists turns, tool parameters, quizzes and per-module progress in SQLite | Learner state and follow-up context survive server restarts |
+| `memory.py` | Persists turns, tool parameters, quizzes, KP mastery and learning events in SQLite | Learner state and follow-up context survive server restarts |
+| `mastery.py` | Applies the bounded deterministic KP mastery policy | Only assessed learner evidence changes mastery; Tutor explanations and retrieval do not |
+| `data/notebook_experiments.json` | Registry generated from notebook order, Markdown context, code cells and saved outputs | Keeps notebook experiments and visualization targets traceable to reusable tools and renderers |
+| `scripts/audit_notebook_visualizations.py` | Detects notebook visualization cells and compares them with the registry | Future unregistered figures become a deterministic coverage failure |
 | `runtime.py` | Implements rate limiting, request metrics and structured events | HTTP protection remains independent of tutoring logic |
 | `openapi.py` | Publishes the versioned machine-readable HTTP contract | Clients can inspect routes without coupling to handler code |
 | `version.py` | Defines application and API versions once | UI, health, headers and OpenAPI cannot silently disagree |
@@ -50,7 +65,7 @@ flowchart LR
 | `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
 | `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
 | `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |
-| `teaching_team.py` | Provides an optional role-level trace projection for interview observability | The runtime remains one Tutor and adds no hidden model calls |
+| `teaching_team.py` | Provides a backwards-compatible role-level trace projection for interview observability | It is not an agent registry; actual handoffs come from `observability.agents_invoked` |
 | `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
 | `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
 
@@ -121,29 +136,35 @@ look as though it came from the new bank.
 
 ## Conditional workflow
 
-`AgentState` is the single object passed through named handlers. The runtime
-does not execute every handler for every question:
+The official LangGraph `StateGraph` carries a typed `TutorState` and executes
+only the branch required by the request:
 
 ```text
-navigation                  → curriculum → respond
-concept / why / comparison  → retrieve → Tutor synthesis → respond
-simulation                  → retrieve → plan → validate → Python tool → respond
-practice / quiz             → assessment → SQLite memory → respond
+START → route
+route → Curriculum Agent → navigation → Tutor Agent → END
+route → concept → retrieve → evidence → (bounded supplement → evidence)* → Tutor Agent → END
+route → simulation → retrieve → evidence → plan → Python tool → diagnose → Tutor Agent → END
+route → Assessment Agent → SQLite memory → Curriculum Agent → Tutor Agent → END
+route → out_of_scope → Tutor Agent safe response → END
 ```
 
 Each handler owns a small set of state fields and returns a trace description.
-The local implementation keeps the offline server free of orchestration
-framework dependencies. It is intentionally a single AI Tutor with
-conditional branches; the role labels shown in debug metadata are an
-observability projection, not independent Agents or hidden model calls.
+The evidence gate preserves the statuses `SUPPORTED`, `PARTIAL`, `CONFLICT`,
+`NONE` and `OUT_OF_SCOPE`; supplementary retrieval is bounded by two follow-up
+rounds. A normal concept question invokes only the Tutor Agent after retrieval;
+assessment invokes all three agents because it needs a learning-state handoff.
+The three agents have no hidden calls to one another: LangGraph makes each
+transition explicit.
 
 Every trace entry also records `status` and `duration_ms`. If a node raises,
 the failed node and exception type are appended before the error propagates.
 This gives the UI node-level latency and failure evidence without exposing
 private reasoning text.
 
-The response may expose `teaching_team`, a role-level projection of the same
-trace for debugging and interviews. It does not change execution semantics.
+The response may expose `teaching_team`, a backwards-compatible role-level
+projection of the same trace for debugging and interviews. It does not change
+execution semantics or create extra agents; use `observability.agents_invoked`
+and `handoffs` for the actual three-agent path.
 
 ## Learner model
 

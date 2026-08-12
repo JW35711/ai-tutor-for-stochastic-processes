@@ -23,6 +23,16 @@ class AnswerabilityTests(unittest.TestCase):
         response = self.agent.answer("What is the exact hitting time result for a random walk?")
         self.assertEqual(response["answerability_status"], "PARTIAL")
         self.assertIn("initial state", response["missing_requirements"])
+        self.assertIn("target or hitting set", response["missing_requirements"])
+        self.assertIn("step or transition probabilities", response["missing_requirements"])
+        self.assertIn("boundary conditions (if confined)", response["missing_requirements"])
+        for requirement in (
+            "initial state",
+            "target or hitting set",
+            "step or transition probabilities",
+            "boundary conditions",
+        ):
+            self.assertIn(requirement, response["answer"])
         self.assertNotIn("simulation", response["answer"].lower())
 
     def test_related_topic_does_not_support_external_policy_claim(self) -> None:
@@ -37,6 +47,13 @@ class AnswerabilityTests(unittest.TestCase):
         response = self.agent.answer("Can an external contractor claim travel expenses?")
         self.assertEqual(response["answerability_status"], "OUT_OF_SCOPE")
         self.assertEqual(response["sources"], [])
+        self.assertTrue(
+            response["answer"].startswith(
+                "That question is outside the scope of this stochastic-process course."
+            )
+        )
+        self.assertIn("course evidence does not cover it, so I will not guess", response["answer"])
+        self.assertIn("verified simulations", response["answer"])
 
     def test_conflicting_sources_are_not_silently_selected(self) -> None:
         state = AgentState(question="Why is the exponential distribution memoryless?", session_id="test")

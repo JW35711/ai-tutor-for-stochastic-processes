@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="A student-focused Stochastic Processes tutor with verified simulations." />
-    <title>Stochastic Processes</title>
+    <meta name="description" content="A student-focused Introduction to Stochastic Processes with Applications tutor with verified simulations." />
+    <title>Introduction to Stochastic Processes with Applications</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -25,13 +25,13 @@
 
       <div class="app-main">
         <header class="topbar">
-          <div><span class="breadcrumb">STOCHLAB /</span><strong>Course workspace</strong></div>
+          <div><span class="breadcrumb">STOCHLAB /</span><strong id="locationBreadcrumb">Course workspace</strong></div>
           <div class="topbar-status"><span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i>Connecting</span></div>
         </header>
 
         <main class="dashboard">
           <section class="page-intro">
-            <div><p class="eyebrow">ENGINEERING MATHEMATICS</p><h1>Stochastic Processes</h1></div>
+            <div><p class="eyebrow">ENGINEERING MATHEMATICS</p><h1 id="courseTitle">Introduction to Stochastic Processes with Applications</h1></div>
             <p class="intro-copy">Learn concepts, practice problems, and explore stochastic models through verified simulations.</p>
           </section>
 
@@ -46,9 +46,9 @@
               <div class="panel-heading"><div><p class="kicker">AI TUTOR</p><h2>Ask a question</h2></div><button id="quizButton" type="button">Check your understanding</button></div>
               <div id="quizPanel" class="quiz-panel hidden" role="region" aria-label="Module quiz" aria-live="polite"></div>
               <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions">
-                <article class="message agent-message"><span class="message-label">TUTOR</span><p>Ask me about a concept, a module, or a simulation.</p></article>
+                <article class="message agent-message"><span class="message-label">TUTOR</span><div class="message-body"><p>Ask me about a concept, a module, or a simulation.</p></div></article>
               </div>
-              <form id="chatForm" class="composer"><label for="questionInput" class="sr-only">Ask the tutor</label><textarea id="questionInput" rows="3" maxlength="4000" placeholder="For example: What is Brownian motion?" required></textarea><button id="submitButton" type="submit">Ask Tutor <span>→</span></button></form>
+              <form id="chatForm" class="composer"><label for="questionInput" class="sr-only">Ask the tutor</label><textarea id="questionInput" rows="3" maxlength="4000" aria-describedby="composerStatus" placeholder="For example: What is Brownian motion?" required></textarea><button id="submitButton" type="submit">Ask Tutor <span aria-hidden="true">→</span></button><p id="composerStatus" class="composer-status" role="status" aria-live="polite">Press Enter to ask · Shift+Enter for a new line</p></form>
             </article>
 
             <aside id="resultPanel" class="result-panel panel-card" aria-live="polite">
@@ -56,6 +56,21 @@
               <div id="emptyEvidence" class="empty-evidence"><strong>Ready when you are</strong><p>Simulation charts and useful parameters will appear here after a run.</p></div>
               <div id="evidenceContent" class="evidence-content hidden"><div id="runMeta" class="run-meta"></div><section id="simulationSection" class="hidden"><p class="section-label">SIMULATION</p><div id="chart" class="chart"></div><div id="parameters" class="metric-grid"></div></section><section id="sourcesSection" class="sources-section"><details><summary>Sources</summary><div id="sources" class="source-list"></div></details></section></div>
             </aside>
+          </section>
+
+          <section id="simulationView" class="simulation-view panel-card hidden" aria-live="polite" aria-label="Simulation result">
+            <div class="simulation-view-heading">
+              <div>
+                <p class="kicker">SIMULATION LAB</p>
+                <h2 id="simulationTitle">Simulation result</h2>
+                <p id="simulationSubtitle" class="simulation-subtitle">Verified output from the selected stochastic-process model.</p>
+              </div>
+              <button id="closeSimulationView" class="ghost-button" type="button">Back to tutor</button>
+            </div>
+            <div id="simulationChart" class="simulation-chart" aria-label="Large simulation chart"></div>
+            <div id="simulationLegend" class="simulation-legend" aria-label="Chart legend"></div>
+            <div id="simulationMetrics" class="simulation-metrics"></div>
+            <details class="simulation-sources"><summary>Sources and parameters</summary><div id="simulationSources" class="source-list"></div></details>
           </section>
 
           <section id="progressSection" class="panel-card progress-section"><div class="panel-heading compact"><div><p class="kicker">YOUR PROGRESS</p><h2>Learning record</h2></div></div><p id="learningNote" class="learning-note">Your practice and quiz activity will appear here.</p><div id="learnerProfile" class="profile-list"><p>No learning record yet.</p></div><div id="misconceptions" class="misconception-list"></div><div id="nextRecommendation" class="next-recommendation"></div></section>

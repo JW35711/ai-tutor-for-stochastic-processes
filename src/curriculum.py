@@ -36,6 +36,8 @@ def load_curriculum(path: Path = CURRICULUM_PATH) -> dict[str, Any]:
     """Load curriculum data and reject incomplete or dangling references."""
 
     payload = json.loads(path.read_text("utf-8"))
+    if payload.get("course_title") is not None and not isinstance(payload["course_title"], str):
+        raise ValueError("curriculum course_title must be a string")
     modules = payload.get("modules")
     if not isinstance(modules, list):
         raise ValueError("curriculum modules must be a list")
@@ -47,6 +49,15 @@ def load_curriculum(path: Path = CURRICULUM_PATH) -> dict[str, Any]:
     for module in modules:
         if not isinstance(module, dict):
             raise ValueError("each curriculum module must be an object")
+        if module.get("purpose") is not None and not isinstance(module["purpose"], str):
+            raise ValueError(f"{module['module_id']} purpose must be a string")
+        objectives = module.get("learning_objectives", [])
+        if objectives and (
+            not isinstance(objectives, list)
+            or not 2 <= len(objectives) <= 4
+            or not all(isinstance(item, str) and item.strip() for item in objectives)
+        ):
+            raise ValueError(f"{module['module_id']} learning_objectives must contain 2 to 4 strings")
         points = module.get("knowledge_points")
         if not isinstance(points, list) or not 3 <= len(points) <= 8:
             raise ValueError(f"{module['module_id']} must contain 3 to 8 knowledge points")
@@ -78,12 +89,26 @@ def curriculum_catalog() -> dict[str, Any]:
     """Return a fresh JSON-safe curriculum payload for the public API."""
 
     payload = json.loads(json.dumps(load_curriculum()))
+    payload["course_title"] = payload.get(
+        "course_title", "Introduction to Stochastic Processes with Applications"
+    )
     for module in payload["modules"]:
         spec = MODULE_BY_ID[module["module_id"]]
-        module["number"] = spec.number
-        module["label"] = spec.label
-        module["summary"] = (
+        purpose = module.get("purpose") or (
             f"Explore {spec.label.lower()} through definitions, practice questions, "
             "and verified simulations."
         )
+        module["number"] = spec.number
+        module["label"] = spec.label
+        # ``summary`` remains for backward compatibility with older clients;
+        # new student screens should prefer the explicit purpose field.
+        module["purpose"] = purpose
+        module["summary"] = purpose
+        module["learning_objectives"] = module.get("learning_objectives") or [
+            f"Explain {point['title'].lower()} in the context of this module."
+            for point in module["knowledge_points"][:3]
+        ]
+        for point in module["knowledge_points"]:
+            # Existing summaries are already concise student descriptions.
+            point["description"] = point.get("description") or point["summary"]
     return payload

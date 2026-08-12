@@ -1,7 +1,14 @@
 {
+  "course_title": "Introduction to Stochastic Processes with Applications",
   "modules": [
     {
       "module_id": "module00",
+      "purpose": "Estimate quantities with random samples and see why repeated trials become more stable.",
+      "learning_objectives": [
+        "Explain how repeated random samples produce a Monte Carlo estimate.",
+        "Interpret a sample mean as an estimator and compare it with a target quantity.",
+        "Relate sample size to standard error and the law of large numbers."
+      ],
       "knowledge_points": [
         {"id": "m00-monte-carlo-estimation", "title": "Monte Carlo estimation", "summary": "Use repeated random samples to estimate a quantity such as π.", "prerequisites": [], "source_refs": ["notebooks/00_Monte_Carlo.ipynb"], "simulation_tool": "monte_carlo", "simulation_prompt": "Estimate π with a Monte Carlo experiment using 10000 samples", "practice_prompt": "Why does Monte Carlo estimation require repeated sampling?"},
         {"id": "m00-sample-mean", "title": "Sample mean", "summary": "Interpret the sample mean as the estimator produced by repeated trials.", "prerequisites": ["m00-monte-carlo-estimation"], "source_refs": ["notebooks/00_Monte_Carlo.ipynb"], "practice_prompt": "What does the sample mean estimate in a Monte Carlo experiment?"},
@@ -11,6 +18,12 @@
     },
     {
       "module_id": "module01",
+      "purpose": "Model random arrivals in discrete and continuous time and connect counts with waiting times.",
+      "learning_objectives": [
+        "Distinguish Bernoulli trials from Poisson arrivals.",
+        "Connect accumulated counts with binomial and Poisson distributions.",
+        "Explain geometric and exponential waiting-time behavior."
+      ],
       "knowledge_points": [
         {"id": "m01-bernoulli-process", "title": "Bernoulli process", "summary": "Model independent arrivals in discrete time with a fixed event probability.", "prerequisites": ["m00-monte-carlo-estimation"], "source_refs": ["notebooks/01_Bernoulli&Poisson.ipynb", "reference/lectnotes_technmath.pdf#page-21"], "simulation_tool": "bernoulli", "simulation_prompt": "Simulate a Bernoulli process with 100 slots, event probability 0.3, and 500 paths", "practice_prompt": "What does each time slot represent in a Bernoulli process?"},
         {"id": "m01-binomial-counts", "title": "Binomial counts", "summary": "Compare the accumulated Bernoulli arrivals with a binomial distribution.", "prerequisites": ["m01-bernoulli-process"], "source_refs": ["notebooks/01_Bernoulli&Poisson.ipynb"], "practice_prompt": "Why do Bernoulli arrivals over fixed slots follow a binomial distribution?"},
@@ -20,6 +33,12 @@
     },
     {
       "module_id": "module02",
+      "purpose": "Build discrete-time walks from independent steps and study drift, variance, hitting, and absorption.",
+      "learning_objectives": [
+        "Construct a random walk from up and down steps.",
+        "Relate step probabilities to endpoint drift and variance.",
+        "Interpret boundary hitting probabilities and absorption times."
+      ],
       "knowledge_points": [
         {"id": "m02-random-walk-increments", "title": "Random-walk increments", "summary": "Build a discrete-time walk from independent up and down steps.", "prerequisites": ["m01-bernoulli-process"], "source_refs": ["notebooks/02_Random_Walk_Part1.ipynb"], "simulation_tool": "random_walk", "simulation_prompt": "Simulate a 100-step random walk with 500 paths and compare the theoretical mean", "practice_prompt": "When the up-step probability is greater than 0.5, which way does the endpoint mean move?"},
         {"id": "m02-drift-variance", "title": "Drift and variance", "summary": "Compare empirical endpoint mean and variance with their theoretical values.", "prerequisites": ["m02-random-walk-increments"], "source_refs": ["notebooks/02_Random_Walk_Part1.ipynb"], "practice_prompt": "Why do the mean and variance of a random walk depend on the number of steps?"},
@@ -29,6 +48,12 @@
     },
     {
       "module_id": "module03",
+      "purpose": "Use Poisson jump times to understand random motion in continuous time.",
+      "learning_objectives": [
+        "Describe how a Poisson process supplies jump times.",
+        "Read a continuous-time path between successive jumps.",
+        "Predict how the jump rate changes motion over a fixed horizon."
+      ],
       "knowledge_points": [
         {"id": "m03-poisson-jump-times", "title": "Poisson jump times", "summary": "Use Poisson arrivals as the random clock for a continuous-time walk.", "prerequisites": ["m01-poisson-process"], "source_refs": ["notebooks/03_Random_Walk_Part2.ipynb"], "simulation_tool": "continuous_random_walk", "simulation_prompt": "Simulate a continuous-time random walk with rate 2, horizon 5, and 500 paths", "practice_prompt": "Why are the jump times random in a continuous-time random walk?"},
         {"id": "m03-continuous-time-path", "title": "Continuous-time sample paths", "summary": "Interpret the path as piecewise constant between jump times.", "prerequisites": ["m03-poisson-jump-times"], "source_refs": ["notebooks/03_Random_Walk_Part2.ipynb"], "practice_prompt": "Why does a continuous-time random-walk path stay constant between jumps?"},
@@ -37,6 +62,12 @@
     },
     {
       "module_id": "module04",
+      "purpose": "Connect scaled random walks to Brownian motion and its Gaussian paths and distributions.",
+      "learning_objectives": [
+        "Describe Brownian motion through its independent Gaussian increments.",
+        "Explain how scaling links random walks with Brownian paths.",
+        "Use the terminal distribution and sample paths to study hitting events."
+      ],
       "knowledge_points": [
         {"id": "m04-brownian-increments", "title": "Gaussian increments", "summary": "Study Brownian increments as independent normal random variables.", "prerequisites": ["m02-random-walk-increments"], "source_refs": ["notebooks/04_Random_Walk_Part3.ipynb", "reference/lectnotes_technmath.pdf#page-16"], "simulation_tool": "brownian_motion", "simulation_prompt": "Simulate Brownian motion with 500 paths, T=1, and 200 grid steps; explain the terminal variance", "practice_prompt": "What do independent Brownian increments mean?"},
         {"id": "m04-brownian-scaling", "title": "Brownian scaling", "summary": "Compare a scaled random walk with Brownian motion.", "prerequisites": ["m04-brownian-increments"], "source_refs": ["notebooks/04_Random_Walk_Part3.ipynb"], "practice_prompt": "How does a scaled random walk approximate Brownian motion?"},
@@ -46,6 +77,12 @@
     },
     {
       "module_id": "module05",
+      "purpose": "Represent memoryless state transitions and study long-run and absorbing behavior.",
+      "learning_objectives": [
+        "Use a transition matrix to describe one-step state changes.",
+        "Apply the Markov property to separate the present from the full past.",
+        "Find and interpret stationary distributions and absorbing states."
+      ],
       "knowledge_points": [
         {"id": "m05-transition-matrix", "title": "Transition matrix", "summary": "Use a transition matrix to specify one-step state changes.", "prerequisites": ["m02-random-walk-increments"], "source_refs": ["notebooks/05_Markov_Chain_Part1.ipynb"], "simulation_tool": "markov_chain", "simulation_prompt": "Simulate a Markov chain for 500 steps and compare its stationary distribution", "practice_prompt": "Why must each row of a transition matrix sum to 1?"},
         {"id": "m05-markov-property", "title": "Markov Property", "summary": "Explain why the next state depends on the present state rather than the full past.", "prerequisites": ["m05-transition-matrix"], "source_refs": ["notebooks/05_Markov_Chain_Part1.ipynb", "reference/lectnotes_technmath.pdf#page-34"], "practice_prompt": "What extra information from the past does the Markov property rule out?"},
@@ -55,6 +92,12 @@
     },
     {
       "module_id": "module06",
+      "purpose": "Describe continuous-time state changes with holding times, generators, and birth-death models.",
+      "learning_objectives": [
+        "Interpret holding times and rates of leaving a state.",
+        "Read a generator matrix as a description of continuous-time transitions.",
+        "Use birth-death and reliability chains to explain state dynamics."
+      ],
       "knowledge_points": [
         {"id": "m06-holding-times", "title": "Holding times", "summary": "Describe how long a continuous-time Markov chain stays in a state.", "prerequisites": ["m05-markov-property"], "source_refs": ["notebooks/06_Markov_Chain_Part2.ipynb", "reference/lectnotes_technmath.pdf#page-53"], "simulation_tool": "ctmc", "simulation_prompt": "Simulate a continuous-time Markov chain with failure rate 0.25, repair rate 0.15, and horizon 200", "practice_prompt": "How are holding times related to the rate of leaving a state?"},
         {"id": "m06-generator-matrix", "title": "Generator matrix", "summary": "Use a generator matrix to encode continuous-time transition rates.", "prerequisites": ["m06-holding-times"], "source_refs": ["notebooks/06_Markov_Chain_Part2.ipynb", "reference/lectnotes_technmath.pdf#page-53"], "practice_prompt": "Why are the diagonal entries of a generator matrix usually negative?"},
@@ -64,6 +107,12 @@
     },
     {
       "module_id": "module07",
+      "purpose": "Apply stochastic-process ideas to reliability, buffers, queues, and stability conditions.",
+      "learning_objectives": [
+        "Relate lifetimes to survival and hazard functions.",
+        "Compare series and parallel reliability systems.",
+        "Analyze finite buffers, M/M/1 queues, and the stability condition λ<μ."
+      ],
       "knowledge_points": [
         {"id": "m07-survival-and-hazard", "title": "Survival and hazard functions", "summary": "Relate lifetimes to survival functions and hazard rates.", "prerequisites": ["m06-two-state-reliability"], "source_refs": ["notebooks/07_Markov_Chain_Part3.ipynb", "reference/lectnotes_technmath.pdf#page-61"], "simulation_tool": "reliability", "simulation_prompt": "Simulate a reliability model with component failure rates 0.8 and 1.2", "practice_prompt": "What do the survival function and hazard rate describe?"},
         {"id": "m07-series-parallel-systems", "title": "Series and parallel systems", "summary": "Compare system lifetimes under series and parallel arrangements.", "prerequisites": ["m07-survival-and-hazard"], "source_refs": ["notebooks/07_Markov_Chain_Part3.ipynb", "reference/lectnotes_technmath.pdf#page-64"], "practice_prompt": "Why is the lifetime of a series system the minimum component lifetime?"},
@@ -73,6 +122,12 @@
     },
     {
       "module_id": "module08",
+      "purpose": "Explore changing arrival rates with thinning and integrated intensity.",
+      "learning_objectives": [
+        "Explain how a time-varying intensity differs from a fixed rate.",
+        "Use thinning to simulate candidate and accepted events.",
+        "Relate integrated intensity to the expected event count."
+      ],
       "knowledge_points": [
         {"id": "m08-time-varying-intensity", "title": "Time-varying intensity", "summary": "Describe a Poisson process whose event rate changes over time.", "prerequisites": ["m01-poisson-process"], "source_refs": ["notebooks/08_Exploratory_Module_1.ipynb"], "practice_prompt": "How does a time-varying intensity differ from the fixed rate of a homogeneous Poisson process?"},
         {"id": "m08-thinning", "title": "Thinning algorithm", "summary": "Generate candidate events and accept them according to a time-varying rate.", "prerequisites": ["m08-time-varying-intensity"], "source_refs": ["notebooks/08_Exploratory_Module_1.ipynb"], "simulation_tool": "nhpp", "simulation_prompt": "Simulate a nonhomogeneous Poisson process by thinning with base rate 2, peak increment 6, and peak center 13", "practice_prompt": "Why does thinning require an upper bound on the intensity?"},
@@ -81,6 +136,12 @@
     },
     {
       "module_id": "module09",
+      "purpose": "Study path dependence, trapping, and stopping lengths in self-avoiding walks.",
+      "learning_objectives": [
+        "Describe why a self-avoiding walk depends on its visited set.",
+        "Explain how a growing path can become trapped.",
+        "Compare stopping lengths across repeated paths."
+      ],
       "knowledge_points": [
         {"id": "m09-self-avoidance", "title": "Self-avoidance", "summary": "Construct a walk that never revisits a previously visited site.", "prerequisites": ["m02-random-walk-increments"], "source_refs": ["notebooks/09_Exploratory_Module_2.ipynb"], "simulation_tool": "self_avoiding_walk", "simulation_prompt": "Simulate a self-avoiding walk with maximum 1000 steps and 500 runs", "practice_prompt": "Why can the next step of a self-avoiding walk not depend only on its current position?"},
         {"id": "m09-path-trapping", "title": "Path trapping", "summary": "Observe that a growing path can exhaust all available neighbouring sites.", "prerequisites": ["m09-self-avoidance"], "source_refs": ["notebooks/09_Exploratory_Module_2.ipynb"], "practice_prompt": "How can a growing path trap itself?"},
@@ -89,6 +150,12 @@
     },
     {
       "module_id": "module10",
+      "purpose": "Model particles that move and merge, then analyze cluster and coalescence times.",
+      "learning_objectives": [
+        "Describe random motion of particles on a discrete circle.",
+        "Explain why coalescence can only reduce the number of clusters.",
+        "Interpret how system size and particle count affect coalescence time."
+      ],
       "knowledge_points": [
         {"id": "m10-particle-motion", "title": "Random particle motion", "summary": "Move particles randomly on a discrete circle.", "prerequisites": ["m02-random-walk-increments"], "source_refs": ["notebooks/10_Exploratory_Module_3.ipynb"], "simulation_tool": "coalescing_particles", "simulation_prompt": "Simulate coalescing particles on a circle of size 12 with 9 particles and 200 runs", "practice_prompt": "How does the circle size affect the chance that particles meet?"},
         {"id": "m10-coalescence", "title": "Coalescence", "summary": "Merge particles when they meet and track the number of clusters.", "prerequisites": ["m10-particle-motion"], "source_refs": ["notebooks/10_Exploratory_Module_3.ipynb", "reference/lectnotes_technmath.pdf#page-79"], "practice_prompt": "Why can the number of clusters never increase during coalescence?"},

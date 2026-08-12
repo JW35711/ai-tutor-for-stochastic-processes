@@ -13,6 +13,7 @@ from typing import Any
 from .knowledge import KnowledgeBase
 from .config import runtime_config
 from .curriculum import curriculum_catalog
+from .agents import AssessmentAgent, CurriculumAgent, TutorAgent, TutorContext
 from .llm import OpenAICompatibleLLM
 from .memory import LearnerMemory
 from .module_registry import MODULES, MODULE_BY_ID, classify_module
@@ -21,7 +22,9 @@ from .provenance import execution_sha256
 from .recommendation import recommend_next
 from .teaching_team import build_team_trace
 from .validation import validate_question, validate_session_id
-from .workflow import AgentState, NodeOutcome, StateGraph, WorkflowNode
+from .workflow import AgentState, NodeOutcome
+from .graph.workflow import build_graph
+from .graph.response import finalize as finalize_graph_response
 from .processes import (
     analyze_markov_chain,
     analyze_reliability_system,
@@ -184,6 +187,9 @@ class StochasticTutorAgent:
         self.llm = OpenAICompatibleLLM(config=self.config)
         self.memory = memory or LearnerMemory()
         self.curriculum = curriculum_catalog()
+        self.curriculum_agent = CurriculumAgent(self.curriculum)
+        self.assessment_agent = AssessmentAgent()
+        self.tutor_agent = TutorAgent()
         self._concepts = [
             {**point, "module_id": module["module_id"]}
             for module in self.curriculum["modules"]
@@ -206,29 +212,9 @@ class StochasticTutorAgent:
             "self_avoiding_walk": simulate_self_avoiding_walk,
             "coalescing_particles": simulate_coalescing_particles,
         }
-        self.workflow = StateGraph(
-            [
-                WorkflowNode("classify", self._node_classify),
-                WorkflowNode(
-                    "retrieve",
-                    self._node_retrieve,
-                    enabled=lambda state: state.intent in {"concept", "simulation"},
-                ),
-                WorkflowNode(
-                    "plan", self._node_plan, enabled=lambda state: state.intent == "simulation"
-                ),
-                WorkflowNode(
-                    "tool", self._node_tool, enabled=lambda state: state.intent == "simulation"
-                ),
-                WorkflowNode(
-                    "diagnose", self._node_diagnose, enabled=lambda state: state.intent == "simulation"
-                ),
-                WorkflowNode(
-                    "memory", self._node_memory, enabled=lambda state: state.intent == "simulation"
-                ),
-                WorkflowNode("respond", self._node_respond),
-            ]
-        )
+        # The graph is the orchestration boundary. Domain node methods remain
+        # here so retrieval, memory, tools and response contracts stay stable.
+        self.workflow = build_graph(self)
 
     def _llm_metadata(self) -> dict[str, object]:
         """Read safe provider metadata while allowing lightweight test doubles."""
@@ -642,6 +628,14 @@ class StochasticTutorAgent:
         )
 
     def _node_classify(self, state: AgentState) -> NodeOutcome:
+        # Assessment handoffs already carry a validated module and intent. Do
+        # not reinterpret the synthetic quiz question as a concept query.
+        if state.intent in {"quiz", "practice"} and state.assessment_input:
+            if state.module_id in MODULE_BY_ID:
+                state.module = MODULE_BY_ID[state.module_id]
+                state.topic = state.module.topic
+            state.answerability_status = "SUPPORTED"
+            return NodeOutcome("assessment result routed to learning agents")
         if self._is_course_navigation(state.question) and not self._is_simulation_request(state.question):
             state.intent = "course_navigation"
             state.module_id = self._navigation_module_id(state.question)
@@ -667,6 +661,17 @@ class StochasticTutorAgent:
         else:
             state.concept_id = self._match_concept(state.question, state.module_id)
             state.comparison_concept_ids = []
+        # A Knowledge Point title is authoritative curriculum metadata.  If
+        # lexical module matching misses a title variant (for example,
+        # "survival and hazard functions"), recover its owning module before
+        # deciding whether the question is out of scope.
+        if state.module_id is None and state.concept_id:
+            concept = next(
+                (point for point in self._concepts if point["id"] == state.concept_id),
+                None,
+            )
+            if concept and concept.get("module_id") in MODULE_BY_ID:
+                state.module_id = str(concept["module_id"])
         explicit_follow_up = self._is_explicit_follow_up(state.question)
         if state.module_id is None and state.previous_turn and explicit_follow_up:
             state.module_id = state.previous_turn["module_id"]
@@ -719,32 +724,6 @@ class StochasticTutorAgent:
         state.sources = self._retrieve_for_state(state, state.retrieval_query)
         state.retrieval_rounds = 1
         self._update_answerability(state)
-
-        # A relevant but incomplete hit gets at most two targeted follow-up
-        # retrievals. The query is built from missing course requirements, not
-        # from an unconstrained model loop.
-        while (
-            state.intent == "concept"
-            and state.answerability_status == "PARTIAL"
-            and state.retrieval_rounds < 3
-            and not state.question_requirements.get("missing_user_requirements")
-        ):
-            supplement = self._supplementary_query(state)
-            if not supplement or supplement == state.retrieval_query:
-                break
-            extra = self._retrieve_for_state(state, supplement)
-            before = {str(source.get("source")) for source in state.sources}
-            for source in extra:
-                if str(source.get("source")) not in before:
-                    state.sources.append(source)
-                    before.add(str(source.get("source")))
-            limit = 6 if state.comparison_module_ids else 4
-            state.sources = state.sources[:limit]
-            state.retrieval_query = supplement
-            state.retrieval_rounds += 1
-            self._update_answerability(state)
-            if not extra:
-                break
 
         mode = state.sources[0]["retrieval_mode"] if state.sources else "no_results"
         return NodeOutcome(
@@ -842,8 +821,9 @@ class StochasticTutorAgent:
         ):
             for label, terms in (
                 ("initial state", ["initial", "start", "starting"]),
-                ("boundary or target", ["boundary", "target", "level"]),
-                ("step or transition probabilities", ["probability", "drift", "transition"]),
+                ("target or hitting set", ["target", "hitting set", "level"]),
+                ("step or transition probabilities", ["probability", "drift", "transition", "step probability"]),
+                ("boundary conditions (if confined)", ["boundary", "absorbing", "reflecting", "finite interval", "barrier"]),
             ):
                 user_groups.append({"label": label, "terms": terms})
 
@@ -1107,7 +1087,11 @@ class StochasticTutorAgent:
             )
             return NodeOutcome("answered from the curriculum catalogue")
         if state.intent == "unsupported":
-            state.answer = self._offline_general_answer(state.question)
+            state.answer = self.tutor_agent.scope_response(
+                is_general=self._is_general_conversation(state.question),
+                general=lambda: self._offline_general_answer(state.question),
+                out_of_scope=lambda: self._offline_scope_answer(state.question),
+            )
             state.response = self._non_simulation_response(
                 state,
                 module_id="general",
@@ -1117,37 +1101,22 @@ class StochasticTutorAgent:
             )
             return NodeOutcome("scope response without simulation")
         if state.intent == "concept":
-            if state.answerability_status == "CONFLICT":
-                state.answer = self._conflict_answer(state)
-            elif state.answerability_status == "PARTIAL":
-                state.answer = self._partial_answer(state)
-            elif state.answerability_status == "NONE":
-                state.answer = self._none_answer(state)
-            elif state.sources:
-                # Prefer a directly indexed textbook passage when available;
-                # notebook evidence remains the fallback for course concepts.
-                evidence = next(
-                    (
-                        source
-                        for source in state.sources
-                        if source.get("source_type") == "textbook"
-                        or "lectnotes_technmath.pdf" in str(source.get("source", ""))
-                    ),
-                    state.sources[0],
-                )
-                excerpt = self._relevant_excerpt(state.question, evidence["content"])
-                if state.module_id == "module04":
-                    excerpt = (
-                        "Brownian motion is a continuous-time stochastic process "
-                        "that starts at B(0)=0. Its increments over disjoint time "
-                        "intervals are independent, and their distributions depend "
-                        "only on the interval length, so the increments are stationary. "
-                        "For every t≥0, B(t) ~ N(0,t), and the sample paths are continuous. "
-                        f"{excerpt}"
-                    )
-                state.answer = self._synthesise_concept(state)
-            else:
-                state.answer = "I could not find enough course evidence for that question. Try naming a module or concept."
+            state.answer = self.tutor_agent.answer_concept(
+                TutorContext(
+                    question=state.question,
+                    concept_id=state.concept_id,
+                    curriculum_decision=state.curriculum_decision,
+                    assessment=state.assessment_result,
+                    sources=tuple(state.sources),
+                    answerability_status=state.answerability_status,
+                    sub_intent=state.concept_sub_intent,
+                ),
+                synthesise=lambda: self._synthesise_concept(state),
+                partial=lambda: self._partial_answer(state),
+                conflict=lambda: self._conflict_answer(state),
+                none=lambda: self._none_answer(state),
+                fallback=lambda: "I could not find enough course evidence for that question. Try naming a module or concept.",
+            )
             state.response = self._non_simulation_response(
                 state,
                 module_id=state.module_id,
@@ -1156,30 +1125,36 @@ class StochasticTutorAgent:
                 learning_note="This explanation used course evidence and did not run a simulation.",
             )
             return NodeOutcome("grounded concept response without simulation")
+        if state.intent in {"quiz", "practice"}:
+            state.answer = self.tutor_agent.assessment_feedback(
+                state.assessment_input,
+                state.curriculum_decision,
+            )
+            state.response = self._non_simulation_response(
+                state,
+                module_id=state.module_id,
+                module_label=state.module.label if state.module else "Assessment",
+                topic="assessment",
+                learning_note="The Assessment Agent evaluated the attempt; the Tutor Agent provided feedback.",
+            )
+            state.response["result"] = state.assessment_input
+            state.response["assessment"] = state.assessment_result
+            state.response["curriculum_decision"] = state.curriculum_decision
+            state.response["memory"] = state.profile
+            state.response["recommendation"] = state.recommendation
+            return NodeOutcome("Tutor feedback after assessment handoff")
         if state.tool_key is None or state.topic is None:
             raise RuntimeError("response state is incomplete")
-        if state.verified:
-            explanation = self._summary_english(state.tool_key, state.result)
-            source_text = (
-                f"This experiment illustrates {state.module.label.lower()} and compares "
-                "empirical output with the corresponding theoretical reference."
-            )
-            deterministic_answer = (
-                f"## Result\n{explanation}\n\n"
-                f"## What it means\n{source_text}\n\n"
-                f"## Try next\n{self._guiding_question(state.tool_key)}"
-            )
-        else:
-            deterministic_answer = (
-                f"The parameters were not valid: {state.result['error']}. "
-                "Please adjust them and try again."
-            )
-
-        if state.misconceptions:
-            corrections = "\n".join(
-                f"- {item['correction']}" for item in state.misconceptions
-            )
-            deterministic_answer += f"\n\n## Check this idea\n{corrections}"
+        deterministic_answer = self.tutor_agent.simulation_feedback(
+            verified=state.verified,
+            result_summary=self._summary_english(state.tool_key, state.result)
+            if state.verified
+            else "",
+            module_label=state.module.label,
+            guiding_question=self._guiding_question(state.tool_key),
+            error=state.result.get("error"),
+            corrections=[item["correction"] for item in state.misconceptions],
+        )
 
         # Simulation output is authoritative numerical evidence from the Python
         # tool. Do not send it through an LLM rewrite that could add or alter numbers.
@@ -1204,6 +1179,8 @@ class StochasticTutorAgent:
             "conflicting_source_locators": state.conflicting_source_locators,
             "retrieval_rounds": state.retrieval_rounds,
             "question_requirements": state.question_requirements,
+            "curriculum_decision": state.curriculum_decision,
+            "assessment": state.assessment_result,
             "tool_called": True,
             "tool": self.tools[state.tool_key].__name__,
             "parameters": state.parameters,
@@ -1238,13 +1215,25 @@ class StochasticTutorAgent:
 
         concepts = state.question_requirements.get("concept_titles", [])
         supported = ", ".join(concepts[:2]) if concepts else "the related stochastic-process concept"
-        missing = ", ".join(state.missing_requirements[:3]) or "a condition needed for the requested claim"
-        if state.question_requirements.get("missing_user_requirements"):
-            question = state.question_requirements["missing_user_requirements"][0]
+        missing_user = state.question_requirements.get("missing_user_requirements", [])
+        if missing_user:
+            if len(missing_user) == 2:
+                missing_text = f"{missing_user[0]} and {missing_user[1]}"
+            elif len(missing_user) > 2:
+                missing_text = ", ".join(missing_user[:-1]) + f", and {missing_user[-1]}"
+            else:
+                missing_text = missing_user[0]
+            if len(missing_user) > 1:
+                return (
+                    f"The course material can explain {supported}, but an exact result depends on {missing_text}. "
+                    "Could you provide these model details so I can proceed without guessing?"
+                )
+            question = missing_text
             return (
                 f"The course material can explain {supported}, but it does not determine the requested result without the {question}. "
                 f"Please provide the {question} so I can check the claim rather than guess."
             )
+        missing = ", ".join(state.missing_requirements[:4]) or "a condition needed for the requested claim"
         return (
             f"The retrieved course material supports discussion of {supported}, but it does not establish the requested conclusion. "
             f"The missing evidence is: {missing}. I can explain the supported concept, but I cannot give a definitive answer from these materials."
@@ -1403,6 +1392,9 @@ Use concise tutor English only."""
         text = candidate.strip()
         if not text:
             return None
+        # Remove harmless TeX spacing commands so formulas remain readable in
+        # both KaTeX and plain-text/API assertions (for example N(0,t)).
+        text = re.sub(r"\\(?:,|;|:|!|\s+)", "", text)
         if re.search(r"[\u4e00-\u9fff]", text):
             return None
         if re.search(r"according to retrieved|retriev(?:ed|al)|embedding|chunk|score|workflow|tool_called", text, re.I):
@@ -1623,6 +1615,16 @@ Use concise tutor English only."""
             "teaching_team": build_team_trace(trace),
             "run_sha256": None,
         }
+
+    @classmethod
+    def _offline_scope_answer(cls, question: str) -> str:
+        """Decline out-of-scope claims without implying unsupported knowledge."""
+
+        return (
+            "That question is outside the scope of this stochastic-process course. "
+            "The course evidence does not cover it, so I will not guess. "
+            "I can help with stochastic-process concepts, course modules, or verified simulations."
+        )
 
     @classmethod
     def _offline_general_answer(cls, question: str) -> str:
@@ -1898,49 +1900,40 @@ Use concise tutor English only."""
             question=normalized_question,
             session_id=resolved_session,
             previous_turn=history[-1] if history else None,
+            profile=self.memory.profile(resolved_session),
             llm_metadata={**self._llm_metadata(), "status": "not_called", "latency_ms": 0.0, "retry_count": 0},
         )
-        completed = self.workflow.invoke(state)
-        # The respond node builds the payload before the graph appends its own
-        # trace entry. Refresh both views so API consumers see the complete
-        # workflow, including respond.
-        if completed.response:
-            completed.response["trace"] = completed.trace
-            completed.response["workflow"] = {
-                "nodes": [item["node"] for item in completed.trace]
-            }
-            durations = {
-                item["node"]: item.get("duration_ms", 0.0)
-                for item in completed.trace
-            }
-            completed.response["observability"] = {
-                "request_id": None,
-                "intent": completed.intent,
-                "concept_sub_intent": completed.concept_sub_intent,
-                "module_id": completed.module_id,
-                "concept_id": completed.concept_id,
-                "answerability_status": completed.answerability_status,
-                "missing_requirements": completed.missing_requirements,
-                "supporting_source_locators": completed.supporting_source_locators,
-                "conflicting_source_locators": completed.conflicting_source_locators,
-                "retrieval_rounds": completed.retrieval_rounds,
-                "llm_enabled": self.llm.enabled,
-                "llm_applied": completed.llm_applied,
-                "provider": completed.llm_metadata.get("provider"),
-                "model": completed.llm_metadata.get("model"),
-                "retry_count": completed.llm_metadata.get("retry_count", 0),
-                "latency_ms": {
-                    "routing": durations.get("classify", 0.0),
-                    "retrieval": durations.get("retrieve", 0.0),
-                    "llm": completed.llm_metadata.get("latency_ms", 0.0),
-                    "simulation": durations.get("tool", 0.0),
-                    "total": round((time.perf_counter() - started) * 1000, 2),
-                },
-                "input_tokens": completed.llm_metadata.get("input_tokens"),
-                "output_tokens": completed.llm_metadata.get("output_tokens"),
-                "total_tokens": completed.llm_metadata.get("total_tokens"),
-                "tool_called": bool(completed.response.get("tool_called")),
-                "source_locators": [source.get("source") for source in completed.sources if source.get("source")],
-            }
-        completed.response["teaching_team"] = build_team_trace(completed.trace)
-        return completed.response
+        graph_result = self.workflow.invoke(
+            {"runtime": state, "visited_nodes": [], "route_taken": "", "supplementary_query": ""}
+        )
+        return finalize_graph_response(self, graph_result, started)
+
+    def handle_assessment(
+        self,
+        result: dict[str, Any],
+        session_id: str,
+    ) -> dict[str, Any]:
+        """Run Assessment → Curriculum → Tutor as an explicit graph handoff."""
+
+        if not isinstance(result, dict) or not result.get("module_id"):
+            raise ValueError("assessment result must include module_id")
+        resolved_session = validate_session_id(session_id)
+        if not resolved_session:
+            raise ValueError("session_id is required for assessment handoff")
+        module_id = str(result["module_id"])
+        if module_id not in MODULE_BY_ID:
+            raise ValueError("assessment module_id is not in the curriculum")
+        state = AgentState(
+            question=f"Assessment result for {module_id}",
+            session_id=resolved_session,
+            intent="quiz",
+            module_id=module_id,
+            assessment_input=dict(result),
+            profile=self.memory.profile(resolved_session),
+            llm_metadata={**self._llm_metadata(), "status": "not_called", "latency_ms": 0.0, "retry_count": 0},
+        )
+        started = time.perf_counter()
+        graph_result = self.workflow.invoke(
+            {"runtime": state, "visited_nodes": [], "route_taken": "", "supplementary_query": ""}
+        )
+        return finalize_graph_response(self, graph_result, started)

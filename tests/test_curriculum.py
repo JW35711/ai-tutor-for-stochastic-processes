@@ -35,6 +35,13 @@ class CurriculumTests(unittest.TestCase):
         self.assertIn("Markov Property", titles)
         self.assertIn("Stationary Distribution", titles)
 
+    def test_each_module_has_student_facing_purpose_and_objectives(self) -> None:
+        for module in self.modules:
+            with self.subTest(module=module["module_id"]):
+                self.assertTrue(module["purpose"])
+                self.assertTrue(2 <= len(module["learning_objectives"]) <= 4)
+                self.assertTrue(all(isinstance(item, str) for item in module["learning_objectives"]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -113,7 +113,7 @@ OPENAPI_SPEC: dict[str, Any] = {
         "/api/chat": {
             "post": {
                 "operationId": "askTutor",
-                "summary": "Run the seven-node teaching workflow",
+                "summary": "Run the conditional LangGraph teaching workflow",
                 "requestBody": {
                     "required": True,
                     "content": {
@@ -189,6 +189,20 @@ OPENAPI_SPEC: dict[str, Any] = {
                     "400": ERROR_RESPONSE,
                     "429": ERROR_RESPONSE,
                 },
+            }
+        },
+        "/api/practice": {
+            "post": {
+                "summary": "Assess a free-text knowledge-point practice answer",
+                "requestBody": {"required": True, "content": {"application/json": {"schema": OBJECT}}},
+                "responses": {"200": _json_response("Practice assessment", OBJECT)},
+            }
+        },
+        "/api/hint": {
+            "post": {
+                "summary": "Request a bounded hint for a knowledge point",
+                "requestBody": {"required": True, "content": {"application/json": {"schema": OBJECT}}},
+                "responses": {"200": _json_response("Knowledge-point hint", OBJECT)},
             }
         },
         "/api/sessions/{session_id}": {

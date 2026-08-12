@@ -40,6 +40,15 @@ class V1StabilizationTests(unittest.TestCase):
         self.assertFalse(response["tool_called"])
         self.assertTrue(any(source["module_id"] == "module04" for source in response["sources"]))
 
+    def test_curriculum_learn_prompt_routes_survival_hazard_to_module07(self) -> None:
+        response = self.ask("Explain Survival and hazard functions using the course material.")
+        self.assertEqual(response["intent"], "concept")
+        self.assertEqual(response["module_id"], "module07")
+        self.assertEqual(response["concept_id"], "m07-survival-and-hazard")
+        self.assertFalse(response["tool_called"])
+        self.assertNotEqual(response["answerability_status"], "OUT_OF_SCOPE")
+        self.assertTrue(response["sources"])
+
     def test_stationarity_does_not_pick_survival_hazard(self) -> None:
         response = self.ask("Explain strict stationarity and weak stationarity.")
         self.assertEqual(response["intent"], "concept")

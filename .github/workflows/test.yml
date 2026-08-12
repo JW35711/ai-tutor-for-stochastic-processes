@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install runtime and graph dependencies
+        run: python -m pip install -r requirements.txt
       - name: Unit and numerical tests
         run: python3 -m unittest discover -s tests -v
       - name: Thirty-case Agent evaluation

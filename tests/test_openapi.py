@@ -23,6 +23,8 @@ class OpenAPIContractTests(unittest.TestCase):
             "/api/profile",
             "/api/quiz",
             "/api/quiz/submit",
+            "/api/practice",
+            "/api/hint",
             "/api/sessions/{session_id}",
             "/api/sessions/{session_id}/export",
         }
