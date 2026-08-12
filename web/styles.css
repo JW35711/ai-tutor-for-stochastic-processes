@@ -1391,6 +1391,8 @@ body { font-size: 16px; }
 .simulation-metrics .metric { min-height: 68px; padding: 12px 14px; border: 1px solid #e5e1f0; border-radius: 12px; background: #fff; }
 .simulation-metrics .metric span { display: block; color: var(--muted); font-size: .76rem; }
 .simulation-metrics .metric strong { display: block; margin-top: 4px; overflow-wrap: anywhere; font-size: 1rem; }
+.simulation-teaching-note { display: grid; gap: .45rem; margin-top: 1rem; padding: .9rem 1rem; border: 1px solid #eeeaf6; border-radius: 12px; background: #faf9ff; color: #4f4a63; line-height: 1.55; }
+.simulation-teaching-note p { margin: 0; }
 .simulation-sources { margin-top: 1.25rem; border-top: 1px solid #e9e5f1; padding-top: .9rem; }
 .simulation-sources summary { cursor: pointer; color: var(--muted); font-size: .9rem; font-weight: 650; }
 @media (max-width: 640px) {

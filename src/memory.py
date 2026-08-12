@@ -30,7 +30,7 @@ DEFAULT_MEMORY_PATH = (
         )
     )
 )
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 class LearnerMemory:
@@ -153,6 +153,18 @@ class LearnerMemory:
 
                 CREATE INDEX IF NOT EXISTS learning_events_session_index
                     ON learning_events(session_id, id);
+
+                CREATE TABLE IF NOT EXISTS tutor_context (
+                    session_id TEXT PRIMARY KEY,
+                    active_experiment_id TEXT,
+                    active_visualization_id TEXT,
+                    active_parameters TEXT NOT NULL DEFAULT '{}',
+                    latest_result_reference TEXT,
+                    latest_result_summary TEXT,
+                    related_concept_id TEXT,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+                );
                 """
             )
             # Existing local demos may have created the first schema version.
@@ -174,6 +186,16 @@ class LearnerMemory:
             if "bank_sha256" not in assessment_columns:
                 self._connection.execute(
                     "ALTER TABLE assessments ADD COLUMN bank_sha256 TEXT"
+                )
+            context_columns = {
+                row["name"]
+                for row in self._connection.execute(
+                    "PRAGMA table_info(tutor_context)"
+                ).fetchall()
+            }
+            if context_columns and "latest_result_summary" not in context_columns:
+                self._connection.execute(
+                    "ALTER TABLE tutor_context ADD COLUMN latest_result_summary TEXT"
                 )
             self._connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
@@ -325,6 +347,44 @@ class LearnerMemory:
                 ),
             )
             self._prune_session_events("turns", session_id)
+
+    def context(self, session_id: str) -> dict[str, Any]:
+        """Return compact active-experiment state, never raw arrays."""
+
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT active_experiment_id, active_visualization_id, active_parameters, latest_result_reference, latest_result_summary, related_concept_id FROM tutor_context WHERE session_id=?",
+                (session_id,),
+            ).fetchone()
+        if row is None:
+            return {}
+        item = dict(row)
+        item["active_parameters"] = json.loads(item.pop("active_parameters") or "{}")
+        return item
+
+    def save_context(
+        self,
+        *,
+        session_id: str,
+        active_experiment_id: str | None,
+        active_visualization_id: str | None,
+        active_parameters: dict[str, Any] | None,
+        latest_result_reference: str | None,
+        latest_result_summary: str | None = None,
+        related_concept_id: str | None,
+    ) -> None:
+        now = self._now()
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO sessions(session_id, created_at, updated_at) VALUES (?, ?, ?) ON CONFLICT(session_id) DO UPDATE SET updated_at=excluded.updated_at",
+                (session_id, now, now),
+            )
+            self._connection.execute(
+                """INSERT INTO tutor_context(session_id, active_experiment_id, active_visualization_id, active_parameters, latest_result_reference, latest_result_summary, related_concept_id, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(session_id) DO UPDATE SET active_experiment_id=excluded.active_experiment_id, active_visualization_id=excluded.active_visualization_id, active_parameters=excluded.active_parameters, latest_result_reference=excluded.latest_result_reference, latest_result_summary=excluded.latest_result_summary, related_concept_id=excluded.related_concept_id, updated_at=excluded.updated_at""",
+                (session_id, active_experiment_id, active_visualization_id, json.dumps(active_parameters or {}, ensure_ascii=False), latest_result_reference, latest_result_summary, related_concept_id, now),
+            )
 
     def _prune_session_events(self, table: str, session_id: str) -> None:
         if table not in {"turns", "assessments", "learning_events"}:
@@ -533,6 +593,7 @@ class LearnerMemory:
             )
             self._connection.execute("DELETE FROM concept_mastery WHERE session_id=?", (session_id,))
             self._connection.execute("DELETE FROM learning_events WHERE session_id=?", (session_id,))
+            self._connection.execute("DELETE FROM tutor_context WHERE session_id=?", (session_id,))
             self._connection.execute(
                 "DELETE FROM sessions WHERE session_id=?", (session_id,)
             )

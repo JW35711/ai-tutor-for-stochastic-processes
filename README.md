@@ -134,6 +134,10 @@ flowchart LR
     C --> T
     C --> UI[Web UI]
     M --> UI
+    T <--> X[Experiment discovery / context]
+    X --> P
+    S --> V[Structured result]
+    V --> T
 ```
 
 The orchestration is an official LangGraph `StateGraph` with conditional edges.
@@ -153,6 +157,15 @@ the existing answerability policy responds. A normal concept question skips
 Curriculum and Assessment to avoid unnecessary work; quiz feedback uses the
 explicit Assessment → Curriculum → Tutor handoff. These are three bounded
 responsibility agents, not open-ended autonomous planners.
+
+The Experiment Registry (`data/notebook_experiments.json`) is the source of
+truth for notebook-derived experiments. Theory questions may recommend one or
+two registry entries without running them. An explicit request, a `Show me`
+handoff, or a declared parameter change selects the same registry entry and
+passes only its declared parameters to the matching Python engine. The service
+stores only compact active experiment context (identifier, parameters and a
+verified summary), never raw arrays, so follow-ups such as `Set lambda to 4`
+and `What changed?` remain in context. Unsupported parameters are rejected.
 
 Numerical computation is performed by Python, not by the language model. The
 optional DeepSeek/OpenAI-compatible model synthesizes concept explanations

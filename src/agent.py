@@ -7,10 +7,12 @@ import math
 import re
 import time
 import uuid
+import inspect
 from collections.abc import Callable
 from typing import Any
 
 from .knowledge import KnowledgeBase
+from .experiments import ExperimentRegistry
 from .config import runtime_config
 from .curriculum import curriculum_catalog
 from .agents import AssessmentAgent, CurriculumAgent, TutorAgent, TutorContext
@@ -112,14 +114,15 @@ class StochasticTutorAgent:
         "m00-law-large-numbers": ("law of large numbers", "large numbers"),
         "m00-standard-error": ("standard error", "sampling error"),
         "m01-bernoulli-process": ("bernoulli process", "bernoulli arrivals"),
-        "m01-poisson-process": ("poisson process", "homogeneous poisson"),
+        "m01-poisson-process": ("poisson process", "homogeneous poisson", "poisson sample path", "arrival path"),
+        "m01-geometric-waiting-time": ("geometric waiting time", "geometric distribution", "waiting time", "interarrival time"),
         "m02-random-walk-increments": ("random walk", "ordinary random walk", "simple random walk"),
         "m02-drift-variance": ("random walk drift", "random walk variance"),
         "m02-hitting-probability": ("hitting probability", "gambler's ruin"),
         "m03-poisson-jump-times": ("poisson jump times", "random jump times"),
         "m04-brownian-increments": ("brownian motion", "brownian increments", "independent increments", "gaussian increments"),
         "m04-brownian-scaling": ("brownian scaling", "scaled random walk approximation"),
-        "m04-terminal-distribution": ("brownian terminal distribution", "distribution of b(t)"),
+        "m04-terminal-distribution": ("brownian terminal distribution", "distribution of b(t)", "brownian variance", "variance of b(t)"),
         "m05-markov-property": ("markov property", "memoryless state dependence"),
         "m05-stationary-distribution": ("stationary distribution", "invariant distribution"),
         "m06-holding-times": ("holding time", "holding times"),
@@ -179,6 +182,8 @@ class StochasticTutorAgent:
         "运行",
         "画图",
         "绘图",
+        "show ",
+        "visualise",
     )
 
     def __init__(self, memory: LearnerMemory | None = None) -> None:
@@ -187,6 +192,7 @@ class StochasticTutorAgent:
         self.llm = OpenAICompatibleLLM(config=self.config)
         self.memory = memory or LearnerMemory()
         self.curriculum = curriculum_catalog()
+        self.experiments = ExperimentRegistry()
         self.curriculum_agent = CurriculumAgent(self.curriculum)
         self.assessment_agent = AssessmentAgent()
         self.tutor_agent = TutorAgent()
@@ -215,6 +221,38 @@ class StochasticTutorAgent:
         # The graph is the orchestration boundary. Domain node methods remain
         # here so retrieval, memory, tools and response contracts stay stable.
         self.workflow = build_graph(self)
+
+    def _tool_parameters(self, tool_key: str | None) -> list[dict[str, Any]]:
+        if not tool_key or tool_key not in self.tools:
+            return []
+        return [
+            {
+                "name": parameter.name,
+                "required": parameter.default is inspect.Parameter.empty,
+                **({} if parameter.default is inspect.Parameter.empty else {"default": parameter.default}),
+            }
+            for parameter in inspect.signature(self.tools[tool_key]).parameters.values()
+        ]
+
+    def _experiment_summary(self, item: dict[str, Any]) -> dict[str, Any]:
+        return self.experiments.summary(
+            item, self._tool_parameters(item.get("simulation_engine"))
+        )
+
+    def _find_experiments(self, state: AgentState, *, limit: int = 2) -> list[dict[str, Any]]:
+        concept_id = state.concept_id
+        lowered = state.question.lower()
+        # A rate/lambda question concerns the continuous-time Poisson waiting
+        # experiment, even when lexical routing also sees the discrete
+        # geometric-waiting knowledge point.
+        if "waiting" in lowered and any(term in lowered for term in ("lambda", "rate", "intensity", "\u03bb")):
+            concept_id = "m01-poisson-process"
+        return self.experiments.find_experiments(
+            module_id=state.module_id,
+            concept_id=concept_id,
+            query=state.question,
+            limit=limit,
+        )
 
     def _llm_metadata(self) -> dict[str, object]:
         """Read safe provider metadata while allowing lightweight test doubles."""
@@ -289,16 +327,19 @@ class StochasticTutorAgent:
         text: str, labels: tuple[str, ...], default: float, integer: bool = False
     ) -> float | int:
         for label in labels:
+            label_pattern = re.escape(label)
+            if label.isascii() and label.isalpha():
+                label_pattern = rf"(?<![A-Za-z]){label_pattern}(?![A-Za-z])"
             pattern = (
-                rf"(?:{re.escape(label)})\s*"
-                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*"
+                rf"(?:{label_pattern})\s*"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为|to)?\s*"
                 rf"({StochasticTutorAgent.NUMBER_PATTERN})"
             )
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if not match:
                 reverse_pattern = (
                     rf"({StochasticTutorAgent.NUMBER_PATTERN})\s*"
-                    rf"(?:个|条)?\s*(?:{re.escape(label)})"
+                    rf"(?:个|条)?\s*(?:{label_pattern})"
                 )
                 match = re.search(reverse_pattern, text, flags=re.IGNORECASE)
             if match:
@@ -318,13 +359,16 @@ class StochasticTutorAgent:
 
         labels = cls.PARAMETER_LABELS.get(key, (key, key.replace("_", " ")))
         for label in labels:
+            label_pattern = re.escape(label)
+            if label.isascii() and label.isalpha():
+                label_pattern = rf"(?<![A-Za-z]){label_pattern}(?![A-Za-z])"
             forward = (
-                rf"(?:{re.escape(label)})\s*"
-                rf"(?:为|=|:|是|改成|改为|调整为|设为)?\s*"
+                rf"(?:{label_pattern})\s*"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为|to)?\s*"
                 rf"{cls.NUMBER_PATTERN}"
             )
             reverse = (
-                rf"{cls.NUMBER_PATTERN}\s*(?:个|条)?\s*(?:{re.escape(label)})"
+                rf"{cls.NUMBER_PATTERN}\s*(?:个|条)?\s*(?:{label_pattern})"
             )
             if re.search(forward, text, flags=re.IGNORECASE) or re.search(
                 reverse, text, flags=re.IGNORECASE
@@ -673,13 +717,27 @@ class StochasticTutorAgent:
             if concept and concept.get("module_id") in MODULE_BY_ID:
                 state.module_id = str(concept["module_id"])
         explicit_follow_up = self._is_explicit_follow_up(state.question)
+        if state.module_id is None and state.active_experiment_id and (explicit_follow_up or self._is_active_experiment_question(state)) and not self._unsupported_experiment_parameter(state.question):
+            active = self.experiments.get(state.active_experiment_id)
+            if active:
+                state.module_id = str(active["module_id"])
+                state.module_from_context = True
         if state.module_id is None and state.previous_turn and explicit_follow_up:
             state.module_id = state.previous_turn["module_id"]
             state.module_from_context = True
         if state.module_id is not None:
             state.module = MODULE_BY_ID[state.module_id]
             state.topic = state.module.topic
-        if self._is_simulation_request(state.question, explicit_follow_up):
+        if state.module_from_context and state.concept_id is None:
+            saved_concept = self.memory.context(state.session_id).get("related_concept_id")
+            if saved_concept:
+                state.concept_id = str(saved_concept)
+        if self._unsupported_experiment_parameter(state.question):
+            state.intent = "unsupported"
+            state.module = None
+            state.module_id = None
+            state.topic = None
+        elif self._is_simulation_request(state.question, explicit_follow_up) or self._is_active_simulation_handoff(state):
             state.intent = "simulation" if state.module else "unsupported"
         elif self._is_general_conversation(state.question):
             state.intent = "unsupported"
@@ -708,6 +766,37 @@ class StochasticTutorAgent:
             detail += " (inherited from previous turn)"
         return NodeOutcome(detail)
 
+    @staticmethod
+    def _is_show_handoff(question: str) -> bool:
+        lowered = question.lower().strip().rstrip(".!?")
+        return lowered in {"show me", "run it", "visualize it", "visualise it", "try it", "do it", "show the result"}
+
+    def _is_active_simulation_handoff(self, state: AgentState) -> bool:
+        if not state.active_experiment_id:
+            return False
+        active = self.experiments.get(state.active_experiment_id)
+        if active and state.module_id and active.get("module_id") != state.module_id:
+            return False
+        if self._is_show_handoff(state.question):
+            return True
+        if any(self._parameter_mentioned(key, state.question) for key in self.PARAMETER_LABELS):
+            return True
+        return bool(re.search(r"\b(?:rerun|re-run|run again|try)\b", state.question.lower()))
+
+    def _is_active_experiment_question(self, state: AgentState) -> bool:
+        if not state.active_experiment_id:
+            return False
+        lowered = state.question.lower()
+        return any(
+            marker in lowered
+            for marker in ("what changed", "what should i notice", "explain this graph", "explain the result", "interpret this")
+        )
+
+    @staticmethod
+    def _unsupported_experiment_parameter(question: str) -> bool:
+        lowered = question.lower()
+        return any(term in lowered for term in ("obstacle", "blocked site", "arbitrary code", "python code"))
+
     def _node_retrieve(self, state: AgentState) -> NodeOutcome:
         state.retrieval_query = state.question
         if (
@@ -720,6 +809,8 @@ class StochasticTutorAgent:
                 previous_tool, previous_tool
             )
         state.question_requirements = self._analyze_question_requirements(state.question)
+        if state.latest_result_summary:
+            state.question_requirements["latest_result_summary"] = state.latest_result_summary
         state.retrieval_rounds = 0
         state.sources = self._retrieve_for_state(state, state.retrieval_query)
         state.retrieval_rounds = 1
@@ -981,10 +1072,52 @@ class StochasticTutorAgent:
             and state.previous_turn["tool"] in self.tools
         ):
             default_tool = state.previous_turn["tool"]
-        state.tool_key = self.resolve_tool(
-            state.module_id, default_tool, state.question
+        active_handoff = self._is_active_simulation_handoff(state) or bool(
+            state.previous_turn
+            and state.previous_turn.get("tool") in self.tools
+            and self._is_explicit_follow_up(state.question)
+            and state.module_from_context
         )
+        preferred_tool = (
+            state.previous_turn.get("tool")
+            if active_handoff and state.previous_turn and state.previous_turn.get("tool") in self.tools
+            else self.resolve_tool(state.module_id, default_tool, state.question)
+        )
+        selected = self.experiments.get(state.active_experiment_id) if active_handoff else None
+        if selected is not None and selected.get("simulation_engine") in self.tools:
+            preferred_tool = str(selected["simulation_engine"])
+        if selected is None:
+            matches = self.experiments.find_experiments(
+                module_id=state.module_id,
+                concept_id=None if state.intent == "simulation" else state.concept_id,
+                query=state.question,
+                simulation_engine=preferred_tool,
+                limit=1,
+            )
+            if not matches:
+                matches = self.experiments.find_experiments(
+                    module_id=state.module_id,
+                    concept_id=None if state.intent == "simulation" else state.concept_id,
+                    query=state.question,
+                    limit=1,
+                )
+            selected = matches[0] if matches else None
+        if selected is not None and selected.get("simulation_engine") != preferred_tool:
+            # Some module-level notebook targets (for example reliability in
+            # Module 07) share a module with a distinct executable tool.  Do
+            # not mislabel the run; the Python tool remains authoritative.
+            selected = None
+        state.experiment_id = str(selected["experiment_id"]) if selected else None
+        state.visualization_id = str(selected.get("visualization_id")) if selected and selected.get("visualization_id") else None
+        state.tool_key = str(selected.get("simulation_engine")) if selected else preferred_tool
+        # A registry entry, rather than the LLM, owns the executable engine.
+        state.tool_key = self.resolve_tool(state.module_id, state.tool_key, state.question)
         state.parameters = self.extract_parameters(state.tool_key, state.question)
+        inherited = state.active_parameters if active_handoff else {}
+        for key, previous_value in inherited.items():
+            if key in state.parameters and not self._parameter_mentioned(key, state.question):
+                state.parameters[key] = previous_value
+                state.inherited_parameters.append(key)
         if (
             state.previous_turn
             and state.previous_turn["module_id"] == state.module_id
@@ -995,8 +1128,11 @@ class StochasticTutorAgent:
                     key, state.question
                 ):
                     state.parameters[key] = previous_value
-                    state.inherited_parameters.append(key)
+                    if key not in state.inherited_parameters:
+                        state.inherited_parameters.append(key)
         detail = f"call {state.tool_key} simulation tool"
+        if state.experiment_id:
+            detail = f"select {state.experiment_id}; " + detail
         if state.inherited_parameters:
             detail += "; inherited " + ", ".join(
                 sorted(state.inherited_parameters)
@@ -1007,8 +1143,25 @@ class StochasticTutorAgent:
         if state.tool_key is None:
             raise RuntimeError("plan node did not select a tool")
         try:
-            state.result = self.tools[state.tool_key](**state.parameters)
+            raw_result = self.tools[state.tool_key](**state.parameters)
+            state.result = dict(raw_result)
+            state.result["experiment_id"] = state.experiment_id
+            state.result["visualization_id"] = state.visualization_id
             state.verified = True
+            state.active_experiment_id = state.experiment_id
+            state.active_visualization_id = state.visualization_id
+            state.active_parameters = dict(state.parameters)
+            state.latest_result_reference = state.experiment_id
+            state.latest_result_summary = self._summary_english(state.tool_key, state.result)
+            self.memory.save_context(
+                session_id=state.session_id,
+                active_experiment_id=state.active_experiment_id,
+                active_visualization_id=state.active_visualization_id,
+                active_parameters=state.active_parameters,
+                latest_result_reference=state.latest_result_reference,
+                latest_result_summary=state.latest_result_summary,
+                related_concept_id=state.concept_id,
+            )
             return NodeOutcome("simulation completed and validated")
         except ValueError as error:
             state.result = {
@@ -1099,9 +1252,28 @@ class StochasticTutorAgent:
                 topic="general_conversation",
                 learning_note="This was a scope conversation; no simulation was run or recorded.",
             )
+            if self._unsupported_experiment_parameter(state.question):
+                state.response["answer"] = (
+                    "That parameter is not supported by the selected course experiment. "
+                    "I will not pass arbitrary inputs to the simulation engine. "
+                    "Please use one of the declared experiment parameters."
+                )
+                state.answer = state.response["answer"]
             return NodeOutcome("scope response without simulation")
         if state.intent == "concept":
-            state.answer = self.tutor_agent.answer_concept(
+            state.experiment_recommendations = [
+                self._experiment_summary(item)
+                for item in self._find_experiments(state, limit=2)
+            ]
+            if state.latest_result_summary and self._is_active_experiment_question(state):
+                state.answer = (
+                    f"The latest {state.active_experiment_id} run used "
+                    f"{state.active_parameters} and produced: {state.latest_result_summary} "
+                    "Compare it with the previous parameter values to identify what changed."
+                )
+                state.llm_applied = False
+            else:
+                state.answer = self.tutor_agent.answer_concept(
                 TutorContext(
                     question=state.question,
                     concept_id=state.concept_id,
@@ -1116,7 +1288,7 @@ class StochasticTutorAgent:
                 conflict=lambda: self._conflict_answer(state),
                 none=lambda: self._none_answer(state),
                 fallback=lambda: "I could not find enough course evidence for that question. Try naming a module or concept.",
-            )
+                )
             state.response = self._non_simulation_response(
                 state,
                 module_id=state.module_id,
@@ -1124,6 +1296,30 @@ class StochasticTutorAgent:
                 topic=state.topic or "global_concept",
                 learning_note="This explanation used course evidence and did not run a simulation.",
             )
+            state.response["experiment_recommendations"] = state.experiment_recommendations if not self._is_active_experiment_question(state) else []
+            if state.concept_sub_intent == "why/explanation" and state.experiment_recommendations and not self._is_active_experiment_question(state):
+                state.answer += (
+                    "\n\nExplore with: **"
+                    f"{state.experiment_recommendations[0]['title']}**."
+                )
+                state.response["answer"] = state.answer
+            # A recommendation is the lightweight handoff context for a later
+            # “Show me.” It does not execute anything or store arrays.
+            if state.experiment_recommendations and not self._is_active_experiment_question(state):
+                recommended = self.experiments.get(
+                    state.experiment_recommendations[0]["experiment_id"]
+                )
+                if recommended:
+                    state.active_experiment_id = recommended["experiment_id"]
+                    state.active_visualization_id = recommended.get("visualization_id")
+                    self.memory.save_context(
+                        session_id=state.session_id,
+                        active_experiment_id=state.active_experiment_id,
+                        active_visualization_id=state.active_visualization_id,
+                        active_parameters={},
+                        latest_result_reference=None,
+                        related_concept_id=state.concept_id,
+                    )
             return NodeOutcome("grounded concept response without simulation")
         if state.intent in {"quiz", "practice"}:
             state.answer = self.tutor_agent.assessment_feedback(
@@ -1171,6 +1367,9 @@ class StochasticTutorAgent:
             "intent": state.intent,
             "concept_sub_intent": state.concept_sub_intent,
             "concept_id": state.concept_id,
+            "selected_experiment_id": state.experiment_id,
+            "selected_visualization_id": state.visualization_id,
+            "active_experiment_id": state.active_experiment_id,
             "related_module_ids": state.comparison_module_ids,
             "related_concept_ids": state.comparison_concept_ids,
             "answerability_status": state.answerability_status,
@@ -1207,6 +1406,11 @@ class StochasticTutorAgent:
             parameters=state.parameters,
             result=state.result,
             corpus_sha256=self.knowledge.corpus_sha256,
+        )
+        state.response["experiment"] = (
+            self._experiment_summary(self.experiments.get(state.experiment_id))
+            if state.experiment_id and self.experiments.get(state.experiment_id)
+            else None
         )
         return NodeOutcome("verified tool answer; numerical output kept immutable")
 
@@ -1316,6 +1520,7 @@ QUESTION REQUIREMENTS: {json.dumps(state.question_requirements, ensure_ascii=Fal
 ANSWERABILITY STATUS: {state.answerability_status}
 COURSE CONTEXT: The module descriptions below are navigation metadata only.
 SUPPORTED EVIDENCE: Use only the supplied curated course and textbook evidence as the factual source.
+LATEST VERIFIED SIMULATION SUMMARY (use only when the student asks about a prior result): {state.latest_result_summary or "none"}
 
 The first sentence must directly answer the exact student question. Then give only
 the explanation needed for this sub-intent:
@@ -1395,6 +1600,7 @@ Use concise tutor English only."""
         # Remove harmless TeX spacing commands so formulas remain readable in
         # both KaTeX and plain-text/API assertions (for example N(0,t)).
         text = re.sub(r"\\(?:,|;|:|!|\s+)", "", text)
+        text = re.sub(r"\b([A-Za-z])\(0,\s+([A-Za-z0-9])\)", r"\1(0,\2)", text)
         if re.search(r"[\u4e00-\u9fff]", text):
             return None
         if re.search(r"according to retrieved|retriev(?:ed|al)|embedding|chunk|score|workflow|tool_called", text, re.I):
@@ -1426,6 +1632,17 @@ Use concise tutor English only."""
             self._clean_evidence(str(source.get("content", "")))
             for source in state.sources[:6]
         ).lower()
+
+        if state.latest_result_summary and any(
+            marker in lowered
+            for marker in ("what changed", "what should i notice", "explain this graph", "explain the result", "interpret this")
+        ):
+            return (
+                "The latest run changed the selected experiment parameters to "
+                f"{state.active_parameters}. Its verified summary is: "
+                f"{state.latest_result_summary} "
+                "Compare this run with the previous parameters to identify which change drives the difference."
+            )
 
         if "continuous" in lowered and "random walk" in lowered and "self-avoid" not in lowered:
             return (
@@ -1547,6 +1764,8 @@ Use concise tutor English only."""
             "llm_applied": state.llm_applied,
             "llm": dict(state.llm_metadata),
             "run_sha256": None,
+            "experiment_recommendations": [],
+            "experiment": None,
         }
 
     def _general_response(
@@ -1888,6 +2107,17 @@ Use concise tutor English only."""
             "增加到",
             "减少到",
             "同样的",
+            "show me",
+            "show it",
+            "run it",
+            "visualize it",
+            "visualise it",
+            "rerun",
+            "re-run",
+            "run again",
+            "set ",
+            "use ",
+            "try ",
         )
         return any(marker in lowered for marker in follow_up_markers)
 
@@ -1896,10 +2126,17 @@ Use concise tutor English only."""
         normalized_question = validate_question(question)
         resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
         history = self.memory.history(resolved_session, limit=1)
+        context = self.memory.context(resolved_session)
         state = AgentState(
             question=normalized_question,
             session_id=resolved_session,
             previous_turn=history[-1] if history else None,
+            active_experiment_id=context.get("active_experiment_id"),
+            active_visualization_id=context.get("active_visualization_id"),
+            active_parameters=context.get("active_parameters", {}),
+            latest_result_reference=context.get("latest_result_reference"),
+            latest_result_summary=context.get("latest_result_summary"),
+            concept_id=context.get("related_concept_id"),
             profile=self.memory.profile(resolved_session),
             llm_metadata={**self._llm_metadata(), "status": "not_called", "latency_ms": 0.0, "retry_count": 0},
         )

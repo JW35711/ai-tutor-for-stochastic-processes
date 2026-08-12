@@ -59,6 +59,17 @@ class AgentState:
     llm_metadata: dict[str, Any] = field(default_factory=dict)
     response: dict[str, Any] = field(default_factory=dict)
 
+    # Notebook-derived experiment context.  Only identifiers and compact
+    # parameters are carried; raw simulation arrays remain in the result.
+    active_experiment_id: str | None = None
+    active_visualization_id: str | None = None
+    active_parameters: dict[str, Any] = field(default_factory=dict)
+    latest_result_reference: str | None = None
+    latest_result_summary: str | None = None
+    experiment_id: str | None = None
+    visualization_id: str | None = None
+    experiment_recommendations: list[dict[str, Any]] = field(default_factory=list)
+
 
 @dataclass(frozen=True)
 class NodeOutcome:

@@ -14,9 +14,11 @@ const tutorLab = document.querySelector("#tutorLab");
 const simulationView = document.querySelector("#simulationView");
 const simulationTitle = document.querySelector("#simulationTitle");
 const simulationSubtitle = document.querySelector("#simulationSubtitle");
+const experimentPurpose = document.querySelector("#experimentPurpose");
 const simulationChart = document.querySelector("#simulationChart");
 const simulationLegend = document.querySelector("#simulationLegend");
 const simulationMetrics = document.querySelector("#simulationMetrics");
+const experimentTeachingNote = document.querySelector("#experimentTeachingNote");
 const simulationSources = document.querySelector("#simulationSources");
 const closeSimulationView = document.querySelector("#closeSimulationView");
 const dashboard = document.querySelector(".dashboard");
@@ -195,7 +197,7 @@ function renderCurriculum() {
     <section class="learning-objectives" aria-labelledby="objectivesHeading"><h4 id="objectivesHeading">Learning objectives</h4><ul>${(module.learning_objectives || []).map((objective) => `<li>After this module, you should be able to ${escapeHtml(objective.replace(/^After this module, you should be able to /i, "").replace(/[.]$/, ""))}.</li>`).join("")}</ul></section>
     <div class="kp-heading"><p class="section-label">KNOWLEDGE POINTS</p><span>Start with 01</span></div>
     <ol class="concept-list" role="list">${module.knowledge_points.map((point, index) => { const status = masteryByConcept[point.id]?.status || "NOT_STARTED"; return `<li><button type="button" role="listitem" aria-current="${point.id === concept.id ? "true" : "false"}" aria-label="${escapeHtml(`${index + 1}. ${point.title}`)}" data-concept-id="${escapeHtml(point.id)}"><span class="concept-index">${String(index + 1).padStart(2, "0")}</span><span class="concept-copy"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.description || point.summary)}</small></span><span class="concept-status concept-status-${status.toLowerCase().replaceAll("_", "-")}">${escapeHtml(status.replaceAll("_", " "))}</span><span class="concept-arrow" aria-hidden="true">→</span></button></li>`; }).join("")}</ol>
-    <section class="concept-detail" aria-labelledby="conceptHeading"><p class="section-label">SELECTED KNOWLEDGE POINT</p><h4 id="conceptHeading">${escapeHtml(concept.title)}</h4><p>${escapeHtml(concept.description || concept.summary)}</p><p class="you-learn-label">You will learn</p><ul><li>${escapeHtml(concept.description || concept.summary)}</li><li>Use it to answer: ${escapeHtml(concept.practice_prompt)}</li></ul><div class="concept-actions"><button type="button" data-concept-action="learn">Learn</button><button type="button" data-concept-action="practice">Practice</button><button type="button" data-concept-action="hint">Hint</button>${concept.simulation_tool ? '<button type="button" class="primary-action" data-concept-action="simulation">Simulation</button>' : ""}<button type="button" data-concept-action="quiz">Quiz</button></div><p id="conceptActivity" class="concept-activity" role="status" aria-live="polite"></p></section>`;
+    <section class="concept-detail" aria-labelledby="conceptHeading"><p class="section-label">SELECTED KNOWLEDGE POINT</p><h4 id="conceptHeading">${escapeHtml(concept.title)}</h4><p>${escapeHtml(concept.description || concept.summary)}</p><p class="you-learn-label">You will learn</p><ul><li>${escapeHtml(concept.description || concept.summary)}</li><li>Use it to answer: ${escapeHtml(concept.practice_prompt)}</li></ul>${concept.experiments?.length ? `<div class="experiment-list"><p class="you-learn-label">Explore with simulations</p><ul>${concept.experiments.map((experiment) => `<li>${escapeHtml(experiment.title)}</li>`).join("")}</ul></div>` : ""}<div class="concept-actions"><button type="button" data-concept-action="learn">Learn</button><button type="button" data-concept-action="practice">Practice</button><button type="button" data-concept-action="hint">Hint</button>${concept.experiments?.length ? '<button type="button" class="primary-action" data-concept-action="simulation">Simulation</button>' : ""}<button type="button" data-concept-action="quiz">Quiz</button></div><p id="conceptActivity" class="concept-activity" role="status" aria-live="polite"></p></section>`;
   moduleTabs.querySelectorAll("[data-module-id]").forEach((button) => button.addEventListener("click", () => {
     const chosen = curriculum.modules.find((item) => item.module_id === button.dataset.moduleId);
     selectConcept(chosen.module_id, chosen.knowledge_points[0].id);
@@ -346,11 +348,18 @@ function renderSources(sourceRows) {
 function showSimulationView(payload) {
   if (!simulationView) return;
   const series = payload.result?.series || [];
-  simulationTitle.textContent = payload.module_label || payload.module_id || "Simulation result";
+  const experiment = payload.experiment;
+  simulationTitle.textContent = experiment?.title || payload.module_label || payload.module_id || "Simulation result";
   simulationSubtitle.textContent = payload.verified ? "Verified output from the Python simulation tool." : "Simulation output is ready for review.";
+  if (experimentPurpose) experimentPurpose.textContent = experiment?.teaching_purpose || "";
   if (!renderStructuredVisualizations(payload.result, simulationChart)) renderChart(series, payload.result?.chart, simulationChart);
   renderLegend(series, simulationLegend);
   simulationMetrics.innerHTML = Object.entries(payload.parameters || {}).map(([key, value]) => `<div class="metric"><span>${escapeHtml(key)}</span><strong>${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</strong></div>`).join("");
+  if (experimentTeachingNote) {
+    experimentTeachingNote.innerHTML = experiment
+      ? `<p><strong>What to notice</strong> ${escapeHtml(experiment.expected_observation || "Compare the simulated output with the course theory.")}</p><p><strong>Theory connection</strong> ${escapeHtml(experiment.theory_connection || "Use the result to connect the model definition with its simulated behaviour.")}</p>`
+      : "";
+  }
   renderSourceList(payload.sources || [], simulationSources);
   tutorLab?.classList.add("simulation-active");
   dashboard?.classList.add("simulation-mode");

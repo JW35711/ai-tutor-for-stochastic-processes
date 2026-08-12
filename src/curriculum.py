@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .module_registry import MODULE_BY_ID
+from .experiments import ExperimentRegistry
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -89,6 +90,7 @@ def curriculum_catalog() -> dict[str, Any]:
     """Return a fresh JSON-safe curriculum payload for the public API."""
 
     payload = json.loads(json.dumps(load_curriculum()))
+    experiment_registry = ExperimentRegistry()
     payload["course_title"] = payload.get(
         "course_title", "Introduction to Stochastic Processes with Applications"
     )
@@ -111,4 +113,15 @@ def curriculum_catalog() -> dict[str, Any]:
         for point in module["knowledge_points"]:
             # Existing summaries are already concise student descriptions.
             point["description"] = point.get("description") or point["summary"]
+            point["experiments"] = [
+                {
+                    "experiment_id": item["experiment_id"],
+                    "title": experiment_registry._clean_title(str(item.get("title", "Experiment"))),
+                    "simulation_engine": item.get("simulation_engine"),
+                    "visualization_id": item.get("visualization_id"),
+                }
+                for item in experiment_registry.find_experiments(
+                    module_id=module["module_id"], concept_id=point["id"], limit=5
+                )
+            ]
     return payload

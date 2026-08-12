@@ -106,6 +106,21 @@ class LearnerMemoryTests(unittest.TestCase):
         self.assertEqual(turn["parameters"], {"rate": 3.0, "horizon": 4.0})
         self.assertTrue(turn["verified"])
 
+    def test_active_experiment_context_is_compact_and_persistent(self) -> None:
+        self.memory.save_context(
+            session_id="experiment-user",
+            active_experiment_id="module01-exp-09",
+            active_visualization_id="module01-viz-09",
+            active_parameters={"rate": 4.0},
+            latest_result_reference="module01-exp-09",
+            latest_result_summary="verified summary",
+            related_concept_id="m01-poisson-process",
+        )
+        context = self.memory.context("experiment-user")
+        self.assertEqual(context["active_experiment_id"], "module01-exp-09")
+        self.assertEqual(context["active_parameters"], {"rate": 4.0})
+        self.assertEqual(context["latest_result_summary"], "verified summary")
+
     def test_assessment_history_preserves_quiz_bank_version(self) -> None:
         bank_sha256 = "a" * 64
         self.memory.record_assessment(

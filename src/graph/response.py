@@ -43,6 +43,10 @@ def finalize(agent: Any, graph_result: dict[str, Any], started: float) -> dict[s
             "concept_sub_intent": completed.concept_sub_intent,
             "module_id": completed.module_id,
             "concept_id": completed.concept_id,
+            "selected_experiment_id": completed.experiment_id,
+            "selected_visualization_id": completed.visualization_id,
+            "active_experiment_id": completed.active_experiment_id,
+            "parameters": completed.parameters,
             "answerability_status": completed.answerability_status,
             "missing_requirements": completed.missing_requirements,
             "supporting_source_locators": completed.supporting_source_locators,
@@ -83,4 +87,3 @@ def finalize(agent: Any, graph_result: dict[str, Any], started: float) -> dict[s
         }
     completed.response["teaching_team"] = build_team_trace(completed.trace)
     return completed.response
-
