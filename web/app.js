@@ -302,7 +302,21 @@ function renderStructuredVisualizations(result, target) {
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(title)}"><circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="#b8b2d0" stroke-width="2" />${positions.map(([x,y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="#635bdb" />`).join("")}<text x="${cx}" y="${height-12}" text-anchor="middle" class="chart-axis-label">${esc(title)}</text></svg>`;
   };
   const cards = visualizations.map((viz, index) => {
-    if (viz.renderer === "multi_panel") return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="visualization-panels">${(viz.panels || []).map(panelSvg).join("")}</div></section>`;
+    if (viz.renderer === "line" || viz.renderer === "step_process") {
+      const items = [{ x: viz.x, values: viz.values, name: viz.labels?.[0] || viz.id }];
+      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(items, { x_label: viz.x_label || "x", y_label: viz.y_label || "value" })}</section>`;
+    }
+    if (viz.renderer === "empirical_vs_theoretical") {
+      const items = [{ x: viz.x, values: viz.empirical, name: "empirical" }, { x: viz.x, values: viz.theoretical, name: "theoretical" }];
+      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(items, { x_label: viz.labels?.x || "x", y_label: viz.labels?.y || "value" })}<p class="visualization-note">Empirical and theoretical curves are shown together.</p></section>`;
+    }
+    if (viz.renderer === "multi_panel") {
+      if (viz.paths) {
+        const pathItems = Object.entries(viz.paths).map(([name, path]) => ({ name, x: (path || []).map((point, i) => point?.[0] ?? i), values: (path || []).map((point) => point?.[1] ?? 0) }));
+        return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(pathItems, { x_label: "step", y_label: "position" })}</section>`;
+      }
+      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="visualization-panels">${(viz.panels || []).map(panelSvg).join("")}</div></section>`;
+    }
     if (viz.renderer === "state_graph") {
       const nodes = viz.graph?.nodes || result.graph?.nodes || [], edges = viz.graph?.edges || result.graph?.edges || [];
       const width = 520, height = 280, cx = width / 2, cy = height / 2, radius = 92;
@@ -329,7 +343,7 @@ function renderStructuredVisualizations(result, target) {
       const states = viz.snapshots || viz.states || [];
       return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="configuration-grid">${states.slice(0, 4).map((state) => circleSvg(Array.isArray(state) ? state : state.positions, result.parameters?.circle_size || viz.circle_size || 12, "Particle configuration")).join("")}</div></section>`;
     }
-    if (viz.renderer === "event_raster") return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="event-raster">${(result.raster_event_times || []).map((events, row) => `<div class="event-row" style="--row:${row}">${events.map((time) => `<i style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div>`).join("")}</div></section>`;
+    if (viz.renderer === "event_raster") return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="event-raster">${(viz.event_times || result.raster_event_times || []).map((events, row) => `<div class="event-row" style="--row:${row}">${events.map((time) => `<i style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div>`).join("")}</div></section>`;
     return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><p>Visualization data are ready.</p></section>`;
   }).join("");
   target.innerHTML = `<div class="structured-visualizations">${cards}</div>`;

@@ -25,6 +25,7 @@ from .recommendation import recommend_next
 from .teaching_team import build_team_trace
 from .validation import validate_question, validate_session_id
 from .workflow import AgentState, NodeOutcome
+from .visualization_contracts import project_and_validate, validate_native_visualization
 from .graph.workflow import build_graph
 from .graph.response import finalize as finalize_graph_response
 from .processes import (
@@ -795,7 +796,12 @@ class StochasticTutorAgent:
     @staticmethod
     def _unsupported_experiment_parameter(question: str) -> bool:
         lowered = question.lower()
-        return any(term in lowered for term in ("obstacle", "blocked site", "arbitrary code", "python code"))
+        # "obstacle" is a valid Module 09 experiment request.  Only reject
+        # unsupported custom parameters, not the course's registered obstacle
+        # interpretation.
+        if "obstacle" in lowered or "blocked site" in lowered:
+            return False
+        return any(term in lowered for term in ("arbitrary code", "python code"))
 
     def _node_retrieve(self, state: AgentState) -> NodeOutcome:
         state.retrieval_query = state.question
@@ -1147,6 +1153,49 @@ class StochasticTutorAgent:
             state.result = dict(raw_result)
             state.result["experiment_id"] = state.experiment_id
             state.result["visualization_id"] = state.visualization_id
+            # Every selected notebook target is projected through the same
+            # renderer contract before it reaches the API/frontend.  Existing
+            # tool visualizations are preserved; the selected target is added
+            # or replaced without changing any simulation values.
+            if state.visualization_id:
+                native = next(
+                    (
+                        item
+                        for item in state.result.get("visualizations", [])
+                        if isinstance(item, dict) and item.get("id") == state.visualization_id
+                    ),
+                    None,
+                )
+                if native is not None:
+                    native_errors = validate_native_visualization(native)
+                    if native_errors:
+                        raise ValueError(
+                            f"native visualization contract failed for {state.visualization_id}: "
+                            + "; ".join(native_errors)
+                        )
+                else:
+                    target = next(
+                        (
+                            item
+                            for item in self.experiments.payload.get("visualizations", [])
+                            if item.get("visualization_id") == state.visualization_id
+                        ),
+                        None,
+                    )
+                    if target is not None:
+                        payload, contract_errors = project_and_validate(target, state.result)
+                        if contract_errors:
+                            raise ValueError(
+                                f"visualization contract failed for {state.visualization_id}: "
+                                + "; ".join(contract_errors)
+                            )
+                        visualizations = [
+                            item
+                            for item in state.result.get("visualizations", [])
+                            if isinstance(item, dict) and item.get("id") != state.visualization_id
+                        ]
+                        visualizations.append(payload)
+                        state.result["visualizations"] = visualizations
             state.verified = True
             state.active_experiment_id = state.experiment_id
             state.active_visualization_id = state.visualization_id
@@ -2118,8 +2167,28 @@ Use concise tutor English only."""
             "set ",
             "use ",
             "try ",
+            # Natural-language parameter comparisons are still simulation
+            # follow-ups when an active run exists, for example
+            # "What changes if I use 500 steps?".
+            "what changes if",
+            "what happens if",
+            "what if i use",
+            "what if we use",
+            "if i use",
+            "if we use",
+            "increase the",
+            "decrease the",
         )
-        return any(marker in lowered for marker in follow_up_markers)
+        if any(marker in lowered for marker in follow_up_markers):
+            return True
+        # Cover compact parameter-change questions without making every
+        # question containing a number a follow-up.
+        return bool(
+            re.search(
+                r"\b(?:change|compare|increase|decrease|use|set)\b.*\b(?:steps|paths|samples|rate|horizon|time)\b",
+                lowered,
+            )
+        )
 
     def answer(self, question: str, session_id: str | None = None) -> dict[str, Any]:
         started = time.perf_counter()

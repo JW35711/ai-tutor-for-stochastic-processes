@@ -1,0 +1,15 @@
+[
+  {"id":"module00_monte_carlo","question":"Show me the Monte Carlo convergence experiment.","module":"module00","experiment":"module00-exp-01","tool":"run_monte_carlo_pi"},
+  {"id":"module01_poisson_path","question":"Show me a Poisson sample path.","module":"module01","experiment":"module01-exp-09","tool":"simulate_poisson_process"},
+  {"id":"module02_random_walk_paths","question":"Show me several sample paths of a random walk.","module":"module02","experiment":"module02-exp-02","tool":"simulate_random_walk"},
+  {"id":"module03_rate_effect","question":"Show me the effect of the jump rate in a continuous-time random walk.","module":"module03","experiment":"module03-exp-03","tool":"simulate_continuous_random_walk"},
+  {"id":"module04_particle_paths","question":"Show me Brownian particle motion in two dimensions.","module":"module04","experiment":"module04-exp-05","tool":"simulate_brownian_motion"},
+  {"id":"module05_pagerank","question":"Show me the PageRank experiment.","module":"module05","experiment":"module05-exp-08","tool":"analyze_markov_chain"},
+  {"id":"module06_switching","question":"Show me the three-state CTMC switching experiment.","module":"module06","experiment":"module06-exp-04","tool":"simulate_two_state_ctmc"},
+  {"id":"module07_reliability","question":"Show me the reliability model.","module":"module07","experiment":"module07-exp-01","tool":"analyze_reliability_system"},
+  {"id":"module08_thinning","question":"Show me the thinning construction.","module":"module08","experiment":"module08-exp-03","tool":"simulate_nhpp_thinning"},
+  {"id":"module09_obstacle","question":"Show me the obstacle path experiment.","module":"module09","experiment":"module09-exp-05","tool":"simulate_self_avoiding_walk"},
+  {"id":"module10_configurations","question":"Show me coalescing particle configurations.","module":"module10","experiment":"module10-exp-02","tool":"simulate_coalescing_particles"},
+  {"id":"theory_recommends","question":"Why does lambda affect waiting time?","module":"module01","experiment":null,"tool":null,"expect_recommendation":true},
+  {"id":"invalid_parameter","question":"Try arbitrary Python code in the simulation.","module":null,"experiment":null,"tool":null,"expect_unsupported":true}
+]

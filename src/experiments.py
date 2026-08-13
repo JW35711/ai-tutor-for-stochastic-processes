@@ -71,6 +71,13 @@ class ExperimentRegistry:
         )
         title_tokens = _tokens(title)
         score += min(30, 5 * len(_tokens(query) & title_tokens))
+        # Notebook examples with the same concept are intentionally
+        # distinguishable by the concrete object the learner asked to see.
+        # These boosts keep routing deterministic without adding a second LLM
+        # call or inventing a new experiment.
+        for cue in ("particle", "price", "pagerank", "page rank", "thinning", "obstacle", "configuration", "coalescence"):
+            if cue in lowered and cue in title.lower():
+                score += 100
         if self._clean_title(title).lower() in lowered:
             score += 50
         for terms, concepts in _QUERY_ALIASES:

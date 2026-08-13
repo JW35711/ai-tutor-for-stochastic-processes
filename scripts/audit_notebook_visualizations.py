@@ -290,13 +290,10 @@ def _tool_for_experiment(module_id: str, title: str) -> str | None:
 
 
 def _implementation_status(tool: str | None, visualization_type: str) -> str:
-    if tool is None:
-        return "MISSING"
-    supported_renderers = {
-        "line", "step_process", "empirical_vs_theoretical", "multi_panel",
-        "scatter", "interactive", "state_graph", "event_raster", "heatmap",
-    }
-    return "IMPLEMENTED" if visualization_type in supported_renderers else "PARTIAL"
+    # Registration is deliberately not execution.  The verifier adds the
+    # separate ``verification_status`` field after running the real engine,
+    # checking the payload contract and exercising the API/UI mapping.
+    return "REGISTERED" if tool is not None else "MISSING"
 
 
 def build_registry(targets: list[dict[str, Any]]) -> dict[str, Any]:
@@ -320,22 +317,52 @@ def audit(registry: dict[str, Any], notebook_dir: Path = NOTEBOOK_DIR) -> dict[s
     detected_ids = {item["visualization_id"] for item in detected}
     registered = registry.get("visualizations", [])
     registered_ids = {item.get("visualization_id") for item in registered}
-    counts = Counter(item.get("implementation_status", "MISSING") for item in registered)
+    counts = Counter(item.get("verification_status", item.get("implementation_status", "MISSING")) for item in registered)
+    known_engines = {
+        "monte_carlo", "bernoulli", "poisson", "random_walk",
+        "continuous_random_walk", "brownian_motion", "markov_chain", "ctmc",
+        "birth_death", "reliability", "buffer", "mm1_queue", "nhpp",
+        "self_avoiding_walk", "coalescing_particles",
+    }
+    frontend_renderers = {
+        "line", "step_process", "histogram", "empirical_vs_theoretical",
+        "multi_panel", "interactive", "scatter", "scatter_path", "state_graph",
+        "event_raster", "thinning", "configuration", "absorption", "heatmap",
+        "event_marks",
+    }
     by_module: dict[str, dict[str, int]] = defaultdict(lambda: {"targets": 0, "registered": 0, "implemented": 0, "partial": 0, "missing": 0})
     for item in detected:
         by_module[item["module_id"]]["targets"] += 1
     for item in registered:
         module = str(item.get("visualization_id", "module??"))[:8]
         by_module[module]["registered"] += 1
-        status = str(item.get("implementation_status", "MISSING")).lower()
+        status = str(item.get("verification_status", item.get("implementation_status", "MISSING"))).lower()
         by_module[module][status] = by_module[module].get(status, 0) + 1
+    denominator = len(detected_ids) or 1
+    registered_count = len(detected_ids & registered_ids)
+    executable_count = sum(
+        1 for item in registered
+        if item.get("visualization_id") in detected_ids and item.get("existing_tool") in known_engines
+    )
+    renderer_count = sum(
+        1 for item in registered
+        if item.get("visualization_id") in detected_ids and item.get("renderer") in frontend_renderers
+    )
+    e2e_count = sum(
+        1 for item in registered
+        if item.get("visualization_id") in detected_ids and item.get("verification_status") == "E2E_IMPLEMENTED"
+    )
     return {
         "total_notebook_visualization_targets": len(detected_ids),
         "registered": len(detected_ids & registered_ids),
-        "implemented": counts.get("IMPLEMENTED", 0),
+        "implemented": e2e_count,
         "partial": counts.get("PARTIAL", 0),
         "missing": counts.get("MISSING", 0),
-        "coverage_percent": round(100 * len(detected_ids & registered_ids) / len(detected_ids), 2) if detected_ids else 100.0,
+        "coverage_percent": round(100 * registered_count / denominator, 2) if detected_ids else 100.0,
+        "registration_coverage": round(100 * registered_count / denominator, 2) if detected_ids else 100.0,
+        "executable_coverage": round(100 * executable_count / denominator, 2) if detected_ids else 100.0,
+        "renderer_coverage": round(100 * renderer_count / denominator, 2) if detected_ids else 100.0,
+        "e2e_coverage": round(100 * e2e_count / denominator, 2) if detected_ids else 100.0,
         "unregistered_ids": sorted(detected_ids - registered_ids),
         "orphan_registered_ids": sorted(registered_ids - detected_ids),
         "by_module": dict(sorted(by_module.items())),

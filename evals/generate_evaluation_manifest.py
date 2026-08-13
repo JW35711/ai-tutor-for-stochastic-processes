@@ -58,6 +58,11 @@ def _suite(
     ):
         if metric in report:
             suite[metric] = report[metric]
+    for metric in ("experiment_selection_accuracy", "parameter_extraction_accuracy", "follow_up_context_accuracy", "execution_success_rate", "renderer_success_rate"):
+        if metric in report:
+            suite[metric] = report[metric]
+    if "e2e_coverage" in report:
+        suite["e2e_coverage"] = report["e2e_coverage"]
     return suite
 
 
@@ -67,9 +72,11 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     pedagogy = _load(args.pedagogy)
     safety = _load(args.safety)
     answerability = _load(args.answerability)
+    experiment_routing = _load(args.experiment_routing)
+    visualization_e2e = _load(args.visualization_e2e)
     corpus_hashes = {
         str(report.get("corpus_sha256"))
-        for report in (main, retrieval, pedagogy, safety, answerability)
+        for report in (main, retrieval, pedagogy, safety, answerability, experiment_routing)
     }
     if len(corpus_hashes) != 1 or "None" in corpus_hashes:
         raise ValueError(f"evaluation reports do not share one corpus SHA: {sorted(corpus_hashes)}")
@@ -88,6 +95,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         _suite("pedagogy", "evals/pedagogy_cases.json", pedagogy),
         _suite("safety", "evals/safety_cases.json", safety),
         _suite("answerability", "evals/answerability_cases.json", answerability),
+        _suite("experiment_routing", "evals/experiment_routing_cases.json", experiment_routing),
+        _suite("visualization_e2e", "data/notebook_experiments.json", visualization_e2e, total=visualization_e2e.get("registry_targets"), passed=visualization_e2e.get("passed")),
     ]
     total = sum(suite["cases"] for suite in suites)
     passed = sum(suite["passed"] for suite in suites)
@@ -116,6 +125,8 @@ def main() -> None:
     parser.add_argument("--pedagogy", type=Path, required=True)
     parser.add_argument("--safety", type=Path, required=True)
     parser.add_argument("--answerability", type=Path, required=True)
+    parser.add_argument("--experiment-routing", type=Path, required=True)
+    parser.add_argument("--visualization-e2e", type=Path, required=True)
     parser.add_argument(
         "--output",
         type=Path,

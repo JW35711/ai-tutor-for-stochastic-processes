@@ -22,6 +22,8 @@ class EvaluationManifestTests(unittest.TestCase):
             "pedagogy": len(json.loads((ROOT / "evals/pedagogy_cases.json").read_text("utf-8"))),
             "safety": len(json.loads((ROOT / "evals/safety_cases.json").read_text("utf-8"))),
             "answerability": len(json.loads((ROOT / "evals/answerability_cases.json").read_text("utf-8"))),
+            "experiment_routing": 17,
+            "visualization_e2e": 74,
         }
         case_files = {
             "single_turn": ROOT / "evals/cases.json",
@@ -30,6 +32,8 @@ class EvaluationManifestTests(unittest.TestCase):
             "pedagogy": ROOT / "evals/pedagogy_cases.json",
             "safety": ROOT / "evals/safety_cases.json",
             "answerability": ROOT / "evals/answerability_cases.json",
+            "experiment_routing": ROOT / "evals/experiment_routing_cases.json",
+            "visualization_e2e": ROOT / "data/notebook_experiments.json",
         }
         self.assertEqual(
             {suite_id: suite["cases"] for suite_id, suite in suites.items()},

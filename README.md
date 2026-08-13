@@ -1,12 +1,12 @@
 # AI Tutor for Stochastic Processes
 
-[![Agent tests](https://github.com/JW35711/ai-tutor-for-stochastic-processes/actions/workflows/test.yml/badge.svg?branch=codex%2Finterview-agent-v1)](https://github.com/JW35711/ai-tutor-for-stochastic-processes/actions/workflows/test.yml)
+[![Agent tests](https://github.com/JW35711/ai-tutor-for-stochastic-processes/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/JW35711/ai-tutor-for-stochastic-processes/actions/workflows/test.yml)
 [![Python 3.11–3.12](https://img.shields.io/badge/Python-3.11%E2%80%933.12-3776AB)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-248a62.svg)](LICENSE)
 
 | Course coverage | Knowledge points | Executable tools | RAG entries | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 40 | 15 | 421 | 116/116 current governance + 22/22 v1 |
+| 11/11 modules | 40 | 15 | 421 | 207/207 current governance + 22/22 v1 |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -80,11 +80,30 @@ and audit it with:
 python scripts/audit_notebook_visualizations.py --write
 ```
 
-The audit currently detects 74 notebook visualization targets across Modules
-00–10, registers all 74, and reports which targets are directly covered by a
-reusable Python engine versus those needing a specialized renderer or richer
-returned data. It treats a multi-panel output as one notebook visualization
-target and detects future unregistered plotting cells automatically.
+The audit detects 74 notebook visualization targets across Modules 00–10. The
+registration audit reports four separate gates: registration, executable
+engine, renderer contract, and end-to-end coverage. A target is only counted
+as `E2E_IMPLEMENTED` after the real Python engine runs with safe defaults, the
+structured payload passes its renderer contract, and the target is reachable
+through the experiment/API mapping. Run the complete verification with:
+
+```bash
+python scripts/audit_notebook_visualizations.py
+python scripts/verify_notebook_visualizations.py --update-registry
+```
+
+The current registry has 74/74 registered targets and the latest verification
+report has 74/74 verified E2E visualizations. A multi-panel output is treated
+as one notebook target; future unregistered plotting cells remain detectable.
+
+Experiment routing is evaluated separately with:
+
+```bash
+python evals/run_experiment_routing_evaluation.py
+```
+
+This checks module-level selection, parameter extraction, follow-up context,
+tool execution, and renderer success without changing simulation mathematics.
 
 ## AI teaching-agent extension
 
@@ -326,8 +345,9 @@ work. A future optional hybrid design can keep the deterministic gate first and
 invoke a semantic/LLM entailment judge only for ambiguous low-confidence cases.
 
 `data/evaluation_manifest.json` is the checked current baseline and now totals
-116 cases across single-turn, multi-turn, retrieval, pedagogy, safety and
-answerability suites. The previous 109-case v1.0.0 result is preserved in
+207 cases across single-turn, multi-turn, retrieval, pedagogy, safety,
+answerability, experiment-routing and visualization E2E suites. The previous
+116-case baseline and 109-case v1.0.0 result are preserved in
 `data/evaluation_manifest_v1.0.0.json` and is not presented as current. A unit
 test ties every displayed suite count to its versioned case file, while CI
 reruns all suites before a release can pass. Each CI run also retains the JSON

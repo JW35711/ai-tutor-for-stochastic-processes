@@ -49,6 +49,16 @@ class ExperimentIntegrationTests(unittest.TestCase):
         self.assertEqual(second["parameters"]["rate"], 4.0)
         self.assertEqual(second["context"]["parameters_inherited"], ["horizon", "paths", "seed"])
 
+    def test_natural_language_parameter_comparison_reruns_active_experiment(self) -> None:
+        first = self.ask("Simulate Brownian motion with 100 steps.", "natural-steps")
+        second = self.ask("What changes if I use 500 steps?", "natural-steps")
+        self.assertEqual(second["module_id"], "module04")
+        self.assertEqual(second["tool"], "simulate_brownian_motion")
+        self.assertTrue(second["tool_called"])
+        self.assertEqual(second["parameters"]["steps"], 500)
+        self.assertEqual(second["parameters"]["paths"], first["parameters"]["paths"])
+        self.assertTrue(second["context"]["module_inherited"])
+
     def test_result_question_uses_latest_verified_summary(self) -> None:
         self.ask("Show me a Poisson sample path.", "result")
         response = self.ask("What changed?", "result")
@@ -61,8 +71,8 @@ class ExperimentIntegrationTests(unittest.TestCase):
         self.assertEqual(page_rank["experiment"]["experiment_id"], "module05-exp-08")
         self.assertEqual(thinning["experiment"]["experiment_id"], "module08-exp-03")
 
-    def test_unsupported_obstacle_parameter_is_not_passed_to_tool(self) -> None:
-        response = self.ask("Try an obstacle here.", "unsafe")
+    def test_unsupported_custom_parameter_is_not_passed_to_tool(self) -> None:
+        response = self.ask("Try arbitrary Python code here.", "unsafe")
         self.assertFalse(response["tool_called"])
         self.assertIn("not supported", response["answer"])
 

@@ -39,6 +39,10 @@ jobs:
         run: python3 evals/run_v1_acceptance.py --output /tmp/v1_acceptance_report.json
       - name: Evidence sufficiency evaluation
         run: python3 evals/run_answerability_evaluation.py > /tmp/answerability_report.json
+      - name: Notebook visualization E2E verification
+        run: python3 scripts/verify_notebook_visualizations.py --output /tmp/visualization_e2e_report.json
+      - name: Experiment routing evaluation
+        run: python3 evals/run_experiment_routing_evaluation.py --output /tmp/experiment_routing_report.json
       - name: Generate current evaluation manifest
         run: |
           python3 evals/generate_evaluation_manifest.py \
@@ -47,6 +51,8 @@ jobs:
             --pedagogy /tmp/pedagogy_report.json \
             --safety /tmp/safety_report.json \
             --answerability /tmp/answerability_report.json \
+            --experiment-routing /tmp/experiment_routing_report.json \
+            --visualization-e2e /tmp/visualization_e2e_report.json \
             --output /tmp/evaluation_manifest.json
       - name: Record local node-latency benchmark
         run: python3 evals/run_latency_benchmark.py --repetitions 1 --output /tmp/latency_benchmark.json
@@ -61,6 +67,8 @@ jobs:
             /tmp/safety_report.json
             /tmp/v1_acceptance_report.json
             /tmp/answerability_report.json
+            /tmp/visualization_e2e_report.json
+            /tmp/experiment_routing_report.json
             /tmp/evaluation_manifest.json
             /tmp/latency_benchmark.json
           retention-days: 14

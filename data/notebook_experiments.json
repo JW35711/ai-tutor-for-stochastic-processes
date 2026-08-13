@@ -2122,7 +2122,9 @@
         "labels"
       ],
       "existing_tool": "monte_carlo",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-01",
@@ -2141,7 +2143,9 @@
         "labels"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-02",
@@ -2160,7 +2164,9 @@
         "labels"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-03",
@@ -2179,7 +2185,9 @@
         "labels"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-04",
@@ -2197,7 +2205,9 @@
         "panel_titles"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-05",
@@ -2216,7 +2226,9 @@
         "labels"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-06",
@@ -2235,7 +2247,9 @@
         "labels"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-07",
@@ -2253,7 +2267,9 @@
         "panel_titles"
       ],
       "existing_tool": "bernoulli",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-08",
@@ -2271,7 +2287,9 @@
         "panel_titles"
       ],
       "existing_tool": "poisson",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-09",
@@ -2291,7 +2309,9 @@
         "labels"
       ],
       "existing_tool": "poisson",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-10",
@@ -2310,7 +2330,9 @@
         "labels"
       ],
       "existing_tool": "poisson",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module01-viz-11",
@@ -2329,7 +2351,9 @@
         "labels"
       ],
       "existing_tool": "poisson",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-01",
@@ -2348,7 +2372,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-02",
@@ -2367,7 +2393,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-03",
@@ -2386,7 +2414,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-04",
@@ -2405,7 +2435,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-05",
@@ -2424,7 +2456,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-06",
@@ -2443,7 +2477,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module02-viz-07",
@@ -2462,7 +2498,9 @@
         "labels"
       ],
       "existing_tool": "random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module03-viz-01",
@@ -2481,7 +2519,9 @@
         "labels"
       ],
       "existing_tool": "continuous_random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module03-viz-02",
@@ -2500,7 +2540,9 @@
         "labels"
       ],
       "existing_tool": "continuous_random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module03-viz-03",
@@ -2519,7 +2561,9 @@
         "labels"
       ],
       "existing_tool": "continuous_random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module03-viz-04",
@@ -2538,7 +2582,9 @@
         "labels"
       ],
       "existing_tool": "continuous_random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module03-viz-05",
@@ -2557,7 +2603,9 @@
         "labels"
       ],
       "existing_tool": "continuous_random_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-01",
@@ -2576,7 +2624,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-02",
@@ -2595,7 +2645,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-03",
@@ -2615,7 +2667,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-04",
@@ -2634,7 +2688,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-05",
@@ -2653,7 +2709,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-06",
@@ -2672,7 +2730,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module04-viz-07",
@@ -2691,7 +2751,9 @@
         "labels"
       ],
       "existing_tool": "brownian_motion",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-01",
@@ -2710,7 +2772,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-02",
@@ -2728,7 +2792,9 @@
         "panel_titles"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-03",
@@ -2746,7 +2812,9 @@
         "panel_titles"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-04",
@@ -2765,7 +2833,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-05",
@@ -2784,7 +2854,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-06",
@@ -2803,7 +2875,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-07",
@@ -2823,7 +2897,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-08",
@@ -2841,7 +2917,9 @@
         "panel_titles"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-09",
@@ -2860,7 +2938,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module05-viz-10",
@@ -2879,7 +2959,9 @@
         "labels"
       ],
       "existing_tool": "markov_chain",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module06-viz-01",
@@ -2898,7 +2980,9 @@
         "labels"
       ],
       "existing_tool": "ctmc",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module06-viz-02",
@@ -2917,7 +3001,9 @@
         "labels"
       ],
       "existing_tool": "ctmc",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module06-viz-03",
@@ -2937,7 +3023,9 @@
         "labels"
       ],
       "existing_tool": "ctmc",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module06-viz-04",
@@ -2956,7 +3044,9 @@
         "labels"
       ],
       "existing_tool": "ctmc",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module06-viz-05",
@@ -2975,7 +3065,9 @@
         "labels"
       ],
       "existing_tool": "birth_death",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module06-viz-06",
@@ -2994,7 +3086,9 @@
         "labels"
       ],
       "existing_tool": "birth_death",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-01",
@@ -3013,7 +3107,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-02",
@@ -3032,7 +3128,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-03",
@@ -3051,7 +3149,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-04",
@@ -3071,7 +3171,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-05",
@@ -3090,7 +3192,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-06",
@@ -3109,7 +3213,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-07",
@@ -3128,7 +3234,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-08",
@@ -3147,7 +3255,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-09",
@@ -3166,7 +3276,9 @@
         "labels"
       ],
       "existing_tool": "reliability",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-10",
@@ -3185,7 +3297,9 @@
         "labels"
       ],
       "existing_tool": "buffer",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-11",
@@ -3204,7 +3318,9 @@
         "labels"
       ],
       "existing_tool": "buffer",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module07-viz-12",
@@ -3223,7 +3339,9 @@
         "labels"
       ],
       "existing_tool": "buffer",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module08-viz-01",
@@ -3242,7 +3360,9 @@
         "labels"
       ],
       "existing_tool": "nhpp",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module08-viz-02",
@@ -3261,7 +3381,9 @@
         "labels"
       ],
       "existing_tool": "nhpp",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module08-viz-03",
@@ -3280,7 +3402,9 @@
         "labels"
       ],
       "existing_tool": "nhpp",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module08-viz-04",
@@ -3299,7 +3423,9 @@
         "labels"
       ],
       "existing_tool": "nhpp",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module08-viz-05",
@@ -3317,7 +3443,9 @@
         "panel_titles"
       ],
       "existing_tool": "nhpp",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module09-viz-01",
@@ -3336,7 +3464,9 @@
         "labels"
       ],
       "existing_tool": "self_avoiding_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module09-viz-02",
@@ -3354,7 +3484,9 @@
         "panel_titles"
       ],
       "existing_tool": "self_avoiding_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module09-viz-03",
@@ -3374,7 +3506,9 @@
         "labels"
       ],
       "existing_tool": "self_avoiding_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module09-viz-04",
@@ -3393,7 +3527,9 @@
         "labels"
       ],
       "existing_tool": "self_avoiding_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module09-viz-05",
@@ -3412,7 +3548,9 @@
         "labels"
       ],
       "existing_tool": "self_avoiding_walk",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module10-viz-01",
@@ -3431,7 +3569,9 @@
         "labels"
       ],
       "existing_tool": "coalescing_particles",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module10-viz-02",
@@ -3449,7 +3589,9 @@
         "panel_titles"
       ],
       "existing_tool": "coalescing_particles",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module10-viz-03",
@@ -3468,7 +3610,9 @@
         "controls"
       ],
       "existing_tool": "coalescing_particles",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module10-viz-04",
@@ -3488,7 +3632,9 @@
         "labels"
       ],
       "existing_tool": "coalescing_particles",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     },
     {
       "visualization_id": "module10-viz-05",
@@ -3507,7 +3653,9 @@
         "labels"
       ],
       "existing_tool": "coalescing_particles",
-      "implementation_status": "IMPLEMENTED"
+      "implementation_status": "IMPLEMENTED",
+      "verification_status": "E2E_IMPLEMENTED",
+      "verification_errors": []
     }
   ]
 }

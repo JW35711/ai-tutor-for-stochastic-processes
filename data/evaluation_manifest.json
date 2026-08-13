@@ -1,10 +1,10 @@
 {
   "version": 3,
   "baseline_id": "current-evidence-sufficiency",
-  "generated_at": "2026-08-11T17:32:08+00:00",
+  "generated_at": "2026-08-12T09:29:07+00:00",
   "corpus_sha256": "bca3e9cc6ae22642d42434f60e8243d53baee7175c799d00534fc932ab28f942",
-  "total": 116,
-  "passed": 116,
+  "total": 207,
+  "passed": 207,
   "suites": [
     {
       "id": "single_turn",
@@ -55,6 +55,26 @@
       "abstention_precision": 1.0,
       "conflict_detection_accuracy": 1.0,
       "supplementary_retrieval_success_rate": 1.0
+    },
+    {
+      "id": "experiment_routing",
+      "cases": 17,
+      "passed": 17,
+      "cases_file": "evals/experiment_routing_cases.json",
+      "cases_sha256": "aa08f0ccbeca6e93f2b89cb848e5a0dcc5da2e611345c50ffcde20fefd9092a5",
+      "experiment_selection_accuracy": 1.0,
+      "parameter_extraction_accuracy": 1.0,
+      "follow_up_context_accuracy": 1.0,
+      "execution_success_rate": 1.0,
+      "renderer_success_rate": 1.0
+    },
+    {
+      "id": "visualization_e2e",
+      "cases": 74,
+      "passed": 74,
+      "cases_file": "data/notebook_experiments.json",
+      "cases_sha256": "7aa3e7c90e221a5c6552e1e5b8edf762cbebd3ee1e20a1c44034105f57f7b04a",
+      "e2e_coverage": 100.0
     }
   ],
   "historical_baseline": {
