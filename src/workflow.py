@@ -74,6 +74,9 @@ class AgentState:
     experiment_id: str | None = None
     visualization_id: str | None = None
     experiment_recommendations: list[dict[str, Any]] = field(default_factory=list)
+    action_type: str | None = None
+    requested_concept_id: str | None = None
+    requested_experiment_id: str | None = None
 
 
 @dataclass(frozen=True)

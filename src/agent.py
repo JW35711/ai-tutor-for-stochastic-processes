@@ -18,6 +18,7 @@ from .curriculum import curriculum_catalog
 from .agents import AssessmentAgent, CurriculumAgent, TutorAgent, TutorContext
 from .llm import OpenAICompatibleLLM
 from .memory import LearnerMemory
+from .messages import message
 from .module_registry import MODULES, MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
 from .provenance import execution_sha256
@@ -154,8 +155,12 @@ class StochasticTutorAgent:
         "m10-coalescence": ("koalescerande partiklar", "partiklar som slås samman", "粒子合并"),
     }
     SWEDISH_MARKERS = (
-        "och", "är", "vad", "varför", "hur", "förklara", "jämför", "visa", "med", "en", "ett",
+        "och", "är", "vad", "varför", "hur", "förklara", "jämför", "visa", "visa mig", "med", "en", "ett", "sätt", "till", "ändrades",
         "väntetid", "fördelning", "sannolikhet", "stationär", "brownsk", "poissonprocess", "markovkedja",
+    )
+    ENGLISH_MARKERS = (
+        "what", "why", "how", "explain", "compare", "show", "set", "give", "define", "does", "is", "are",
+        "the", "with", "using", "course", "process", "distribution", "waiting", "property", "changed",
     )
     GENERAL_CHAT_MARKERS = (
         "你好",
@@ -206,6 +211,13 @@ class StochasticTutorAgent:
         "绘图",
         "show ",
         "visualise",
+        "simulera",
+        "simulering",
+        "visa mig",
+        "visa resultatet",
+        "给我看看",
+        "显示结果",
+        "运行它",
     )
 
     def __init__(self, memory: LearnerMemory | None = None) -> None:
@@ -254,9 +266,11 @@ class StochasticTutorAgent:
         lowered = text.casefold()
         lexical = {item for item in re.findall(r"[a-zåäö]+", lowered)}
         if lexical.intersection(cls.SWEDISH_MARKERS) or any(
-            marker in lowered for marker in ("poissonprocess", "väntetid", "stationär", "brownsk", "markovkedja", "fördelad")
+            marker in lowered for marker in ("poissonprocess", "väntetid", "stationär", "brownsk", "markovkedja", "fördelad", "markovegenskapen", "ändrades")
         ):
             return "sv"
+        if lexical.intersection(cls.ENGLISH_MARKERS):
+            return "en"
         return ui_language if ui_language in {"en", "zh", "sv"} else "en"
 
     @classmethod
@@ -320,7 +334,9 @@ class StochasticTutorAgent:
         if state.response_language == "en":
             return None
         query = (state.retrieval_query_en or state.question).lower()
-        if "poisson" in query and "waiting" in query:
+        if ("poisson" in query and "waiting" in query) or (
+            state.concept_id == "m01-poisson-process" and "exponential" in query
+        ):
             if state.response_language == "zh":
                 return "泊松过程的等待时间服从指数分布，因为等待超过 $t$ 等价于在时刻 $t$ 之前没有到达。\n\n$N(t)\\sim\\operatorname{Poisson}(\\lambda t)$，且 $P(T>t)=P(N(t)=0)=e^{-\\lambda t}$，所以 $T\\sim\\operatorname{Exp}(\\lambda)$。"
             answer = "En Poissonprocess har exponentialfördelade väntetider eftersom väntan längre än $t$ betyder att ingen ankomst har skett vid tiden $t$.\n\n$N(t)\\sim\\operatorname{Poisson}(\\lambda t)$ och $P(T>t)=P(N(t)=0)=e^{-\\lambda t}$, så $T\\sim\\operatorname{Exp}(\\lambda)$."
@@ -363,7 +379,8 @@ class StochasticTutorAgent:
             "markovkedja": "Markov chain", "generatormatris": "generator matrix", "uppehållstid": "holding time", "pi": "pi",
             "självundvikande vandring": "self-avoiding walk", "koalescerande partiklar": "coalescing particles",
             "lagen om stora tal": "law of large numbers", "varför": "why", "vad är": "what is",
-            "förklara": "explain", "jämför": "compare",
+            "förklara": "explain", "jämför": "compare", "är": "is", "och": "and", "vad": "what", "varför": "why", "hur": "how", "sätt": "set", "till": "to", "ändrades": "changed",
+            "är": "is", "är": "is", "och": "and", "vad": "what", "varför": "why", "hur": "how",
         }
         translated = question
         for source, target in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
@@ -373,6 +390,7 @@ class StochasticTutorAgent:
             " ", translated, flags=re.IGNORECASE,
         )
         translated = re.sub(r"(?<=[A-Za-z])(?=的|服从|为什么|是什么)", " ", translated)
+        translated = re.sub(r"[?？]", "?", translated)
         translated = re.sub(r"\s+", " ", translated).strip()
         return translated, translated != question
 
@@ -395,7 +413,7 @@ class StochasticTutorAgent:
 
     def _find_experiments(self, state: AgentState, *, limit: int = 2) -> list[dict[str, Any]]:
         concept_id = state.concept_id
-        lowered = state.question.lower()
+        lowered = (state.retrieval_query_en or state.question).lower()
         # A rate/lambda question concerns the continuous-time Poisson waiting
         # experiment, even when lexical routing also sees the discrete
         # geometric-waiting knowledge point.
@@ -486,7 +504,7 @@ class StochasticTutorAgent:
                 label_pattern = rf"(?<![A-Za-z]){label_pattern}(?![A-Za-z])"
             pattern = (
                 rf"(?:{label_pattern})\s*"
-                rf"(?:为|=|:|是|改成|改为|调整为|设为|to)?\s*"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为|设置为|to|till)?\s*"
                 rf"({StochasticTutorAgent.NUMBER_PATTERN})"
             )
             match = re.search(pattern, text, flags=re.IGNORECASE)
@@ -518,7 +536,7 @@ class StochasticTutorAgent:
                 label_pattern = rf"(?<![A-Za-z]){label_pattern}(?![A-Za-z])"
             forward = (
                 rf"(?:{label_pattern})\s*"
-                rf"(?:为|=|:|是|改成|改为|调整为|设为|to)?\s*"
+                rf"(?:为|=|:|是|改成|改为|调整为|设为|设置为|to|till)?\s*"
                 rf"{cls.NUMBER_PATTERN}"
             )
             reverse = (
@@ -810,9 +828,17 @@ class StochasticTutorAgent:
         return "The simulation completed and can be compared with the retrieved course evidence."
 
     @staticmethod
-    def _guiding_question(topic: str) -> str:
+    def _guiding_question(topic: str, language: str = "en") -> str:
         questions = {
+            "monte_carlo": "What happens to the estimate as the sample size grows?",
             "bernoulli": "How would a lower event probability affect the count and first waiting time?",
+            "poisson": "How would increasing the rate change the expected event count?",
+            "discrete_random_walk": "How would changing the up-step probability affect the endpoint mean?",
+            "continuous_random_walk": "How would increasing the jump rate affect the number of jumps?",
+            "brownian_motion": "What variance do you expect at the terminal time?",
+            "discrete_markov_chain": "How do empirical state frequencies compare with the stationary distribution?",
+            "continuous_markov_chain": "What happens to the long-run state probabilities when a transition rate changes?",
+            "birth_death": "How do birth and death rates shape the long-run state distribution?",
             "reliability": "Why is a parallel-system lifetime a maximum while a series-system lifetime is a minimum?",
             "buffer": "What long-run trend would you expect when mean arrivals exceed service capacity?",
             "mm1_queue": "Why does the mean queue length grow quickly as the arrival rate approaches the service rate?",
@@ -820,13 +846,46 @@ class StochasticTutorAgent:
             "self_avoiding_walk": "Why is the current position alone not enough to determine the next step?",
             "coalescing_particles": "How might the coalescence time change if the circle grows but particle count stays fixed?",
         }
-        return questions.get(
+        question = questions.get(
             topic,
             "What would you expect if the number of samples or paths were multiplied by four?",
         )
+        if language == "zh":
+            return {
+                "What happens to the estimate as the sample size grows?": "样本量增加时估计值会怎样变化？",
+                "How would increasing the rate change the expected event count?": "提高速率会如何改变期望事件数？",
+                "How would changing the up-step probability affect the endpoint mean?": "改变向上步概率会如何影响终点均值？",
+                "How would increasing the jump rate affect the number of jumps?": "提高跳跃率会如何影响跳跃次数？",
+                "What variance do you expect at the terminal time?": "你预计终点时刻的方差是多少？",
+                "How do empirical state frequencies compare with the stationary distribution?": "经验状态频率与平稳分布有何差异？",
+                "What happens to the long-run state probabilities when a transition rate changes?": "改变转移率时长期状态概率会怎样变化？",
+                "How do birth and death rates shape the long-run state distribution?": "出生率和死亡率如何决定长期状态分布？",
+                "What would you expect if the number of samples or paths were multiplied by four?": "如果样本数或路径数增加到四倍，你预计会发生什么？",
+                "Why does the mean queue length grow quickly as the arrival rate approaches the service rate?": "为什么到达率接近服务率时平均队列长度会快速增长？",
+            }.get(question, question)
+        if language == "sv":
+            return {
+                "What happens to the estimate as the sample size grows?": "Vad händer med skattningen när stickprovsstorleken ökar?",
+                "How would increasing the rate change the expected event count?": "Hur skulle en högre intensitet ändra det förväntade antalet händelser?",
+                "How would changing the up-step probability affect the endpoint mean?": "Hur skulle en ändrad uppstegssannolikhet påverka slutpunktens medelvärde?",
+                "How would increasing the jump rate affect the number of jumps?": "Hur skulle en högre hoppintensitet påverka antalet hopp?",
+                "What variance do you expect at the terminal time?": "Vilken varians förväntar du dig vid sluttiden?",
+                "How do empirical state frequencies compare with the stationary distribution?": "Hur jämförs de empiriska tillståndsfrekvenserna med den stationära fördelningen?",
+                "What happens to the long-run state probabilities when a transition rate changes?": "Vad händer med de långsiktiga tillståndssannolikheterna när en övergångsintensitet ändras?",
+                "How do birth and death rates shape the long-run state distribution?": "Hur formar födelse- och dödsintensiteterna den långsiktiga tillståndsfördelningen?",
+                "What would you expect if the number of samples or paths were multiplied by four?": "Vad förväntar du dig om antalet stickprov eller vägar fyrdubblas?",
+                "Why does the mean queue length grow quickly as the arrival rate approaches the service rate?": "Varför växer den genomsnittliga kölängden snabbt när ankomstintensiteten närmar sig serviceintensiteten?",
+            }.get(question, question)
+        return question
 
     def _node_classify(self, state: AgentState) -> NodeOutcome:
         state.detected_query_language = self.detect_query_language(state.question, state.ui_language)
+        if state.previous_turn and self._is_explicit_follow_up(state.question):
+            prior_question = str(state.previous_turn.get("question") or "")
+            if prior_question and not re.search(r"[\u3400-\u9fff]", state.question) and not any(
+                marker in state.question.casefold() for marker in ("what", "why", "how", "explain", "compare", "show", "set", "give", "vad", "varför", "hur", "förklara", "jämför", "visa", "sätt", "ändra", "什么", "为什么", "解释", "比较", "显示", "设置")
+            ):
+                state.detected_query_language = self.detect_query_language(prior_question, state.ui_language)
         state.response_language = self._explicit_response_language(state.question) or state.detected_query_language
         state.retrieval_query_en, state.translation_applied = self._translate_retrieval_query(
             state.question, state.detected_query_language
@@ -858,6 +917,8 @@ class StochasticTutorAgent:
             detected_modules if self._is_comparison(state.question) else []
         )
         state.module_id = detected_modules[0] if detected_modules else self.classify_module(state.question)
+        if state.requested_concept_id in self.curriculum_agent.concepts:
+            state.module_id = str(self.curriculum_agent.concepts[state.requested_concept_id]["module_id"])
         if state.comparison_module_ids:
             state.concept_id = None
             state.comparison_concept_ids = [
@@ -867,7 +928,10 @@ class StochasticTutorAgent:
                 if concept_id is not None
             ]
         else:
-            state.concept_id = self._match_concept(routing_question, state.module_id)
+            requested = state.requested_concept_id
+            state.concept_id = requested if requested in self.curriculum_agent.concepts else self._match_concept(routing_question, state.module_id)
+            if state.module_id == "module01" and "waiting" in state.retrieval_query_en and "exponential" in state.retrieval_query_en and "geometric" not in state.retrieval_query_en:
+                state.concept_id = "m01-poisson-process"
             state.comparison_concept_ids = []
         # A Knowledge Point title is authoritative curriculum metadata.  If
         # lexical module matching misses a title variant (for example,
@@ -889,6 +953,12 @@ class StochasticTutorAgent:
         if state.module_id is None and state.previous_turn and explicit_follow_up:
             state.module_id = state.previous_turn["module_id"]
             state.module_from_context = True
+            state.module = MODULE_BY_ID.get(state.module_id)
+            state.topic = state.module.topic if state.module else None
+        if state.module_id is None and state.requested_concept_id in self.curriculum_agent.concepts:
+            requested_point = self.curriculum_agent.concepts[state.requested_concept_id]
+            state.module_id = str(requested_point["module_id"])
+            state.module_from_context = True
         if state.module_id is not None:
             state.module = MODULE_BY_ID[state.module_id]
             state.topic = state.module.topic
@@ -896,11 +966,17 @@ class StochasticTutorAgent:
             saved_concept = self.memory.context(state.session_id).get("related_concept_id")
             if saved_concept:
                 state.concept_id = str(saved_concept)
+        if state.active_experiment_id and state.requested_experiment_id is None:
+            active_experiment = self.experiments.get(state.active_experiment_id)
+            if active_experiment and active_experiment.get("module_id") == state.module_id:
+                state.requested_experiment_id = state.active_experiment_id
         if self._unsupported_experiment_parameter(state.question):
             state.intent = "unsupported"
             state.module = None
             state.module_id = None
             state.topic = None
+        elif state.action_type == "simulation":
+            state.intent = "simulation" if state.module else "unsupported"
         elif self._is_simulation_request(state.question, explicit_follow_up) or self._is_active_simulation_handoff(state):
             state.intent = "simulation" if state.module else "unsupported"
         elif self._is_general_conversation(state.question):
@@ -915,9 +991,15 @@ class StochasticTutorAgent:
             state.intent = "unsupported"
         if state.intent == "concept":
             state.concept_sub_intent = self._detect_concept_sub_intent(state.question)
-        state.question_requirements = self._analyze_question_requirements(
-            state.retrieval_query_en or state.question
-        )
+        if state.requested_experiment_id:
+            requested = self.experiments.get(state.requested_experiment_id)
+            if requested and requested.get("module_id") == state.module_id:
+                state.concept_id = state.concept_id or requested.get("concept_id")
+        state.question_requirements = self._analyze_question_requirements(state.question)
+        if state.module_id == "module01" and "waiting" in state.retrieval_query_en and "exponential" in state.retrieval_query_en and "geometric" not in state.retrieval_query_en:
+            state.question_requirements["concepts"] = ["m01-poisson-process"]
+            state.question_requirements["concept_titles"] = ["Poisson process"]
+            state.concept_id = "m01-poisson-process"
         if state.intent == "unsupported":
             state.answerability_status = "OUT_OF_SCOPE"
         elif state.intent == "course_navigation":
@@ -935,7 +1017,11 @@ class StochasticTutorAgent:
     @staticmethod
     def _is_show_handoff(question: str) -> bool:
         lowered = question.lower().strip().rstrip(".!?")
-        return lowered in {"show me", "run it", "visualize it", "visualise it", "try it", "do it", "show the result"}
+        return lowered in {
+            "show me", "run it", "visualize it", "visualise it", "try it", "do it", "show the result",
+            "visa mig", "visa resultatet", "kör den", "kör igen", "visa det", "visa",
+            "显示结果", "给我看看", "看看", "运行它",
+        }
 
     def _is_active_simulation_handoff(self, state: AgentState) -> bool:
         if not state.active_experiment_id:
@@ -955,7 +1041,7 @@ class StochasticTutorAgent:
         lowered = state.question.lower()
         return any(
             marker in lowered
-            for marker in ("what changed", "what should i notice", "explain this graph", "explain the result", "interpret this")
+            for marker in ("what changed", "what should i notice", "explain this graph", "explain the result", "interpret this", "vad ändrades", "vad förändrades", "vad ska jag lägga märke till", "förklara resultatet", "有什么变化", "发生了什么变化")
         )
 
     @staticmethod
@@ -979,9 +1065,10 @@ class StochasticTutorAgent:
             state.retrieval_query += " " + self.RETRIEVAL_HINTS.get(
                 previous_tool, previous_tool
             )
-        state.question_requirements = self._analyze_question_requirements(
-            state.retrieval_query_en or state.question
-        )
+        state.question_requirements = self._analyze_question_requirements(state.question)
+        if state.module_id == "module01" and "waiting" in state.retrieval_query_en and "exponential" in state.retrieval_query_en and "geometric" not in state.retrieval_query_en:
+            state.question_requirements["concepts"] = ["m01-poisson-process"]
+            state.question_requirements["concept_titles"] = ["Poisson process"]
         if state.latest_result_summary:
             state.question_requirements["latest_result_summary"] = state.latest_result_summary
         state.retrieval_rounds = 0
@@ -1270,7 +1357,7 @@ class StochasticTutorAgent:
             if active_handoff and state.previous_turn and state.previous_turn.get("tool") in self.tools
             else self.resolve_tool(state.module_id, default_tool, state.question)
         )
-        selected = self.experiments.get(state.active_experiment_id) if active_handoff else None
+        selected = self.experiments.get(state.requested_experiment_id or state.active_experiment_id) if (active_handoff or state.requested_experiment_id) else None
         if selected is not None and selected.get("simulation_engine") in self.tools:
             preferred_tool = str(selected["simulation_engine"])
         if selected is None:
@@ -1289,6 +1376,10 @@ class StochasticTutorAgent:
                     limit=1,
                 )
             selected = matches[0] if matches else None
+        if state.requested_experiment_id:
+            requested = self.experiments.get(state.requested_experiment_id)
+            if requested and requested.get("module_id") == state.module_id:
+                selected = requested
         if selected is not None and selected.get("simulation_engine") != preferred_tool:
             # Some module-level notebook targets (for example reliability in
             # Module 07) share a module with a distinct executable tool.  Do
@@ -1426,7 +1517,7 @@ class StochasticTutorAgent:
         )
         state.profile = self.memory.profile(state.session_id)
         state.learning_note = adaptive_note(state.profile, state.module_id)
-        state.recommendation = recommend_next(state.profile)
+        state.recommendation = recommend_next(state.profile, state.response_language)
         return NodeOutcome(
             f"persisted learner turn {state.profile['turns']} to SQLite"
         )
@@ -1483,11 +1574,7 @@ class StochasticTutorAgent:
                 learning_note="This was a scope conversation; no simulation was run or recorded.",
             )
             if self._unsupported_experiment_parameter(state.question):
-                state.response["answer"] = (
-                    "That parameter is not supported by the selected course experiment. "
-                    "I will not pass arbitrary inputs to the simulation engine. "
-                    "Please use one of the declared experiment parameters."
-                )
+                state.response["answer"] = message("INVALID_PARAMETER", state.response_language)
                 state.answer = state.response["answer"]
             return NodeOutcome("scope response without simulation")
         if state.intent == "concept":
@@ -1496,11 +1583,7 @@ class StochasticTutorAgent:
                 for item in self._find_experiments(state, limit=2)
             ]
             if state.latest_result_summary and self._is_active_experiment_question(state):
-                state.answer = (
-                    f"The latest {state.active_experiment_id} run used "
-                    f"{state.active_parameters} and produced: {state.latest_result_summary} "
-                    "Compare it with the previous parameter values to identify what changed."
-                )
+                state.answer = self._localized_result_follow_up(state)
                 state.llm_applied = False
             else:
                 state.answer = self.tutor_agent.answer_concept(
@@ -1517,7 +1600,7 @@ class StochasticTutorAgent:
                 partial=lambda: self._partial_answer(state),
                 conflict=lambda: self._conflict_answer(state),
                 none=lambda: self._none_answer(state),
-                fallback=lambda: "I could not find enough course evidence for that question. Try naming a module or concept.",
+                fallback=lambda: message("CONCEPT_FALLBACK", state.response_language),
                 )
             state.response = self._non_simulation_response(
                 state,
@@ -1573,13 +1656,14 @@ class StochasticTutorAgent:
             raise RuntimeError("response state is incomplete")
         deterministic_answer = self.tutor_agent.simulation_feedback(
             verified=state.verified,
-            result_summary=self._summary_english(state.tool_key, state.result)
+            result_summary=self._localized_simulation_summary(state.tool_key, state.result, state.response_language)
             if state.verified
             else "",
             module_label=state.module.label,
-            guiding_question=self._guiding_question(state.tool_key),
+            guiding_question=self._guiding_question(state.tool_key, state.response_language),
             error=state.result.get("error"),
             corrections=[item["correction"] for item in state.misconceptions],
+            response_language=state.response_language,
         )
 
         # Simulation output is authoritative numerical evidence from the Python
@@ -1658,35 +1742,18 @@ class StochasticTutorAgent:
             else:
                 missing_text = missing_user[0]
             if len(missing_user) > 1:
-                answer = (
-                    f"The course material can explain {supported}, but an exact result depends on {missing_text}. "
-                    "Could you provide these model details so I can proceed without guessing?"
-                )
-                return self._translate_fallback(answer, state.response_language)
+                return message("EVIDENCE_PARTIAL", state.response_language, supported=supported, missing=missing_text)
             question = missing_text
-            answer = (
-                f"The course material can explain {supported}, but it does not determine the requested result without the {question}. "
-                f"Please provide the {question} so I can check the claim rather than guess."
-            )
-            return self._translate_fallback(answer, state.response_language)
+            return message("EVIDENCE_PARTIAL_SINGLE", state.response_language, supported=supported, missing=question)
         missing = ", ".join(state.missing_requirements[:4]) or "a condition needed for the requested claim"
-        answer = (
-            f"The retrieved course material supports discussion of {supported}, but it does not establish the requested conclusion. "
-            f"The missing evidence is: {missing}. I can explain the supported concept, but I cannot give a definitive answer from these materials."
-        )
-        return self._translate_fallback(answer, state.response_language)
+        return message("EVIDENCE_PARTIAL", state.response_language, supported=supported, missing=missing)
 
     @staticmethod
     def _none_answer(state: AgentState) -> str:
         if state.question_requirements.get("missing_user_requirements"):
             missing = state.question_requirements["missing_user_requirements"][0]
-            answer = f"I do not have enough course evidence to answer that exactly. What is the {missing}?"
-            return StochasticTutorAgent._translate_fallback(answer, state.response_language)
-        answer = (
-            "The course materials do not provide enough evidence for that claim. "
-            "Please name the stochastic model or specify the quantity you want to determine."
-        )
-        return StochasticTutorAgent._translate_fallback(answer, state.response_language)
+            return message("NEED_MORE_INFORMATION", state.response_language, missing=missing)
+        return message("EVIDENCE_NONE", state.response_language)
 
     def _conflict_answer(self, state: AgentState) -> str:
         """Surface explicit source disagreement instead of selecting silently."""
@@ -1706,7 +1773,7 @@ class StochasticTutorAgent:
             f"The supported positions are:\n{detail}\n\n"
             "Which model, convention, or source should govern this question?"
         )
-        return self._translate_fallback(answer, state.response_language)
+        return message("CONFLICT", state.response_language) + "\n\n" + detail + "\n\nWhich model, convention, or source should govern this question?"
 
     @staticmethod
     def _relevant_excerpt(question: str, content: str) -> str:
@@ -1962,6 +2029,67 @@ Use natural terminology in the requested language while retaining canonical Engl
         excerpt = self._relevant_excerpt(state.question, evidence_text)
         return f"The key idea is stated by the model evidence: {excerpt[:360]}".strip()
 
+    @staticmethod
+    def _localized_result_follow_up(state: AgentState) -> str:
+        if state.response_language == "zh":
+            return f"最近一次 {state.active_experiment_id or '课程实验'} 运行使用了参数 {state.active_parameters}，结果为：{StochasticTutorAgent._translate_simulation_summary(state.latest_result_summary or '', 'zh')} 请将这次运行与之前的参数比较，找出变化的原因。"
+        if state.response_language == "sv":
+            summary = StochasticTutorAgent._translate_simulation_summary(state.latest_result_summary or "", "sv")
+            return f"Den senaste körningen {state.active_experiment_id or 'i kursen'} använde parametrarna {state.active_parameters} och gav: {summary or 'inget sammanfattat resultat ännu'} Jämför körningen med de tidigare parametrarna för att se vad som ändrades."
+        return f"The latest {state.active_experiment_id or 'course'} run used {state.active_parameters} and produced: {state.latest_result_summary} Compare it with the previous parameters to identify what changed."
+
+    @staticmethod
+    def _translate_simulation_summary(summary: str, language: str) -> str:
+        poisson = re.fullmatch(
+            r"The empirical mean event count is (?P<emp>-?[0-9]+(?:\.[0-9]+)?) versus theoretical λT=(?P<th>-?[0-9]+(?:\.[0-9]+)?); absolute error=(?P<err>-?[0-9]+(?:\.[0-9]+)?)\.",
+            summary.strip(),
+        )
+        if poisson and language == "sv":
+            return f"Det empiriska medelantalet händelser är {poisson['emp']} jämfört med det teoretiska värdet λT={poisson['th']}; absolutfelet är {poisson['err']}."
+        if poisson and language == "zh":
+            return f"经验事件计数均值为 {poisson['emp']}，理论值 λT={poisson['th']}；绝对误差为 {poisson['err']}。"
+        bernoulli = re.fullmatch(
+            r"The empirical count mean is (?P<cm>-?[0-9]+(?:\.[0-9]+)?) versus theoretical np=(?P<ct>-?[0-9]+(?:\.[0-9]+)?); the empirical waiting mean is (?P<wm>-?[0-9]+(?:\.[0-9]+)?) versus 1/p=(?P<wt>-?[0-9]+(?:\.[0-9]+)?)\.",
+            summary.strip(),
+        )
+        if bernoulli and language == "sv":
+            return f"Det empiriska medelvärdet för antalet händelser är {bernoulli['cm']} jämfört med np={bernoulli['ct']}; den empiriska väntetiden är {bernoulli['wm']} jämfört med 1/p={bernoulli['wt']}."
+        if bernoulli and language == "zh":
+            return f"经验事件计数均值为 {bernoulli['cm']}，理论值为 np={bernoulli['ct']}；经验等待时间均值为 {bernoulli['wm']}，理论值为 1/p={bernoulli['wt']}。"
+        if language == "sv":
+            return f"Experimentet gav följande verifierade resultat: {summary}"
+        if language == "zh":
+            return f"实验得到以下经过验证的结果：{summary}"
+        return summary
+
+    @staticmethod
+    def _localized_simulation_summary(topic: str, result: dict[str, Any], language: str) -> str:
+        """Render tool-owned numbers with localized prose; never translate by word replacement."""
+        if language == "en":
+            return StochasticTutorAgent._summary_english(topic, result)
+        def val(key: str, default: object = "?") -> object:
+            return result.get(key, default)
+        if topic == "poisson":
+            if language == "sv":
+                return f"Det empiriska medelantalet händelser är {val('empirical_mean_count')} jämfört med det teoretiska värdet λT={val('theoretical_mean_count')}; absolutfelet är {val('absolute_error')}."
+            return f"经验事件计数均值为 {val('empirical_mean_count')}，理论值 λT={val('theoretical_mean_count')}；绝对误差为 {val('absolute_error')}。"
+        if topic == "bernoulli":
+            if language == "sv":
+                return f"Det empiriska medelvärdet för antalet händelser är {val('empirical_count_mean')} jämfört med np={val('theoretical_count_mean')}; den empiriska väntetiden är {val('empirical_waiting_mean')} jämfört med 1/p={val('theoretical_waiting_mean')}."
+            return f"经验事件计数均值为 {val('empirical_count_mean')}，理论值为 np={val('theoretical_count_mean')}；经验等待时间均值为 {val('empirical_waiting_mean')}，理论值为 1/p={val('theoretical_waiting_mean')}。"
+        if topic == "brownian_motion":
+            if language == "sv":
+                return f"Det empiriska medelvärdet vid sluttiden är {val('empirical_terminal_mean')} och variansen är {val('empirical_terminal_variance')}; teorin ger medelvärde 0 och varians T={val('theoretical_terminal_variance')}."
+            return f"终点的经验均值为 {val('empirical_terminal_mean')}，经验方差为 {val('empirical_terminal_variance')}；理论均值为 0，理论方差 T={val('theoretical_terminal_variance')}。"
+        if topic in {"bernoulli_poisson", "poisson"}:
+            return f"实验完成。经验输出已与理论参考值进行比较。"
+        # Keep other tools concise and free of mixed English labels. Values still
+        # come verbatim from the Python tool.
+        summary = StochasticTutorAgent._summary_english(topic, result)
+        if language == "sv":
+            return f"Experimentet gav följande verifierade resultat: {summary}"
+        return f"实验得到以下经过验证的结果：{summary}"
+
     def _non_simulation_response(
         self,
         state: AgentState,
@@ -1984,6 +2112,8 @@ Use natural terminology in the requested language while retaining canonical Engl
             "intent": state.intent,
             "concept_sub_intent": state.concept_sub_intent,
             "concept_id": state.concept_id,
+            "active_experiment_id": state.active_experiment_id,
+            "selected_experiment_id": state.experiment_id,
             "related_module_ids": state.comparison_module_ids,
             "related_concept_ids": state.comparison_concept_ids,
             "answerability_status": state.answerability_status,
@@ -2097,29 +2227,25 @@ Use natural terminology in the requested language while retaining canonical Engl
 
     @classmethod
     def _localized_scope_answer(cls, question: str, language: str) -> str:
-        if language == "zh":
-            return "这个问题不属于随机过程课程范围。课程材料没有覆盖它，因此我不会猜测。我可以帮助你学习随机过程概念、课程模块或经过验证的模拟。"
-        if language == "sv":
-            return "Den frågan ligger utanför kursen i stokastiska processer. Kursmaterialet täcker den inte, så jag gissar inte. Jag kan hjälpa till med stokastiska processer, kursmoduler eller verifierade simuleringar."
-        return cls._offline_scope_answer(question)
+        return message("OUT_OF_SCOPE", language)
 
     @classmethod
     def _localized_general_answer(cls, question: str, language: str) -> str:
         if language == "zh":
             lowered = question.lower()
             if ("课程" in question or "这门课" in question) and "学" in question:
-                return "This course develops stochastic-process intuition through definitions, practice questions, and verified simulations. It covers Monte Carlo estimation, Bernoulli and Poisson processes, random walks, Brownian motion, Markov chains, and applied reliability, buffer, and queue models."
+                return "This course develops stochastic-process intuition through definitions, practice questions, and verified simulations."
             if "第一个" in question or "第1" in question:
                 return "Module 00 介绍蒙特卡洛估计；第一个主要教学模块是 Module 01——伯努利与泊松过程。"
             if "技术栈" in question or "架构" in question or "agent" in lowered:
                 return "Tutor 使用本地 Python 服务、课程材料检索、受限的模拟工具和浏览器工作区。"
-            return "我是 StochLab 随机过程课程导师。我可以解释课程概念、引导你学习模块，并在你明确提出请求时运行经过验证的模拟。"
+            return message("GENERAL", language)
         if language == "sv":
             lowered = question.casefold()
             if "kurs" in lowered and ("lär" in lowered or "innehåll" in lowered):
                 return "Kursen bygger intuition för stokastiska processer genom definitioner, övningar och verifierade simuleringar. Den omfattar Monte Carlo, Bernoulli- och Poissonprocesser, random walks, Brownsk rörelse, Markovkedjor samt tillämpade modeller."
-            return "Jag är StochLab-handledaren för kursen i stokastiska processer. Jag kan förklara kursbegrepp, guida dig genom modulerna och köra verifierade simuleringar när du ber om det."
-        return cls.GENERAL_FALLBACK
+            return message("GENERAL", language)
+        return message("GENERAL", language)
 
     @classmethod
     def _offline_general_answer(cls, question: str) -> str:
@@ -2219,7 +2345,7 @@ Use natural terminology in the requested language while retaining canonical Engl
             return "derivation"
         if any(
             marker in lowered
-            for marker in ("why", "explain why", "how come", "reason", "原因", "为什么", "解释")
+            for marker in ("why", "explain why", "how come", "reason", "varför", "förklara varför", "orsak", "原因", "为什么", "解释")
         ):
             return "why/explanation"
         if any(
@@ -2272,9 +2398,9 @@ Use natural terminology in the requested language while retaining canonical Engl
         lowered = " ".join(
             question.lower().replace("‑", "-").replace("–", "-").replace("-", " ").split()
         )
-        if module_id == "module01" and "poisson" in lowered and any(
-            marker in lowered for marker in ("waiting", "interarrival", "exponential")
-        ):
+        if module_id == "module01" and "waiting" in lowered and "exponential" in lowered and "geometric" not in lowered:
+            return "m01-poisson-process"
+        if module_id == "module01" and any(marker in lowered for marker in ("waiting", "interarrival", "exponential")) and not any(marker in lowered for marker in ("geometric", "bernoulli")):
             return "m01-poisson-process"
         if module_id == "module05" and ("pi p" in lowered or "stationary distribution" in lowered):
             return "m05-stationary-distribution"
@@ -2383,6 +2509,10 @@ Use natural terminology in the requested language while retaining canonical Engl
             "上一轮",
             "上一次",
             "刚才",
+            "给我看看",
+            "看看",
+            "把 lambda",
+            "把λ",
             "把它",
             "改成",
             "改为",
@@ -2392,6 +2522,15 @@ Use natural terminology in the requested language while retaining canonical Engl
             "同样的",
             "show me",
             "show it",
+            "visa mig",
+            "visa det",
+            "visa resultatet",
+            "kör den",
+            "kör igen",
+            "sätt ",
+            "ändra ",
+            "vad ändrades",
+            "vad förändrades",
             "run it",
             "visualize it",
             "visualise it",
@@ -2412,6 +2551,9 @@ Use natural terminology in the requested language while retaining canonical Engl
             "if we use",
             "increase the",
             "decrease the",
+            "给我看看",
+            "把 lambda",
+            "设为",
         )
         if any(marker in lowered for marker in follow_up_markers):
             return True
@@ -2419,12 +2561,21 @@ Use natural terminology in the requested language while retaining canonical Engl
         # question containing a number a follow-up.
         return bool(
             re.search(
-                r"\b(?:change|compare|increase|decrease|use|set)\b.*\b(?:steps|paths|samples|rate|horizon|time)\b",
+                r"\b(?:change|compare|increase|decrease|use|set)\b.*\b(?:steps|paths|samples|rate|horizon|time)\b|\b(?:ändra|sätt|öka|minska)\b.*\b(?:steg|vägar|stickprov|intensitet|tid|lambda)\b",
                 lowered,
             )
         )
 
-    def answer(self, question: str, session_id: str | None = None, ui_language: str = "en") -> dict[str, Any]:
+    def answer(
+        self,
+        question: str,
+        session_id: str | None = None,
+        ui_language: str = "en",
+        *,
+        action_type: str | None = None,
+        concept_id: str | None = None,
+        experiment_id: str | None = None,
+    ) -> dict[str, Any]:
         started = time.perf_counter()
         normalized_question = validate_question(question)
         resolved_session = validate_session_id(session_id) or str(uuid.uuid4())
@@ -2444,6 +2595,9 @@ Use natural terminology in the requested language while retaining canonical Engl
             llm_metadata={**self._llm_metadata(), "status": "not_called", "latency_ms": 0.0, "retry_count": 0},
         )
         state.ui_language = ui_language if ui_language in {"en", "zh", "sv"} else "en"
+        state.action_type = action_type if action_type in {"learn", "practice", "simulation", "quiz"} else None
+        state.requested_concept_id = concept_id if concept_id in self.curriculum_agent.concepts else None
+        state.requested_experiment_id = experiment_id if self.experiments.get(experiment_id) else None
         graph_result = self.workflow.invoke(
             {"runtime": state, "visited_nodes": [], "route_taken": "", "supplementary_query": ""}
         )

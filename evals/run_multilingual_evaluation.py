@@ -1,4 +1,4 @@
-"""Deterministic multilingual routing and fallback evaluation (no API key required)."""
+"""Deterministic multilingual routing evaluation; no provider key required."""
 
 from __future__ import annotations
 
@@ -14,41 +14,59 @@ from src.agent import StochasticTutorAgent
 from src.memory import LearnerMemory
 
 
-def contains_formula(answer: str, required: str) -> bool:
-    if required == "pi":
-        return "pi" in answer.lower() or "π" in answer
-    return required.lower() in answer.lower() or required in answer
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     cases = json.loads((ROOT / "evals" / "multilingual_cases.json").read_text(encoding="utf-8"))
     results = []
+    memories = {}
+    agents = {}
+    flow_state = {}
     for case in cases:
-        memory = LearnerMemory(":memory:")
+        flow_id = case.get("flow_id")
+        memory_key = flow_id or case["id"]
+        if memory_key not in agents:
+            memories[memory_key] = LearnerMemory(":memory:")
+            agents[memory_key] = StochasticTutorAgent(memory=memories[memory_key])
+            agents[memory_key].llm = type("OfflineLLM", (), {"enabled": False, "complete": lambda self, *args: None})()
+        memory = memories[memory_key]
         try:
-            agent = StochasticTutorAgent(memory=memory)
-            agent.llm = type("OfflineLLM", (), {"enabled": False, "complete": lambda self, *args: None})()
-            response = agent.answer(case["question"], ui_language="en")
-            answer = str(response.get("answer", ""))
-            passed = (
-                response.get("detected_query_language") == case["language"]
-                and response.get("response_language") == case["language"]
-                and response.get("module_id") == case["module_id"]
-                and response.get("concept_id") == case["concept_id"]
-                and not response.get("tool_called")
-                and contains_formula(answer, case["required_formula"])
-            )
-            results.append({"id": case["id"], "passed": passed, "language": response.get("response_language"), "module_id": response.get("module_id"), "concept_id": response.get("concept_id"), "translation_applied": response.get("translation_applied"), "answer": answer})
+            agent = agents[memory_key]
+            response = agent.answer(case["question"], session_id=flow_id, ui_language=case.get("ui_language", "en"))
+            expected_module = case["module_id"]
+            related_modules = set(response.get("related_module_ids") or [])
+            module_ok = expected_module is None or response.get("module_id") == expected_module or expected_module in related_modules
+            language_ok = response.get("response_language") == case["language"] and response.get("detected_query_language") == case["language"]
+            intent_ok = response.get("intent") == case["intent"]
+            tool_ok = (case["intent"] == "simulation") == bool(response.get("tool_called"))
+            parameter_ok = not case.get("parameter_key") or response.get("parameters", {}).get(case["parameter_key"]) == case.get("parameter_value")
+            context_ok = not flow_id or (response.get("response_language") == case["language"] and (not case["id"].endswith("show") or bool(response.get("active_experiment_id"))))
+            passed = module_ok and language_ok and intent_ok and tool_ok and parameter_ok and context_ok
+            results.append({"id": case["id"], "passed": passed, "module_ok": module_ok, "language_ok": language_ok, "intent_ok": intent_ok, "tool_ok": tool_ok, "parameter_ok": parameter_ok, "context_ok": context_ok, "module_id": response.get("module_id"), "response_language": response.get("response_language"), "detected_query_language": response.get("detected_query_language"), "intent": response.get("intent"), "tool_called": response.get("tool_called")})
         finally:
-            memory.close()
-    payload = {"mode": "offline", "total": len(results), "passed": sum(item["passed"] for item in results), "pass_rate": sum(item["passed"] for item in results) / len(results), "metrics": {"language_detection_accuracy": sum(item["passed"] for item in results) / len(results), "concept_routing_accuracy": sum(item["passed"] for item in results) / len(results), "response_language_accuracy": sum(item["passed"] for item in results) / len(results), "math_render_contract_pass_rate": sum(item["passed"] for item in results) / len(results)}, "results": results}
+            pass
+    for memory in memories.values():
+        memory.close()
+    total = len(results)
+    passed = sum(item["passed"] for item in results)
+    payload = {
+        "mode": "offline",
+        "total": total,
+        "passed": passed,
+        "pass_rate": passed / total if total else 0.0,
+        "metrics": {
+            "language_detection_accuracy": sum(item["language_ok"] for item in results) / total if total else 0.0,
+            "response_language_accuracy": sum(item["language_ok"] for item in results) / total if total else 0.0,
+            "concept_routing_accuracy": sum(item["module_ok"] for item in results) / total if total else 0.0,
+            "follow_up_context_accuracy": sum(item["context_ok"] and item["parameter_ok"] for item in results) / total if total else 0.0,
+        },
+        "results": results,
+    }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     if args.output:
         args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return 0 if payload["passed"] == payload["total"] else 1
+    return 0 if passed == total else 1
 
 
 if __name__ == "__main__":

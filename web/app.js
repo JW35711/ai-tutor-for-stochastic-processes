@@ -83,6 +83,7 @@ let latestPayload = null;
 let masteryByConcept = {};
 let activeViewId = window.localStorage.getItem("stochasticTutorActiveView") || "overviewView";
 let language = window.localStorage.getItem("stochlabLanguage") || "en";
+let pendingTutorAction = {};
 const debugMode = new URLSearchParams(window.location.search).get("debug") === "1";
 if (debugMode) debugPanel.classList.remove("hidden");
 
@@ -222,6 +223,27 @@ function selectedConcept() {
   return selectedModule()?.knowledge_points.find((point) => point.id === currentConceptId) || selectedModule()?.knowledge_points[0];
 }
 
+function localizedActionPrompt(action, concept, experiment = null) {
+  const title = concept?.title || "this concept";
+  const experimentTitle = experiment?.title || title;
+  if (language === "zh") {
+    if (action === "learn") return `什么是${title}？请结合课程材料解释。`;
+    if (action === "practice") return `请给我一道关于${title}的练习题。`;
+    if (action === "simulation") return `请展示一个帮助我理解${experimentTitle}的模拟实验。`;
+    if (action === "quiz") return `测试我对${title}的理解。`;
+  }
+  if (language === "sv") {
+    if (action === "learn") return `Vad är ${title}? Förklara med kursmaterialet.`;
+    if (action === "practice") return `Ge mig en övning om ${title}.`;
+    if (action === "simulation") return `Visa mig en simulering som hjälper mig att förstå ${experimentTitle}.`;
+    if (action === "quiz") return `Testa min förståelse av ${title}.`;
+  }
+  if (action === "learn") return `What is ${title}? Explain it using the course material.`;
+  if (action === "practice") return concept?.practice_prompt || `Give me a practice question about ${title}.`;
+  if (action === "simulation") return experiment?.simulation_prompt || `Show me a simulation that helps me understand ${experimentTitle}.`;
+  return `Test my understanding of ${title}.`;
+}
+
 function moduleNumber(module) {
   return String(module?.number ?? module?.module_id?.slice(-2) ?? "00").padStart(2, "0");
 }
@@ -295,11 +317,11 @@ function renderCurriculum() {
   curriculumContent.querySelectorAll("[data-concept-action]").forEach((button) => button.addEventListener("click", () => {
     const chosen = selectedConcept();
     const activity = curriculumContent.querySelector(".concept-activity");
-    if (button.dataset.conceptAction === "learn") { input.value = `Explain ${chosen.title} using the course material.`; autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好学习问题。" : "A focused learning question is ready in the tutor."; showView("tutorView"); }
-    if (button.dataset.conceptAction === "practice") { input.value = chosen.practice_prompt; autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好练习问题。" : "A practice question is ready in the tutor."; showView("tutorView"); }
+    if (button.dataset.conceptAction === "learn") { pendingTutorAction = { action_type: "learn", concept_id: chosen.id }; input.value = localizedActionPrompt("learn", chosen); autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好学习问题。" : language === "sv" ? "En fokuserad inlärningsfråga är klar i handledaren." : "A focused learning question is ready in the tutor."; showView("tutorView"); }
+    if (button.dataset.conceptAction === "practice") { pendingTutorAction = { action_type: "practice", concept_id: chosen.id }; input.value = localizedActionPrompt("practice", chosen); autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好练习问题。" : language === "sv" ? "En övningsfråga är klar i handledaren." : "A practice question is ready in the tutor."; showView("tutorView"); }
     if (button.dataset.conceptAction === "hint") { fetchJson("/api/hint", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ concept_id: chosen.id, session_id: sessionId, hint_level: 1 }) }).then((payload) => { sessionId = payload.session_id; window.localStorage.setItem("stochasticTutorSession", sessionId); activity.textContent = `${t("common.hint")}: ${payload.hint}`; }).catch((error) => { activity.textContent = `${t("common.hintUnavailable")}: ${error.message}`; }); }
-    if (button.dataset.conceptAction === "simulation") askAgent(chosen.simulation_prompt);
-    if (button.dataset.conceptAction === "quiz") openQuiz();
+    if (button.dataset.conceptAction === "simulation") { const experiment = (chosen.experiments || [])[0]; askAgent(localizedActionPrompt("simulation", chosen, experiment), { action_type: "simulation", concept_id: chosen.id, experiment_id: experiment?.experiment_id }); }
+    if (button.dataset.conceptAction === "quiz") { pendingTutorAction = { action_type: "quiz", concept_id: chosen.id }; activity.textContent = localizedActionPrompt("quiz", chosen); openQuiz(chosen.id); }
   }));
 }
 
@@ -485,7 +507,7 @@ function renderProgress(memory, note, recommendation) {
   learningNote.textContent = note || t("progress.emptyNote");
   learnerProfile.innerHTML = memory?.modules?.length ? memory.modules.map((item) => `<div class="profile-item"><div><strong>${escapeHtml(moduleDisplayLabel(item.module_id))}</strong><span>${escapeHtml(item.attempts)} ${language === "zh" ? "次练习" : "practice runs"} · ${escapeHtml(item.quiz_correct)}/${escapeHtml(item.quiz_attempts)} ${language === "zh" ? "道测验正确" : "quiz answers"}</span></div><progress max="100" value="${Math.round(Number(item.mastery) * 100)}" aria-label="${escapeHtml(moduleDisplayLabel(item.module_id))} progress"></progress></div>`).join("") : `<p>${escapeHtml(t("progress.noRecord"))}</p>`;
   misconceptions.innerHTML = memory?.misconceptions?.length ? `<p class="diagnosis-title">${language === "zh" ? "需要复习" : "Things to review"}</p>${memory.misconceptions.map((item) => `<p><strong>${escapeHtml(item.code)}</strong><br />${escapeHtml(item.correction)}</p>`).join("")}` : "";
-  nextRecommendation.innerHTML = recommendation ? `<span>${language === "zh" ? "下一次练习" : "NEXT PRACTICE"}</span><strong>${escapeHtml(moduleDisplayLabel(recommendation.module_id))}</strong><p>${escapeHtml(recommendation.reason)}</p>` : "";
+  nextRecommendation.innerHTML = recommendation ? `<span>${language === "zh" ? "下一次练习" : language === "sv" ? "NÄSTA ÖVNING" : "NEXT PRACTICE"}</span><strong>${escapeHtml(moduleDisplayLabel(recommendation.module_id))}</strong><p>${escapeHtml(recommendation.reason)}</p><small>${escapeHtml(recommendation.suggested_question || "")}</small>` : "";
 }
 
 function renderResponse(payload) {
@@ -522,13 +544,14 @@ function renderResponse(payload) {
   }
 }
 
-async function askAgent(question) {
+async function askAgent(question, action = {}) {
   const cleanQuestion = String(question || "").trim();
   if (mutationInFlight || !cleanQuestion) return;
   setComposerLoading(true);
   addMessage("user", cleanQuestion);
   try {
-    const payload = await fetchJson("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleanQuestion, session_id: sessionId, ui_language: language }) });
+    const payload = await fetchJson("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleanQuestion, session_id: sessionId, ui_language: language, ...pendingTutorAction, ...action }) });
+    pendingTutorAction = {};
     sessionId = payload.session_id; window.localStorage.setItem("stochasticTutorSession", sessionId);
     if (payload.module_id?.startsWith("module")) {
       activeModuleId = payload.module_id;
@@ -546,12 +569,14 @@ async function askAgent(question) {
   finally { setComposerLoading(false); input.focus(); autoGrowInput(); }
 }
 
-async function openQuiz() {
+async function openQuiz(conceptId = null) {
   if (mutationInFlight) return;
   try {
     const payload = await fetchJson(`/api/quiz?module_id=${encodeURIComponent(activeModuleId)}`);
     const quiz = payload.quiz;
     quizPanel.classList.remove("hidden");
+    quizPanel.dataset.actionType = "quiz";
+    if (conceptId) quizPanel.dataset.conceptId = conceptId;
     quizPanel.innerHTML = `<p class="quiz-module">${escapeHtml(moduleDisplayLabel(quiz.module_id))} · ${t("common.checkUnderstanding")}</p><h3 id="quizQuestion">${escapeHtml(quiz.question)}</h3><div class="quiz-choices" role="group" aria-labelledby="quizQuestion">${quiz.choices.map((choice, index) => `<button type="button" data-answer="${index}">${String.fromCharCode(65 + index)}. ${escapeHtml(choice)}</button>`).join("")}</div><p class="quiz-feedback" role="status"></p>`;
     quizPanel.querySelectorAll("[data-answer]").forEach((button) => button.addEventListener("click", () => submitQuiz(quiz.id, Number(button.dataset.answer))));
   } catch (error) { quizPanel.classList.remove("hidden"); quizPanel.textContent = language === "zh" ? `测验加载失败：${error.message}` : `The quiz could not be loaded: ${error.message}`; }

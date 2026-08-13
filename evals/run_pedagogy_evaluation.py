@@ -44,11 +44,11 @@ def evaluate(cases_path: Path = DEFAULT_CASES) -> dict[str, Any]:
             codes_ok = actual_codes == case["expected_codes"]
             if "error" not in response["result"]:
                 verified_count += 1
-                required_sections = (
-                    "## Result",
-                    "## What it means",
-                    "## Try next",
-                )
+                required_sections = {
+                    "en": ("## Result", "## What it means", "## Try next"),
+                    "zh": ("## 结果", "## 含义", "## 下一步"),
+                    "sv": ("## Resultat", "## Tolkning", "## Nästa steg"),
+                }.get(response.get("response_language", "en"), ("## Result", "## What it means", "## Try next"))
                 structured = all(
                     section in response["answer"] for section in required_sections
                 )

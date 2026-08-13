@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from .contracts import TutorContext
+from ..messages import message
 
 
 class TutorAgent:
@@ -63,25 +64,36 @@ class TutorAgent:
         guiding_question: str,
         error: str | None = None,
         corrections: list[str] | None = None,
+        response_language: str = "en",
     ) -> str:
         """Explain immutable Python output without recalculating its numbers."""
 
         if verified:
-            answer = (
-                f"## Result\n{result_summary}\n\n"
-                f"## What it means\nThis experiment illustrates {module_label.lower()} "
-                "and compares empirical output with the corresponding theoretical reference.\n\n"
-                f"## Try next\n{guiding_question}"
-            )
+            if response_language == "zh":
+                localized_label = {
+                    "Monte Carlo simulation": "蒙特卡洛模拟",
+                    "Bernoulli and Poisson processes": "伯努利与泊松过程",
+                    "Brownian motion": "布朗运动",
+                    "Discrete-time random walk": "离散时间随机游走",
+                    "Continuous-time random walk": "连续时间随机游走",
+                }.get(module_label, module_label)
+                answer = f"## 结果\n{result_summary}\n\n## 含义\n这个实验展示了{localized_label}，并将经验输出与相应理论进行比较。\n\n## 下一步\n{guiding_question}"
+            elif response_language == "sv":
+                localized_label = {
+                    "Monte Carlo simulation": "Monte Carlo-simulering",
+                    "Bernoulli and Poisson processes": "Bernoulli- och Poissonprocesser",
+                    "Brownian motion": "Brownsk rörelse",
+                    "Discrete-time random walk": "diskret-tids random walk",
+                    "Continuous-time random walk": "kontinuerlig-tids random walk",
+                }.get(module_label, module_label.lower())
+                answer = f"## Resultat\n{result_summary}\n\n## Tolkning\nExperimentet visar {localized_label} och jämför empiriska resultat med motsvarande teori.\n\n## Nästa steg\n{guiding_question}"
+            else:
+                answer = f"## Result\n{result_summary}\n\n## What it means\nThis experiment illustrates {module_label.lower()} and compares empirical output with the corresponding theoretical reference.\n\n## Try next\n{guiding_question}"
         else:
-            answer = (
-                f"The parameters were not valid: {error or 'the tool rejected the request'}. "
-                "Please adjust them and try again."
-            )
+            answer = message("SIMULATION_FAILED", response_language, error=error or "the tool rejected the request")
         if corrections:
-            answer += "\n\n## Check this idea\n" + "\n".join(
-                f"- {item}" for item in corrections
-            )
+            heading = {"zh": "检查这个想法", "sv": "Kontrollera denna idé"}.get(response_language, "Check this idea")
+            answer += f"\n\n## {heading}\n" + "\n".join(f"- {item}" for item in corrections)
         return answer
 
     def scope_response(

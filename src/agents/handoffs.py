@@ -84,7 +84,7 @@ def recommend(agent: "StochasticTutorAgent", state: AgentState) -> NodeOutcome:
     )
     state.curriculum_decision = decision.to_dict()
     state.recommendation = (
-        recommend_next(state.profile)
+        recommend_next(state.profile, state.response_language)
         if state.profile
         else decision.to_dict()
     )

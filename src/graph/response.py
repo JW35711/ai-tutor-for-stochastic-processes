@@ -29,6 +29,14 @@ def finalize(agent: Any, graph_result: dict[str, Any], started: float) -> dict[s
         completed.llm_metadata.get("status") not in {"not_called", "disabled"}
     )
     if completed.response:
+        completed.response.update({
+            "ui_language": completed.ui_language,
+            "detected_query_language": completed.detected_query_language,
+            "response_language": completed.response_language,
+            "retrieval_query": completed.retrieval_query,
+            "retrieval_query_en": completed.retrieval_query_en,
+            "translation_applied": completed.translation_applied,
+        })
         completed.response["trace"] = completed.trace
         completed.response["workflow"] = {
             "nodes": [item["node"] for item in completed.trace]
