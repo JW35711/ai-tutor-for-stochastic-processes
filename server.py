@@ -597,7 +597,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/chat":
                 validate_payload_fields(
                     payload,
-                    allowed={"question", "session_id"},
+                    allowed={"question", "session_id", "ui_language"},
                     required={"question"},
                 )
                 question = validate_question(payload.get("question"))
@@ -605,6 +605,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 response = AGENT.answer(
                     question,
                     session_id=raw_session_id,
+                    ui_language=str(payload.get("ui_language") or "en"),
                 )
             elif path == "/api/hint":
                 validate_payload_fields(

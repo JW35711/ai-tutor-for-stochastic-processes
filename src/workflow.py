@@ -36,6 +36,11 @@ class AgentState:
     assessment_result: dict[str, Any] = field(default_factory=dict)
 
     retrieval_query: str = ""
+    detected_query_language: str = "en"
+    ui_language: str = "en"
+    response_language: str = "en"
+    translation_applied: bool = False
+    retrieval_query_en: str = ""
     sources: list[dict[str, Any]] = field(default_factory=list)
     question_requirements: dict[str, Any] = field(default_factory=dict)
     answerability_status: str = "NONE"

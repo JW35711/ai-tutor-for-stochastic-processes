@@ -46,6 +46,9 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('src="/app.js"', self.html)
         self.assertIn("katex", self.html.lower())
         self.assertIn("renderTutorMarkdown", self.javascript)
+        self.assertIn(r"\\\(", self.javascript)
+        self.assertIn(r"\\\[", self.javascript)
+        self.assertIn("mathTokens", self.javascript)
         self.assertIn("throwOnError: false", self.javascript)
         self.assertIn("trust: false", self.javascript)
 

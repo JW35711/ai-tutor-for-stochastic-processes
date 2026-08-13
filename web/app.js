@@ -140,8 +140,15 @@ function renderTutorMarkdown(text) {
     mathTokens.push({ token, value, display });
     return token;
   };
-  raw = raw.replace(/\$\$([\s\S]*?)\$\$/g, (m, value) => stashMath(m, value, true));
-  raw = raw.replace(/\$([^$\n]+)\$/g, (m, value) => stashMath(m, value, false));
+  // Extract every supported delimiter before escaping prose.  Display forms
+  // are matched first so their inner dollars are never mistaken for inline
+  // math.  The placeholder is plain text and therefore cannot be altered by
+  // the Markdown/HTML pass below.
+  raw = raw.replace(/\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$([^$\n]+)\$/g, (match, dollars, brackets, parens, inline) => {
+    const value = dollars ?? brackets ?? parens ?? inline ?? "";
+    const display = dollars !== undefined || brackets !== undefined;
+    return stashMath(match, value, display);
+  });
   let safe = escapeHtml(raw);
   safe = safe
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
@@ -157,7 +164,11 @@ function renderTutorMarkdown(text) {
     // Escape HTML delimiters in formulas, but deliberately preserve `&` for
     // LaTeX alignment commands such as `\begin{pmatrix} a & b \\ c & d \end{pmatrix}`.
     const safeMath = String(value)
+      // Older provider responses occasionally contain the HTML entity name
+      // inside a matrix cell ("amp;").  Repair only inside extracted math;
+      // normal prose remains safely escaped below.
       .replaceAll("&amp;", "&")
+      .replaceAll("amp;", "&")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
@@ -517,7 +528,7 @@ async function askAgent(question) {
   setComposerLoading(true);
   addMessage("user", cleanQuestion);
   try {
-    const payload = await fetchJson("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleanQuestion, session_id: sessionId }) });
+    const payload = await fetchJson("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: cleanQuestion, session_id: sessionId, ui_language: language }) });
     sessionId = payload.session_id; window.localStorage.setItem("stochasticTutorSession", sessionId);
     if (payload.module_id?.startsWith("module")) {
       activeModuleId = payload.module_id;

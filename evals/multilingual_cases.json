@@ -1,0 +1,8 @@
+[
+  {"id":"zh_poisson_waiting","language":"zh","question":"为什么泊松过程的等待时间服从指数分布？","module_id":"module01","concept_id":"m01-poisson-process","required_formula":"P(T>t)"},
+  {"id":"sv_poisson_waiting","language":"sv","question":"Varför är väntetiden i en Poissonprocess exponentialfördelad?","module_id":"module01","concept_id":"m01-poisson-process","required_formula":"P(T>t)"},
+  {"id":"zh_stationary","language":"zh","question":"什么是平稳分布？","module_id":"module05","concept_id":"m05-stationary-distribution","required_formula":"pi"},
+  {"id":"sv_stationary","language":"sv","question":"Vad betyder pi P = pi för en Markovkedja?","module_id":"module05","concept_id":"m05-stationary-distribution","required_formula":"pi"},
+  {"id":"zh_brownian","language":"zh","question":"什么是布朗运动？","module_id":"module04","concept_id":"m04-brownian-increments","required_formula":"B(0)"},
+  {"id":"sv_brownian","language":"sv","question":"Vad är Brownsk rörelse?","module_id":"module04","concept_id":"m04-brownian-increments","required_formula":"B(0)"}
+]

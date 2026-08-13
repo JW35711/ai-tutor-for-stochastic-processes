@@ -122,6 +122,25 @@ class V1StabilizationTests(unittest.TestCase):
         self.assertFalse(response["tool_called"])
         self.assertRegex(response["answer"].lower(), r"balance|normalization")
 
+    def test_query_language_is_independent_from_ui_language(self) -> None:
+        response = self.agent.answer("为什么泊松过程的等待时间服从指数分布？", ui_language="en")
+        self.assertEqual(response["detected_query_language"], "zh")
+        self.assertEqual(response["response_language"], "zh")
+        self.assertEqual(response["module_id"], "module01")
+        self.assertEqual(response["concept_id"], "m01-poisson-process")
+        self.assertTrue(response["translation_applied"])
+        self.assertIn("泊松过程", response["answer"])
+        self.assertTrue(any("lectnotes" in source["source"] or "ipynb" in source["source"] for source in response["sources"]))
+
+    def test_swedish_query_returns_swedish_with_stationary_formula(self) -> None:
+        response = self.agent.answer("Vad betyder pi P = pi för en Markovkedja?", ui_language="en")
+        self.assertEqual(response["detected_query_language"], "sv")
+        self.assertEqual(response["response_language"], "sv")
+        self.assertEqual(response["module_id"], "module05")
+        self.assertEqual(response["concept_id"], "m05-stationary-distribution")
+        self.assertIn("stationär", response["answer"])
+        self.assertIn("\\pi P=\\pi", response["answer"])
+
 
 if __name__ == "__main__":
     unittest.main()
