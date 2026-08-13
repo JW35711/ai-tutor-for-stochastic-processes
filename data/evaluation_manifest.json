@@ -1,10 +1,10 @@
 {
   "version": 3,
   "baseline_id": "current-evidence-sufficiency",
-  "generated_at": "2026-08-12T09:29:07+00:00",
+  "generated_at": "2026-08-13T06:29:29+00:00",
   "corpus_sha256": "bca3e9cc6ae22642d42434f60e8243d53baee7175c799d00534fc932ab28f942",
-  "total": 207,
-  "passed": 207,
+  "total": 327,
+  "passed": 327,
   "suites": [
     {
       "id": "single_turn",
@@ -55,6 +55,20 @@
       "abstention_precision": 1.0,
       "conflict_detection_accuracy": 1.0,
       "supplementary_retrieval_success_rate": 1.0
+    },
+    {
+      "id": "course_coverage",
+      "cases": 120,
+      "passed": 120,
+      "cases_file": "evals/course_coverage_cases.json",
+      "cases_sha256": "aae2d3c2a49c8b2d6ce8136112d66e302597e4866006247987e86f7dfc2e8ef5",
+      "hit_at_1": 1.0,
+      "hit_at_3": 1.0,
+      "kp_coverage_rate": 1.0,
+      "answer_success_rate": 1.0,
+      "false_abstention_rate": 0.0,
+      "average_final_evidence_chunks": 5.133,
+      "unsupported_answer_rate": 0.0
     },
     {
       "id": "experiment_routing",

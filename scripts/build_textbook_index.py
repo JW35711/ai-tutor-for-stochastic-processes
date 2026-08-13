@@ -144,10 +144,13 @@ def build_index(input_path: Path, output_path: Path) -> list[dict[str, Any]]:
     chunks: list[dict[str, Any]] = []
     for page, pdf_page in enumerate(reader.pages, start=1):
         raw_text = pdf_page.extract_text() or ""
+        section_title = first_title(raw_text, page)
         for chunk_index, text in enumerate(chunk_page(raw_text)):
             module_id, concept_id, content_type = map_chunk(text, page, vocabulary)
             chunks.append(
                 {
+                    "chunk_id": f"textbook-p{page}-{chunk_index}",
+                    "parent_id": f"textbook-page-{page}",
                     "text": text,
                     "title": first_title(text, page),
                     "source_type": "textbook",
@@ -156,6 +159,8 @@ def build_index(input_path: Path, output_path: Path) -> list[dict[str, Any]]:
                     "module_id": module_id,
                     "concept_id": concept_id,
                     "content_type": content_type,
+                    "section_title": section_title,
+                    "section_path": [section_title],
                     "chunk_index": chunk_index,
                     "keywords": [],
                 }

@@ -47,9 +47,14 @@ def _suite(
         "cases_sha256": _sha256(cases_path),
     }
     for metric in (
+        "hit_at_1",
         "hit_at_3",
         "mrr",
         "structured_answer_rate",
+        "kp_coverage_rate",
+        "answer_success_rate",
+        "false_abstention_rate",
+        "average_final_evidence_chunks",
         "answerability_accuracy",
         "unsupported_answer_rate",
         "abstention_precision",
@@ -72,11 +77,12 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     pedagogy = _load(args.pedagogy)
     safety = _load(args.safety)
     answerability = _load(args.answerability)
+    course_coverage = _load(args.course_coverage)
     experiment_routing = _load(args.experiment_routing)
     visualization_e2e = _load(args.visualization_e2e)
     corpus_hashes = {
         str(report.get("corpus_sha256"))
-        for report in (main, retrieval, pedagogy, safety, answerability, experiment_routing)
+        for report in (main, retrieval, pedagogy, safety, answerability, experiment_routing, course_coverage)
     }
     if len(corpus_hashes) != 1 or "None" in corpus_hashes:
         raise ValueError(f"evaluation reports do not share one corpus SHA: {sorted(corpus_hashes)}")
@@ -95,6 +101,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         _suite("pedagogy", "evals/pedagogy_cases.json", pedagogy),
         _suite("safety", "evals/safety_cases.json", safety),
         _suite("answerability", "evals/answerability_cases.json", answerability),
+        _suite("course_coverage", "evals/course_coverage_cases.json", course_coverage),
         _suite("experiment_routing", "evals/experiment_routing_cases.json", experiment_routing),
         _suite("visualization_e2e", "data/notebook_experiments.json", visualization_e2e, total=visualization_e2e.get("registry_targets"), passed=visualization_e2e.get("passed")),
     ]
@@ -125,6 +132,7 @@ def main() -> None:
     parser.add_argument("--pedagogy", type=Path, required=True)
     parser.add_argument("--safety", type=Path, required=True)
     parser.add_argument("--answerability", type=Path, required=True)
+    parser.add_argument("--course-coverage", type=Path, required=True)
     parser.add_argument("--experiment-routing", type=Path, required=True)
     parser.add_argument("--visualization-e2e", type=Path, required=True)
     parser.add_argument(

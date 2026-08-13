@@ -6,7 +6,7 @@
 
 | Course coverage | Knowledge points | Executable tools | RAG entries | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 40 | 15 | 421 | 207/207 current governance + 22/22 v1 |
+| 11/11 modules | 40 | 15 | 421 | 327/327 current baseline (207 governance + 120 grounded coverage) |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -104,6 +104,36 @@ python evals/run_experiment_routing_evaluation.py
 
 This checks module-level selection, parameter extraction, follow-up context,
 tool execution, and renderer success without changing simulation mathematics.
+
+### Course-RAG coverage and answerability governance
+
+The current baseline also contains three grounded benchmark cases for each of
+the 40 knowledge points (120 cases). The benchmark is generated from the
+backend curriculum and reviewed course source locators, so it distinguishes a
+knowledge point that exists in the corpus from one that is merely mentioned by
+a related passage:
+
+```bash
+python scripts/build_course_coverage_cases.py
+python evals/run_course_coverage_evaluation.py --output /tmp/course_coverage.json
+python scripts/audit_course_rag_coverage.py /tmp/course_rag_coverage.json
+python evals/run_course_coverage_ab.py --output /tmp/course_coverage_ab.json
+```
+
+Retrieval uses deterministic hybrid scoring and a data-driven alias file
+(`data/retrieval_aliases.json`). Notebook-to-knowledge-point mapping records
+`high`, `ambiguous`, or `unmapped` confidence. A routed concept may add a
+bounded amount of same-notebook or same-page parent/neighbor context; it never
+replaces the scored evidence. Missing claim requirements trigger at most two
+bounded supplementary retrieval rounds.
+
+Answerability is a deterministic evidence-coverage gate. It distinguishes
+`SUPPORTED`, `PARTIAL`, `CONFLICT`, `NONE`, and `OUT_OF_SCOPE`; relevance alone
+does not make a claim answerable. Conflict handling currently covers explicit
+contradictory claims. Implicit contradiction and full entailment remain future
+work. A future optional hybrid design could keep the deterministic gate first
+and call a semantic or LLM entailment judge only for ambiguous, low-confidence
+cases; it is not required for the current baseline.
 
 ## AI teaching-agent extension
 

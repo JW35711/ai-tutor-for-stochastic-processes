@@ -845,13 +845,15 @@ class StochasticTutorAgent:
                         seen_sources.add(source["source"])
                         merged.append(source)
             return merged[:6]
-        return self.knowledge.retrieve(
+        sources, expansion = self.knowledge.retrieve_with_context(
             query,
             topic=state.topic,
             module_id=state.module_id,
             concept_id=state.concept_id,
             limit=4,
         )
+        state.question_requirements["retrieval_context"] = expansion
+        return sources
 
     def _analyze_question_requirements(self, question: str) -> dict[str, Any]:
         """Extract small stochastic-process-specific requirements deterministically."""
@@ -1065,8 +1067,20 @@ class StochasticTutorAgent:
         }
         missing = [item for item in state.missing_requirements if item in expansions]
         if not missing:
-            return ""
-        return f"{state.question} " + " ".join(expansions[item] for item in missing)
+            query = state.question
+        else:
+            query = f"{state.question} " + " ".join(expansions[item] for item in missing)
+        # Keep supplementary retrieval requirement-driven while making use of
+        # the reviewed alias vocabulary for the active knowledge point.
+        if state.concept_id:
+            spec = self.knowledge.retrieval_aliases.get(state.concept_id, {})
+            aliases = [
+                *spec.get("aliases", [])[:3],
+                *spec.get("notation", [])[:2],
+            ]
+            if aliases:
+                query = f"{query} " + " ".join(str(item) for item in aliases)
+        return query
 
     def _node_plan(self, state: AgentState) -> NodeOutcome:
         default_tool = state.module.tool_key

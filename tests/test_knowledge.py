@@ -38,6 +38,30 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertEqual(stats["embedding_backend"], "local_hash")
         self.assertEqual(stats["embedding_dimension"], 384)
         self.assertRegex(stats["corpus_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(stats["retrieval_alias_concepts"], 40)
+        self.assertGreater(stats["mapped_notebook_chunks"], 0)
+        self.assertGreater(stats["ambiguous_notebook_chunks"], 0)
+
+    def test_concept_scoped_alias_expansion_and_bounded_context(self) -> None:
+        sources, metadata = self.knowledge.retrieve_with_context(
+            "Why does pi P = pi?",
+            module_id="module05",
+            concept_id="m05-stationary-distribution",
+            limit=3,
+            max_extra=2,
+        )
+        self.assertTrue(sources)
+        self.assertTrue(any("stationary" in item["title"].lower() for item in sources))
+        self.assertLessEqual(len(metadata["expanded_sources"]), 2)
+        self.assertLessEqual(len(sources), 5)
+
+    def test_retrieval_diagnostic_exposes_bounded_stages(self) -> None:
+        report = self.knowledge.retrieval_diagnostic(
+            "What is Brownian motion?", module_id="module04", concept_id="m04-brownian-increments"
+        )
+        self.assertIn("candidate_pool", report)
+        self.assertIn("final", report)
+        self.assertIn("expansion", report)
 
     def test_retrieval_is_module_scoped_and_traceable(self) -> None:
         sources = self.knowledge.retrieve(

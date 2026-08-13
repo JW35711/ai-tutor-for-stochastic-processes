@@ -27,6 +27,7 @@ DEFAULT_KNOWLEDGE_PATH = ROOT / "data" / "knowledge_base.json"
 DEFAULT_NOTEBOOK_ROOT = ROOT / "notebooks"
 DEFAULT_REFERENCE_CHUNKS_PATH = ROOT / "data" / "reference_chunks.json"
 DEFAULT_TEXTBOOK_CHUNKS_PATH = ROOT / "artifacts" / "textbook_chunks.json"
+DEFAULT_RETRIEVAL_ALIASES_PATH = ROOT / "data" / "retrieval_aliases.json"
 
 
 class KnowledgeBase:
@@ -78,6 +79,7 @@ class KnowledgeBase:
         notebook_root: Path = DEFAULT_NOTEBOOK_ROOT,
         reference_chunks_path: Path = DEFAULT_REFERENCE_CHUNKS_PATH,
         textbook_chunks_path: Path = DEFAULT_TEXTBOOK_CHUNKS_PATH,
+        aliases_path: Path = DEFAULT_RETRIEVAL_ALIASES_PATH,
         embedding_backend: EmbeddingBackend | None = None,
         cache_size: int | None = None,
         embedding_failure_cooldown: float | None = None,
@@ -128,6 +130,8 @@ class KnowledgeBase:
         self._embedding_query_failures = 0
         self._embedding_query_skips = 0
         curated: list[dict[str, Any]] = json.loads(path.read_text("utf-8"))
+        self.retrieval_aliases = self._load_aliases(aliases_path)
+        self._textbook_page_priors = self._load_textbook_page_priors()
         self._module_topics = {
             entry["module_id"]: entry["topic"] for entry in curated
         }
@@ -263,6 +267,9 @@ class KnowledgeBase:
                 content = self._clean_markdown(raw_content)
                 if len(content) < 100:
                     continue
+                concept_id, mapping_confidence, mapping_reason = self._map_notebook_cell(
+                    module_id, raw_content, content
+                )
                 entries.append(
                     {
                         "module_id": module_id,
@@ -272,9 +279,82 @@ class KnowledgeBase:
                         "source": f"notebooks/{path.name}#cell-{cell_index}",
                         "keywords": [],
                         "kind": "notebook_cell",
+                        "concept_id": concept_id,
+                        "mapping_confidence": mapping_confidence,
+                        "mapping_reason": mapping_reason,
                     }
                 )
         return entries
+
+    @staticmethod
+    def _load_aliases(path: Path) -> dict[str, dict[str, Any]]:
+        if not path.is_file():
+            return {}
+        try:
+            payload = json.loads(path.read_text("utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    @staticmethod
+    def _load_textbook_page_priors() -> dict[str, set[int]]:
+        curriculum_path = ROOT / "data" / "curriculum.json"
+        try:
+            payload = json.loads(curriculum_path.read_text("utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        priors: dict[str, set[int]] = {}
+        for module in payload.get("modules", []):
+            for point in module.get("knowledge_points", []):
+                pages = {
+                    int(match.group(1))
+                    for ref in point.get("source_refs", [])
+                    if (match := re.search(r"#page-(\d+)$", str(ref)))
+                }
+                if pages:
+                    priors[str(point.get("id"))] = pages
+        return priors
+
+    def _map_notebook_cell(
+        self, module_id: str, raw_content: str, content: str
+    ) -> tuple[str | None, str | None, str | None]:
+        """Map only high-confidence teaching cells; keep ambiguous cells module-scoped."""
+
+        text = f"{raw_content} {content}".lower()
+        heading_match = re.search(r"^\s*#{1,6}\s+(.+?)\s*$", raw_content, re.M)
+        heading = (heading_match.group(1) if heading_match else "").lower()
+        candidates: list[tuple[int, str, str]] = []
+        for concept_id, spec in self.retrieval_aliases.items():
+            if spec.get("module_id") != module_id:
+                continue
+            aliases = [str(item).lower() for item in spec.get("aliases", [])]
+            keywords = [str(item).lower() for item in spec.get("keywords", [])]
+            notation = [str(item).lower() for item in spec.get("notation", [])]
+            title = str(concept_id).replace("-", " ")
+            score = 0
+            matched: list[str] = []
+            for alias in aliases:
+                if alias and alias in text:
+                    # A heading is a much stronger signal than a generic word
+                    # appearing in an explanatory paragraph.  This prevents a
+                    # Poisson section mentioning Bernoulli trials from being
+                    # mapped to the Bernoulli-process KP.
+                    score += 24 if alias in heading else 4
+                    matched.append(alias)
+            for term in keywords + notation:
+                if term and term in text:
+                    score += 4 if term in heading else 1
+                    matched.append(term)
+            if score:
+                candidates.append((score, concept_id, ", ".join(matched[:3])))
+        if not candidates:
+            return None, None, None
+        candidates.sort(reverse=True)
+        best = candidates[0]
+        second = candidates[1][0] if len(candidates) > 1 else 0
+        if best[0] < 20 or best[0] - second < 6:
+            return None, "ambiguous", "multiple KP signals"
+        return best[1], "high", f"alias/notation match: {best[2]}"
 
     def _reference_entries(self, reference_chunks_path: Path) -> list[dict[str, Any]]:
         """Load reviewed course-reference chunks with explicit source locators."""
@@ -311,6 +391,7 @@ class KnowledgeBase:
                     "title": title[:100],
                     "content": clean_content[:1400],
                     "source": source,
+                    "source_type": "textbook" if "pdf" in source.casefold() else "course_material",
                     "keywords": keywords if isinstance(keywords, list) else [],
                     "kind": "reference_chunk",
                     "reference_index": index,
@@ -344,6 +425,14 @@ class KnowledgeBase:
                 module_id = None
             if not isinstance(concept_id, str):
                 concept_id = None
+            mapping_confidence = chunk.get("mapping_confidence")
+            mapping_reason = chunk.get("mapping_reason")
+            if concept_id and textbook_chunks_path == DEFAULT_TEXTBOOK_CHUNKS_PATH:
+                page = chunk.get("page")
+                if not isinstance(page, int) or page not in self._textbook_page_priors.get(concept_id, set()):
+                    concept_id = None
+                    mapping_confidence = "unmapped"
+                    mapping_reason = "no explicit curriculum page prior"
             title = chunk.get("title")
             entries.append(
                 {
@@ -356,6 +445,13 @@ class KnowledgeBase:
                     "source_type": "textbook",
                     "page": chunk.get("page"),
                     "content_type": chunk.get("content_type", "textbook_text"),
+                    "chunk_id": chunk.get("chunk_id"),
+                    "parent_id": chunk.get("parent_id"),
+                    "section_title": chunk.get("section_title"),
+                    "section_path": chunk.get("section_path", []),
+                    "chunk_index": chunk.get("chunk_index"),
+                    "mapping_confidence": mapping_confidence,
+                    "mapping_reason": mapping_reason,
                     "keywords": chunk.get("keywords", []),
                     "kind": "textbook_chunk",
                     "textbook_index": index,
@@ -409,16 +505,29 @@ class KnowledgeBase:
             ]
         )
 
-    @classmethod
-    def _expand_query(cls, query: str) -> tuple[str, list[str]]:
-        """Append explicit bilingual concepts while preserving the raw query."""
+    def _expand_query(self, query: str, concept_id: str | None = None) -> tuple[str, list[str]]:
+        """Expand from data-driven KP aliases while retaining legacy Chinese rules."""
 
         expansions = [
             english
-            for chinese, english in cls.QUERY_TRANSLATIONS
+            for chinese, english in self.QUERY_TRANSLATIONS
             if chinese in query
         ]
-        return " ".join([query, *expansions]), expansions
+        lowered = query.lower()
+        alias_expansions: list[str] = []
+        # Keep the established module-scoped regression path byte-for-byte
+        # compatible.  Alias expansion is activated once routing has a
+        # high-confidence KP; otherwise a broad alias list can perturb legacy
+        # top-k ordering for queries such as "Poisson count distribution N(t)".
+        if concept_id:
+            spec = self.retrieval_aliases.get(concept_id, {})
+            terms = [*spec.get("aliases", []), *spec.get("notation", []), *spec.get("keywords", [])]
+            # A routed concept is already a high-confidence signal.  Expand
+            # it even when the learner uses only a short title variant such as
+            # "What is the transition matrix?".
+            alias_expansions.extend(str(term) for term in terms)
+        expanded = list(dict.fromkeys([*expansions, *alias_expansions]))
+        return " ".join([query, *expanded]), expanded
 
     def retrieve(
         self,
@@ -444,7 +553,7 @@ class KnowledgeBase:
                     self._cache.move_to_end(cache_key)
                     return deepcopy(cached)
                 self._cache_misses += 1
-        expanded_query, query_expansions = self._expand_query(query)
+        expanded_query, query_expansions = self._expand_query(query, concept_id)
         query_terms = self._terms(expanded_query) - self.QUERY_STOPWORDS
         normalized_query = " ".join(query.lower().split())
         query_vector, retrieval_mode = self._query_vector(expanded_query)
@@ -540,6 +649,12 @@ class KnowledgeBase:
                 "source_type": entry.get("source_type", "course_material"),
                 "page": entry.get("page"),
                 "content_type": entry.get("content_type"),
+                "chunk_id": entry.get("chunk_id"),
+                "parent_id": entry.get("parent_id"),
+                "section_title": entry.get("section_title"),
+                "section_path": entry.get("section_path", []),
+                "chunk_index": entry.get("chunk_index"),
+                "textbook_index": entry.get("textbook_index"),
                 "retrieval_scope": scope,
                 "score": round(score, 3),
                 "score_breakdown": {
@@ -551,6 +666,8 @@ class KnowledgeBase:
                 "embedding_backend": self.embedding_backend.name,
                 "retrieval_mode": retrieval_mode,
                 "query_expansions": query_expansions,
+                "mapping_confidence": entry.get("mapping_confidence"),
+                "mapping_reason": entry.get("mapping_reason"),
                 "corpus_sha256": self.corpus_sha256,
             }
 
@@ -590,6 +707,201 @@ class KnowledgeBase:
                 while len(self._cache) > self._cache_size:
                     self._cache.popitem(last=False)
         return results
+
+    def retrieval_diagnostic(
+        self,
+        query: str,
+        *,
+        module_id: str | None = None,
+        concept_id: str | None = None,
+        final_limit: int = 4,
+        candidate_limit: int = 10,
+    ) -> dict[str, Any]:
+        """Return bounded stage evidence for course-RAG failure attribution."""
+
+        final, expansion = self.retrieve_with_context(
+            query,
+            module_id=module_id,
+            concept_id=concept_id,
+            limit=final_limit,
+            candidate_limit=candidate_limit,
+        )
+        all_entries = self.entries
+        module_entries = [entry for entry in all_entries if not module_id or entry.get("module_id") == module_id]
+        concept_entries = [entry for entry in module_entries if not concept_id or entry.get("concept_id") == concept_id]
+        return {
+            "final": final,
+            "candidate_pool": self.retrieve(
+                query, module_id=module_id, concept_id=concept_id, limit=candidate_limit
+            ),
+            "corpus_has_module": bool(module_entries),
+            "corpus_has_concept": bool(concept_entries),
+            "expansion": expansion,
+        }
+
+    def rerank_candidates(
+        self,
+        query: str,
+        candidates: list[dict[str, Any]],
+        *,
+        concept_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Apply an offline A/B reranker without changing production retrieval.
+
+        The reranker is deliberately transparent: exact title/alias matches and
+        content-type cues receive small deterministic boosts.  It is used by
+        evaluation tooling only unless a caller explicitly asks for it.
+        """
+
+        lowered = query.casefold()
+        spec = self.retrieval_aliases.get(concept_id or "", {})
+        aliases = [str(item).casefold() for item in spec.get("aliases", [])]
+        notation = [str(item).casefold() for item in spec.get("notation", [])]
+        key_terms = set(self._terms(query)) - self.QUERY_STOPWORDS
+        ranked: list[tuple[float, int, dict[str, Any]]] = []
+        for index, item in enumerate(candidates):
+            title = str(item.get("title") or "").casefold()
+            content = str(item.get("content") or "").casefold()
+            bonus = 0.0
+            if any(alias and alias in lowered and alias in title for alias in aliases):
+                bonus += 3.0
+            if any(term and term in title for term in notation):
+                bonus += 1.5
+            if key_terms and key_terms.issubset(self._terms(title)):
+                bonus += 1.0
+            if any(marker in lowered for marker in ("what is", "define", "definition")) and item.get("content_type") in {"definition", "theorem"}:
+                bonus += 0.5
+            if any(marker in lowered for marker in ("example", "illustrate")) and item.get("content_type") == "example":
+                bonus += 0.5
+            ranked.append((float(item.get("score") or 0.0) + bonus, -index, item))
+        ranked.sort(key=lambda value: (value[0], value[1]), reverse=True)
+        result: list[dict[str, Any]] = []
+        for score, _, item in ranked:
+            copy = dict(item)
+            copy["ab_rerank_bonus"] = round(score - float(item.get("score") or 0.0), 3)
+            result.append(copy)
+        return result
+
+    def retrieve_ab(
+        self,
+        query: str,
+        *,
+        module_id: str | None = None,
+        concept_id: str | None = None,
+        limit: int = 3,
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Return baseline and deterministic-reranked candidates for A/B evals."""
+
+        pool = self.retrieve(
+            query,
+            module_id=module_id,
+            concept_id=concept_id,
+            limit=max(10, limit),
+        )
+        return {
+            "baseline": pool[:limit],
+            "deterministic_rerank": self.rerank_candidates(
+                query, pool, concept_id=concept_id
+            )[:limit],
+        }
+
+    def retrieve_with_context(
+        self,
+        query: str,
+        *,
+        topic: str | None = None,
+        module_id: str | None = None,
+        concept_id: str | None = None,
+        limit: int | None = None,
+        candidate_limit: int = 10,
+        max_extra: int = 2,
+        max_adjacent_distance: int = 1,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """Retrieve top evidence and a small amount of useful local context.
+
+        This is intentionally separate from ``retrieve`` so its stable public
+        contract remains unchanged.  Neighbours are limited to the same
+        notebook or textbook page and never replace the scored candidates.
+        """
+
+        safe_limit = max(1, min(limit or self.config.retrieval_top_k, 10))
+        candidates = self.retrieve(
+            query,
+            topic=topic,
+            module_id=module_id,
+            concept_id=concept_id,
+            limit=max(safe_limit, min(candidate_limit, 10)),
+        )
+        selected = candidates[:safe_limit]
+        selected_sources = {str(item.get("source")) for item in selected}
+        extras: list[dict[str, Any]] = []
+        for item in selected:
+            source = str(item.get("source") or "")
+            match = re.match(r"(.+?\.ipynb)#cell-(\d+)$", source)
+            if match:
+                stem, cell_text = match.groups()
+                center = int(cell_text)
+                neighbour_sources = {
+                    f"{stem}#cell-{center + distance}"
+                    for distance in range(-max_adjacent_distance, max_adjacent_distance + 1)
+                    if distance
+                }
+            else:
+                page = item.get("page")
+                chunk_index = item.get("textbook_index")
+                if isinstance(chunk_index, int):
+                    neighbour_sources = {
+                        str(other.get("source"))
+                        for other in self.entries
+                        if other.get("kind") == "textbook_chunk"
+                        and other.get("source") == source
+                        and other.get("page") == page
+                        and isinstance(other.get("textbook_index"), int)
+                        and abs(other["textbook_index"] - chunk_index) <= max_adjacent_distance
+                    }
+                else:
+                    neighbour_sources = set()
+            for entry in self.entries:
+                locator = str(entry.get("source") or "")
+                if locator not in neighbour_sources or locator in selected_sources:
+                    continue
+                if module_id and entry.get("module_id") not in {module_id, None}:
+                    continue
+                if concept_id and entry.get("concept_id") not in {concept_id, None}:
+                    continue
+                neighbour = dict(item)
+                neighbour.update(
+                    {
+                        "module_id": entry.get("module_id"),
+                        "concept_id": entry.get("concept_id"),
+                        "topic": entry.get("topic"),
+                        "title": entry.get("title"),
+                        "content": entry.get("content"),
+                        "source": entry.get("source"),
+                        "kind": entry.get("kind"),
+                        "source_type": entry.get("source_type", "course_material"),
+                        "page": entry.get("page"),
+                        "content_type": entry.get("content_type"),
+                        "score": 0.0,
+                        "retrieval_scope": "expanded_context",
+                        "expansion_reason": "same notebook neighbourhood or textbook page",
+                    }
+                )
+                extras.append(neighbour)
+                selected_sources.add(locator)
+                if len(extras) >= max_extra:
+                    break
+            if len(extras) >= max_extra:
+                break
+        merged = selected + extras
+        return merged, {
+            "initial_retrieved_sources": [str(item.get("source")) for item in selected],
+            "expanded_sources": [str(item.get("source")) for item in extras],
+            "expansion_reason": "bounded same-source local context" if extras else None,
+            "candidate_pool_size": len(candidates),
+            "max_extra": max_extra,
+            "max_adjacent_distance": max_adjacent_distance,
+        }
 
     def stats(self) -> dict[str, Any]:
         with self._cache_lock:
@@ -636,4 +948,18 @@ class KnowledgeBase:
             "retrieval_top_k": self.config.retrieval_top_k,
             "retrieval_cache": cache_stats,
             "query_translation_rules": len(self.QUERY_TRANSLATIONS),
+            "retrieval_alias_concepts": len(self.retrieval_aliases),
+            "mapped_notebook_chunks": sum(
+                entry["kind"] == "notebook_cell" and bool(entry.get("concept_id"))
+                for entry in self.entries
+            ),
+            "ambiguous_notebook_chunks": sum(
+                entry["kind"] == "notebook_cell" and entry.get("mapping_confidence") == "ambiguous"
+                for entry in self.entries
+            ),
+            "unmapped_notebook_chunks": sum(
+                entry["kind"] == "notebook_cell" and not entry.get("concept_id")
+                and entry.get("mapping_confidence") != "ambiguous"
+                for entry in self.entries
+            ),
         }
