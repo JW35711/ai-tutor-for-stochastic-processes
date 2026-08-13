@@ -154,8 +154,10 @@ def build_graph(agent: Any):
         # LangGraph state is intentionally simple; the agent is a service
         # dependency captured by this graph builder, not a graph state field.
         runtime = state["runtime"]
+        evidence_started = perf_counter()
         agent._update_answerability(runtime)
         supplement = agent._supplementary_query(runtime)
+        runtime.stage_timings["answerability"] = round((perf_counter() - evidence_started) * 1000, 3)
         return {
             "runtime": runtime,
             "visited_nodes": [*state.get("visited_nodes", []), "evidence"],

@@ -78,6 +78,14 @@ class AgentState:
     requested_concept_id: str | None = None
     requested_experiment_id: str | None = None
 
+    # Routing diagnostics are internal metadata; they do not affect the
+    # student-facing answer contract.
+    routing_strategy: str = "UNSET"
+    routing_candidates: list[dict[str, Any]] = field(default_factory=list)
+    routing_confidence: float | None = None
+    selected_routing_reason: str = ""
+    stage_timings: dict[str, float] = field(default_factory=dict)
+
 
 @dataclass(frozen=True)
 class NodeOutcome:

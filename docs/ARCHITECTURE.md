@@ -134,6 +134,19 @@ The assessment bank has its own SHA-256 fingerprint. Each graded attempt stores
 that fingerprint, so a future question edit does not make historical evidence
 look as though it came from the new bank.
 
+### RAG credibility boundary
+
+The current answerability layer is deliberately deterministic: evidence
+coverage rules plus at most two supplementary retrieval rounds. Relevance is
+not treated as proof of sufficiency. The evaluation separates ORACLE ROUTING
+from REAL ROUTING, uses stable gold locators and phrases, and assigns one
+primary failure stage (corpus, chunking, routing, recall, ranking,
+answerability or generation). Conflict detection currently handles explicit
+contradictory claims; implicit contradiction and full entailment are future
+work. If needed later, a deterministic gate can remain first and an optional
+semantic or LLM entailment judge can be limited to ambiguous low-confidence
+cases.
+
 ## Conditional workflow
 
 The official LangGraph `StateGraph` carries a typed `TutorState` and executes

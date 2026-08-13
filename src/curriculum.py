@@ -119,6 +119,10 @@ def curriculum_catalog() -> dict[str, Any]:
                     "title": experiment_registry._clean_title(str(item.get("title", "Experiment"))),
                     "simulation_engine": item.get("simulation_engine"),
                     "visualization_id": item.get("visualization_id"),
+                    "source_notebook": item.get("source_notebook"),
+                    "teaching_purpose": experiment_registry._first_sentence(item.get("teaching_purpose")),
+                    "expected_observation": experiment_registry._first_sentence(item.get("expected_observation")),
+                    "theory_connection": experiment_registry._first_sentence(item.get("theory_connection")),
                 }
                 for item in experiment_registry.find_experiments(
                     module_id=module["module_id"], concept_id=point["id"], limit=5

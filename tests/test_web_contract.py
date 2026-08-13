@@ -37,6 +37,29 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("stochasticTutorCurrentConcept", self.javascript)
         self.assertNotIn('data-question="', self.html)
 
+    def test_phase_two_routes_and_experiment_catalogue_use_stable_ids(self) -> None:
+        for route in ("overview", "course", "tutor", "simulations", "progress", "course/${moduleId}", "simulations/${experimentId}"):
+            self.assertIn(route, self.javascript)
+        self.assertIn('fetchJson("/api/experiments"', self.javascript)
+        self.assertIn('id="simulationCatalogueGrid"', self.html)
+        self.assertIn('data-open-experiment', self.javascript)
+        self.assertIn('experiment_id', self.javascript)
+        self.assertIn('concept_id', self.javascript)
+        self.assertIn('action_type: "simulation"', self.javascript)
+
+    def test_course_and_tutor_use_real_workspace_patterns(self) -> None:
+        self.assertIn("module-card-grid", self.javascript)
+        self.assertIn("simulation-grid", self.javascript + (ROOT / "web" / "styles.css").read_text("utf-8"))
+        self.assertIn("simulation-message-card", self.javascript)
+        self.assertIn("addSimulationCard(payload)", self.javascript)
+        self.assertIn("data-open-lab", self.javascript)
+        self.assertIn("data-run-experiment", self.javascript)
+
+    def test_experiment_parameters_are_declared_only(self) -> None:
+        self.assertIn("supported_parameters", self.javascript)
+        self.assertIn("data-experiment-param", self.javascript)
+        self.assertIn("tool defaults will be used", self.javascript)
+
     def test_module_tabs_show_numbers_only(self) -> None:
         self.assertIn('aria-label="Module ${moduleNumber(item)}"', self.javascript)
         self.assertNotIn('module-tab-title">${escapeHtml(item.label)}', self.javascript)

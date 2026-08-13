@@ -6,7 +6,7 @@
 
 | Course coverage | Knowledge points | Executable tools | RAG entries | Acceptance cases |
 | ---: | ---: | ---: | ---: | ---: |
-| 11/11 modules | 40 | 15 | 421 | 327/327 current baseline (207 governance + 120 grounded coverage) |
+| 11/11 modules | 40 | 15 | 421 | 477/488 current credibility baseline (327 core + 129 hard + 32 holdout) |
 
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
@@ -118,6 +118,12 @@ python scripts/build_course_coverage_cases.py
 python evals/run_course_coverage_evaluation.py --output /tmp/course_coverage.json
 python scripts/audit_course_rag_coverage.py /tmp/course_rag_coverage.json
 python evals/run_course_coverage_ab.py --output /tmp/course_coverage_ab.json
+# Credibility checkpoint: structured 120-case set plus natural/hard questions
+python scripts/build_course_hard_cases.py
+python evals/run_rag_credibility_evaluation.py \
+  --output artifacts/rag_credibility_report.json \
+  --markdown artifacts/rag_credibility_report.md
+python evals/run_holdout_evaluation.py --output /tmp/course_holdout.json
 ```
 
 Retrieval uses deterministic hybrid scoring and a data-driven alias file
@@ -134,6 +140,21 @@ contradictory claims. Implicit contradiction and full entailment remain future
 work. A future optional hybrid design could keep the deterministic gate first
 and call a semantic or LLM entailment judge only for ambiguous, low-confidence
 cases; it is not required for the current baseline.
+
+The credibility checkpoint keeps the reviewed 120-case structured set, a
+129-case natural/hard set covering all 40 knowledge points, and a separate
+32-question holdout authored independently from the development set. It reports true
+Hit@1, Hit@3 and MRR separately for ORACLE ROUTING (gold module/concept supplied
+for retrieval measurement) and REAL ROUTING (student question only). It also
+reports answer success, false abstention, unsupported answers, evidence
+sufficiency, bounded supplementary retrieval, deterministic failure stages and
+observational A/B results for unscoped retrieval and the existing reranker.
+The hard set is a credibility diagnostic, not a claim of a general benchmark;
+its cases and the corpus SHA are versioned in the current manifest. The
+deterministic reranker remains evaluation-only: after routing fixes it improved
+hard-set Hit@3 from 0.9134 to 0.9370 with about 0.4 ms mean retrieval overhead,
+but it is not enabled in production until a repeated holdout/structured A/B
+shows the same benefit without a regression.
 
 ## AI teaching-agent extension
 
@@ -374,9 +395,9 @@ contradictory claims; complex implicit contradiction and entailment are future
 work. A future optional hybrid design can keep the deterministic gate first and
 invoke a semantic/LLM entailment judge only for ambiguous low-confidence cases.
 
-`data/evaluation_manifest.json` is the checked current baseline and now totals
-207 cases across single-turn, multi-turn, retrieval, pedagogy, safety,
-answerability, experiment-routing and visualization E2E suites. The previous
+`data/evaluation_manifest.json` is the checked current baseline (version 4) and
+now totals 488 cases: the existing 327 deterministic governance cases plus 129
+natural/hard credibility cases and 32 independent holdout cases. The previous
 116-case baseline and 109-case v1.0.0 result are preserved in
 `data/evaluation_manifest_v1.0.0.json` and is not presented as current. A unit
 test ties every displayed suite count to its versioned case file, while CI

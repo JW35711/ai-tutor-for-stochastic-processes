@@ -21,6 +21,7 @@ from src.agent import StochasticTutorAgent
 from src.assessment import AssessmentEngine
 from src.config import env_float, env_int
 from src.curriculum import curriculum_catalog
+from src.experiments import ExperimentRegistry
 from src.evaluation_manifest import load_evaluation_manifest
 from src.module_registry import module_catalog
 from src.openapi import OPENAPI_SPEC
@@ -39,6 +40,7 @@ ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
 AGENT = StochasticTutorAgent()
 ASSESSMENTS = AssessmentEngine()
+EXPERIMENTS = ExperimentRegistry()
 EVALUATION = load_evaluation_manifest()
 EVALUATION["corpus_match"] = (
     EVALUATION["corpus_sha256"] == AGENT.knowledge.corpus_sha256
@@ -529,6 +531,24 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._json(curriculum_catalog())
         elif path == "/api/tools":
             self._json({"tools": build_tool_catalog(AGENT.tools)})
+        elif path == "/api/experiments":
+            tool_parameters = {
+                item["key"]: item.get("parameters", [])
+                for item in build_tool_catalog(AGENT.tools)
+            }
+            self._json({
+                "experiments": [
+                    {
+                        **EXPERIMENTS.summary(
+                            item,
+                            tool_parameters.get(str(item.get("simulation_engine")), []),
+                        ),
+                        "section": item.get("section"),
+                        "visualization_id": item.get("visualization_id"),
+                    }
+                    for item in EXPERIMENTS.experiments
+                ]
+            })
         elif path == "/api/profile":
             session_id = parse_qs(parsed.query).get("session_id", [""])[0]
             try:

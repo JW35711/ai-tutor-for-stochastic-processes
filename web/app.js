@@ -40,6 +40,12 @@ const debugContent = document.querySelector("#debugContent");
 const navItems = document.querySelectorAll(".nav-item[data-view]");
 const appViews = document.querySelectorAll(".app-view");
 const languageSelect = document.querySelector("#languageSelect");
+const simulationSearch = document.querySelector("#simulationSearch");
+const simulationFilter = document.querySelector("#simulationFilter");
+const simulationCatalogue = document.querySelector("#simulationCatalogue");
+const simulationCatalogueGrid = document.querySelector("#simulationCatalogueGrid");
+const simulationCount = document.querySelector("#simulationCount");
+const simulationDetail = document.querySelector("#simulationDetail");
 
 const translations = {
   en: {
@@ -49,7 +55,7 @@ const translations = {
     "overview.title": "Continue your stochastic-process journey", "overview.intro": "Learn concepts, practice problems, and explore stochastic models through verified simulations.", "overview.next": "NEXT UP", "overview.nextTitle": "Start with Module 00", "overview.nextText": "Build a reliable Monte Carlo foundation before exploring stochastic models.", "overview.openCourse": "Open course", "overview.recommended": "recommended", "overview.snapshot": "YOUR SNAPSHOT", "overview.modules": "modules", "overview.points": "knowledge points", "overview.tools": "verified tools", "overview.activity": "Your learning activity will appear here after your first practice or quiz.", "overview.quick": "QUICK ACCESS", "overview.choose": "Choose how to learn", "overview.askTutor": "Ask the Tutor", "overview.askTutorDesc": "Get a grounded explanation from the course material.", "overview.explore": "Explore a simulation", "overview.exploreDesc": "Run an approved experiment and inspect its chart.", "overview.review": "Review progress", "overview.reviewDesc": "See mastery, review items, and the next recommendation.", "overview.recent": "RECENT ACTIVITY", "overview.momentum": "Keep your momentum", "overview.openTutor": "Open tutor", "overview.noRecent": "No recent activity yet. Ask a concept question or try the first module.",
     "course.intro": "Browse the eleven modules and move from a knowledge point to a verified experiment.", "course.modules": "COURSE MODULES", "course.choose": "Choose a module", "course.loading": "Loading course modules…",
     "tutor.title": "Ask, understand, and follow up", "tutor.intro": "Chat with the course tutor. Explanations are grounded in the notebooks and lecture notes.", "tutor.chat": "TUTOR CHAT", "tutor.ask": "Ask a question", "tutor.quiz": "Check your understanding", "tutor.empty": "Ask me about a concept, a module, or a simulation.", "tutor.askLabel": "Ask the tutor", "tutor.placeholder": "For example: What is Brownian motion?", "tutor.askButton": "Ask Tutor", "tutor.composer": "Press Enter to ask · Shift+Enter for a new line", "tutor.support": "LEARNING SUPPORT", "tutor.results": "Results", "tutor.ready": "Ready when you are", "tutor.resultHint": "Sources and simulation details will appear here after a Tutor response.",
-    "simulation.label": "SIMULATION", "simulation.title": "Explore verified experiments", "simulation.intro": "Choose a knowledge point in Course or ask the Tutor for an explicit simulation.", "simulation.catalogue": "EXPERIMENT CATALOGUE", "simulation.emptyTitle": "Simulation results appear here", "simulation.emptyText": "Start from a course knowledge point with a Simulation action, or ask the Tutor: “Simulate Brownian motion with 100 steps.”", "simulation.browse": "Browse course experiments", "simulation.verified": "VERIFIED EXPERIMENT", "simulation.result": "Simulation result", "simulation.verifiedOutput": "Verified output from the selected stochastic-process model.", "simulation.backTutor": "Back to tutor", "simulation.sources": "Sources and parameters",
+    "simulation.label": "SIMULATION", "simulation.title": "Explore verified experiments", "simulation.intro": "Choose a knowledge point in Course or ask the Tutor for an explicit simulation.", "simulation.catalogue": "EXPERIMENT CATALOGUE", "simulation.emptyTitle": "Simulation results appear here", "simulation.emptyText": "Start from a course knowledge point with a Simulation action, or ask the Tutor: “Simulate Brownian motion with 100 steps.”", "simulation.browse": "Browse course experiments", "simulation.verified": "VERIFIED EXPERIMENT", "simulation.result": "Simulation result", "simulation.verifiedOutput": "Verified output from the selected stochastic-process model.", "simulation.backTutor": "Back to tutor", "simulation.sources": "Sources and parameters", "simulation.search": "Search title, module, or knowledge point", "simulation.allModules": "All modules", "simulation.goal": "Learning goal", "simulation.type": "Experiment type", "simulation.parameters": "Parameters", "simulation.visualization": "Visualization", "simulation.open": "Open experiment", "simulation.run": "Run experiment", "simulation.ask": "Ask Tutor about this", "simulation.backCatalogue": "Back to catalogue", "simulation.noMatches": "No experiments match this search.", "simulation.verifiedCard": "Verified notebook experiment",
     "progress.title": "Your learning record", "progress.intro": "Practice and quiz activity are saved to your local learner profile.", "progress.record": "LEARNING RECORD", "progress.mastery": "Mastery by module", "progress.local": "Local memory", "progress.emptyNote": "Your practice and quiz activity will appear here.", "progress.noRecord": "No learning record yet.",
   },
   zh: {
@@ -59,7 +65,7 @@ const translations = {
     "overview.title": "继续你的随机过程学习", "overview.intro": "学习概念、练习问题，并通过经过验证的模拟探索随机模型。", "overview.next": "下一步", "overview.nextTitle": "从 Module 00 开始", "overview.nextText": "先建立可靠的蒙特卡洛基础，再学习随机模型。", "overview.openCourse": "打开课程", "overview.recommended": "推荐", "overview.snapshot": "学习概览", "overview.modules": "个模块", "overview.points": "个知识点", "overview.tools": "个验证工具", "overview.activity": "完成第一次练习或测验后，你的学习记录会显示在这里。", "overview.quick": "快捷入口", "overview.choose": "选择学习方式", "overview.askTutor": "询问导师", "overview.askTutorDesc": "从课程材料中获得有依据的解释。", "overview.explore": "探索模拟", "overview.exploreDesc": "运行一个经过批准的实验并查看图表。", "overview.review": "查看进度", "overview.reviewDesc": "查看掌握度、待复习内容和下一步推荐。", "overview.recent": "最近活动", "overview.momentum": "保持学习节奏", "overview.openTutor": "打开导师", "overview.noRecent": "还没有最近活动。可以提问一个概念，或从第一个模块开始。",
     "course.intro": "浏览 11 个模块，从知识点进入经过验证的实验。", "course.modules": "课程模块", "course.choose": "选择一个模块", "course.loading": "正在加载课程模块…",
     "tutor.title": "提问、理解并继续追问", "tutor.intro": "与课程导师对话。回答基于 notebook 和课程讲义。", "tutor.chat": "导师对话", "tutor.ask": "提出问题", "tutor.quiz": "检查理解", "tutor.empty": "你可以问我概念、模块或模拟实验。", "tutor.askLabel": "询问导师", "tutor.placeholder": "例如：什么是布朗运动？", "tutor.askButton": "询问导师", "tutor.composer": "按 Enter 提问 · Shift+Enter 换行", "tutor.support": "学习支持", "tutor.results": "结果", "tutor.ready": "准备好了", "tutor.resultHint": "导师回答后，来源和模拟详情会显示在这里。",
-    "simulation.label": "模拟", "simulation.title": "探索经过验证的实验", "simulation.intro": "在课程中选择知识点，或向导师明确提出模拟请求。", "simulation.catalogue": "实验目录", "simulation.emptyTitle": "模拟结果会显示在这里", "simulation.emptyText": "从课程知识点点击 Simulation，或向导师提问：“模拟 100 步布朗运动。”", "simulation.browse": "浏览课程实验", "simulation.verified": "经过验证的实验", "simulation.result": "模拟结果", "simulation.verifiedOutput": "所选随机过程模型的验证输出。", "simulation.backTutor": "返回导师", "simulation.sources": "来源和参数",
+    "simulation.label": "模拟", "simulation.title": "探索经过验证的实验", "simulation.intro": "在课程中选择知识点，或向导师明确提出模拟请求。", "simulation.catalogue": "实验目录", "simulation.emptyTitle": "模拟结果会显示在这里", "simulation.emptyText": "从课程知识点点击知识点中的 Simulation，或向导师提问：“模拟 100 步布朗运动。”", "simulation.browse": "浏览课程实验", "simulation.verified": "经过验证的实验", "simulation.result": "模拟结果", "simulation.verifiedOutput": "所选随机过程模型的验证输出。", "simulation.backTutor": "返回导师", "simulation.sources": "来源和参数", "simulation.search": "搜索实验标题、模块或知识点", "simulation.allModules": "全部模块", "simulation.goal": "学习目标", "simulation.type": "实验类型", "simulation.parameters": "参数", "simulation.visualization": "可视化", "simulation.open": "打开实验", "simulation.run": "运行实验", "simulation.ask": "询问导师", "simulation.backCatalogue": "返回实验目录", "simulation.noMatches": "没有匹配的实验。", "simulation.verifiedCard": "已验证的 notebook 实验",
     "progress.title": "你的学习记录", "progress.intro": "练习和测验活动会保存到本地学习者档案。", "progress.record": "学习记录", "progress.mastery": "按模块查看掌握度", "progress.local": "本地记忆", "progress.emptyNote": "你的练习和测验活动会显示在这里。", "progress.noRecord": "还没有学习记录。",
   },
   sv: {
@@ -69,7 +75,7 @@ const translations = {
     "overview.title": "Fortsätt din resa i stokastiska processer", "overview.intro": "Lär dig begrepp, öva på problem och utforska stokastiska modeller genom verifierade simuleringar.", "overview.next": "NÄSTA STEG", "overview.nextTitle": "Börja med Module 00", "overview.nextText": "Bygg en stabil grund i Monte Carlo innan du utforskar stokastiska modeller.", "overview.openCourse": "Öppna kursen", "overview.recommended": "rekommenderas", "overview.snapshot": "DIN ÖVERSIKT", "overview.modules": "moduler", "overview.points": "kunskapspunkter", "overview.tools": "verifierade verktyg", "overview.activity": "Din studieaktivitet visas här efter din första övning eller ditt första quiz.", "overview.quick": "SNABBÅTKOMST", "overview.choose": "Välj hur du vill lära dig", "overview.askTutor": "Fråga handledaren", "overview.askTutorDesc": "Få en förankrad förklaring från kursmaterialet.", "overview.explore": "Utforska en simulering", "overview.exploreDesc": "Kör ett godkänt experiment och granska diagrammet.", "overview.review": "Granska framsteg", "overview.reviewDesc": "Se behärskning, repetitionspunkter och nästa rekommendation.", "overview.recent": "SENASTE AKTIVITET", "overview.momentum": "Fortsätt hålla takten", "overview.openTutor": "Öppna handledaren", "overview.noRecent": "Ingen aktivitet ännu. Ställ en begreppsfråga eller prova den första modulen.",
     "course.intro": "Bläddra bland de elva modulerna och gå från en kunskapspunkt till ett verifierat experiment.", "course.modules": "KURSMODULER", "course.choose": "Välj en modul", "course.loading": "Laddar kursmoduler…",
     "tutor.title": "Fråga, förstå och följ upp", "tutor.intro": "Chatta med kursens handledare. Förklaringarna bygger på notebook-filerna och föreläsningsanteckningarna.", "tutor.chat": "HANDLEDARCHATT", "tutor.ask": "Ställ en fråga", "tutor.quiz": "Kontrollera din förståelse", "tutor.empty": "Fråga mig om ett begrepp, en modul eller en simulering.", "tutor.askLabel": "Fråga handledaren", "tutor.placeholder": "Till exempel: Vad är Browns rörelse?", "tutor.askButton": "Fråga handledaren", "tutor.composer": "Tryck Enter för att fråga · Shift+Enter för ny rad", "tutor.support": "LÄRANDESTÖD", "tutor.results": "Resultat", "tutor.ready": "Redo när du är", "tutor.resultHint": "Källor och simuleringsdetaljer visas här efter ett svar från handledaren.",
-    "simulation.label": "SIMULERING", "simulation.title": "Utforska verifierade experiment", "simulation.intro": "Välj en kunskapspunkt i Kurs eller be handledaren om en uttrycklig simulering.", "simulation.catalogue": "EXPERIMENTKATALOG", "simulation.emptyTitle": "Simuleringsresultat visas här", "simulation.emptyText": "Börja från en kunskapspunkt med åtgärden Simulation, eller fråga handledaren: ”Simulate Brownian motion with 100 steps.”", "simulation.browse": "Bläddra bland kursexperiment", "simulation.verified": "VERIFIERAT EXPERIMENT", "simulation.result": "Simuleringsresultat", "simulation.verifiedOutput": "Verifierat resultat från den valda stokastiska modellen.", "simulation.backTutor": "Tillbaka till handledaren", "simulation.sources": "Källor och parametrar",
+    "simulation.label": "SIMULERING", "simulation.title": "Utforska verifierade experiment", "simulation.intro": "Välj en kunskapspunkt i Kurs eller be handledaren om en uttrycklig simulering.", "simulation.catalogue": "EXPERIMENTKATALOG", "simulation.emptyTitle": "Simuleringsresultat visas här", "simulation.emptyText": "Börja från en kunskapspunkt med åtgärden Simulation, eller fråga handledaren: ”Simulate Brownian motion with 100 steps.”", "simulation.browse": "Bläddra bland kursexperiment", "simulation.verified": "VERIFIERAT EXPERIMENT", "simulation.result": "Simuleringsresultat", "simulation.verifiedOutput": "Verifierat resultat från den valda stokastiska modellen.", "simulation.backTutor": "Tillbaka till handledaren", "simulation.sources": "Källor och parametrar", "simulation.search": "Sök efter titel, modul eller kunskapspunkt", "simulation.allModules": "Alla moduler", "simulation.goal": "Lärandemål", "simulation.type": "Experimenttyp", "simulation.parameters": "Parametrar", "simulation.visualization": "Visualisering", "simulation.open": "Öppna experiment", "simulation.run": "Kör experiment", "simulation.ask": "Fråga handledaren", "simulation.backCatalogue": "Tillbaka till katalogen", "simulation.noMatches": "Inga experiment matchar sökningen.", "simulation.verifiedCard": "Verifierat notebook-experiment",
     "progress.title": "Din studiehistorik", "progress.intro": "Övnings- och quizaktivitet sparas i din lokala lärarprofil.", "progress.record": "STUDIEHISTORIK", "progress.mastery": "Behärskning per modul", "progress.local": "Lokalt minne", "progress.emptyNote": "Din övnings- och quizaktivitet visas här.", "progress.noRecord": "Ingen studiehistorik ännu.",
   },
 };
@@ -84,6 +90,9 @@ let masteryByConcept = {};
 let activeViewId = window.localStorage.getItem("stochasticTutorActiveView") || "overviewView";
 let language = window.localStorage.getItem("stochlabLanguage") || "en";
 let pendingTutorAction = {};
+let experimentRegistry = [];
+let toolCatalogue = {};
+let activeExperimentId = null;
 const debugMode = new URLSearchParams(window.location.search).get("debug") === "1";
 if (debugMode) debugPanel.classList.remove("hidden");
 
@@ -103,7 +112,9 @@ function applyTranslations() {
     languageSelect.value = language;
     languageSelect.setAttribute("aria-label", language === "zh" ? "语言" : language === "sv" ? "Språk" : "Language");
   }
-  if (activeViewId) showView(activeViewId);
+  if (activeViewId) showView(activeViewId, { syncHash: false });
+  if (curriculum) renderCurriculum();
+  if (experimentRegistry.length) renderExperimentCatalogue();
 }
 
 function showView(viewId, options = {}) {
@@ -118,7 +129,48 @@ function showView(viewId, options = {}) {
     item.setAttribute("aria-current", selected ? "page" : "false");
   });
   locationBreadcrumb.textContent = target.querySelector("h1")?.textContent || "Course workspace";
+  if (options.syncHash !== false) {
+    const route = viewId === "courseView" ? "#/course" : viewId === "tutorView" ? "#/tutor" : viewId === "simulationLabView" ? "#/simulations" : viewId === "progressView" ? "#/progress" : "#/overview";
+    if (window.location.hash !== route) window.history.pushState({ route }, "", route);
+  }
   if (options.focus) target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function parseRoute() {
+  const raw = window.location.hash.replace(/^#\/?/, "").replace(/\/$/, "");
+  const parts = raw ? raw.split("/") : ["overview"];
+  if (parts[0] === "course") return { view: "courseView", kind: parts[1] ? (parts[2] ? "concept" : "module") : "overview", moduleId: parts[1] || null, conceptId: parts[2] || null };
+  if (parts[0] === "tutor") return { view: "tutorView", kind: "tutor" };
+  if (parts[0] === "simulations") return { view: "simulationLabView", kind: parts[1] ? "experiment" : "catalogue", experimentId: parts[1] || null };
+  if (parts[0] === "progress") return { view: "progressView", kind: "progress" };
+  return { view: "overviewView", kind: "overview" };
+}
+
+function setRoute(route, { replace = false, focus = true } = {}) {
+  const hash = route.startsWith("#") ? route : `#/${route.replace(/^\//, "")}`;
+  if (window.location.hash !== hash) {
+    const method = replace ? "replaceState" : "pushState";
+    window.history[method]({ route: hash }, "", hash);
+  }
+  applyRoute({ focus });
+}
+
+function courseRoute() {
+  const route = parseRoute();
+  return route.view === "courseView" ? route : { view: "courseView", kind: "overview", moduleId: null, conceptId: null };
+}
+
+function applyRoute({ focus = false } = {}) {
+  const route = parseRoute();
+  activeViewId = route.view;
+  if (route.moduleId && curriculum?.modules.some((item) => item.module_id === route.moduleId)) activeModuleId = route.moduleId;
+  if (route.conceptId) currentConceptId = route.conceptId;
+  if (route.view === "courseView" && curriculum) renderCurriculum();
+  if (route.view === "simulationLabView") {
+    if (route.kind === "experiment" && experimentRegistry.length) showExperimentDetail(route.experimentId, { navigate: false });
+    else showExperimentCatalogue();
+  }
+  showView(route.view, { syncHash: false, focus });
 }
 
 function escapeHtml(value) {
@@ -279,50 +331,134 @@ function selectConcept(moduleId, conceptId) {
   currentConceptId = conceptId;
   window.localStorage.setItem("stochasticTutorCurrentModule", moduleId);
   window.localStorage.setItem("stochasticTutorCurrentConcept", conceptId);
-  renderCurriculum();
+  setRoute(`course/${moduleId}/${conceptId}`);
 }
 
 function renderCurriculum() {
-  if (!curriculum?.modules?.length) return;
-  const module = selectedModule();
-  if (!module) return;
-  if (!module.knowledge_points.some((point) => point.id === currentConceptId)) {
-    currentConceptId = module.knowledge_points[0]?.id || null;
-    if (currentConceptId) window.localStorage.setItem("stochasticTutorCurrentConcept", currentConceptId);
-  }
-  const concept = selectedConcept();
-  if (!concept) return;
+  if (!curriculum?.modules?.length || !moduleTabs || !curriculumContent) return;
+  const route = courseRoute();
+  const module = route.moduleId ? curriculum.modules.find((item) => item.module_id === route.moduleId) : null;
   const number = moduleNumber(module);
   const ui = language === "zh"
     ? { modules: "课程模块", selected: "已选择知识点", objectives: "学习目标", points: "知识点", start: "从 01 开始", learn: "学习", practice: "练习", hint: "提示", simulation: "模拟", quiz: "测验", learnLabel: "你将学习", explore: "探索模拟", after: "完成本模块后，你应能够", order: "推荐顺序" }
     : language === "sv"
       ? { modules: "Kursmoduler", selected: "VALD KUNSKAPSPUNKT", objectives: "Lärandemål", points: "KUNSKAPSPUNKTER", start: "Börja med 01", learn: "Lär dig", practice: "Öva", hint: "Ledtråd", simulation: "Simulering", quiz: "Quiz", learnLabel: "Du lär dig", explore: "Utforska med simuleringar", after: "Efter denna modul ska du kunna", order: "Rekommenderad ordning" }
-    : { modules: "Course modules", selected: "SELECTED KNOWLEDGE POINT", objectives: "Learning objectives", points: "KNOWLEDGE POINTS", start: "Start with 01", learn: "Learn", practice: "Practice", hint: "Hint", simulation: "Simulation", quiz: "Quiz", learnLabel: "You will learn", explore: "Explore with simulations", after: "After this module, you should be able to", order: "Recommended order" };
-  if (activeViewId === "courseView") locationBreadcrumb.textContent = `${module.label} / ${concept.title}`;
-  moduleTabs.innerHTML = curriculum.modules.map((item) => {
-    return `<button type="button" role="tab" aria-selected="${item.module_id === module.module_id}" aria-controls="curriculumContent" aria-label="Module ${moduleNumber(item)}" data-module-id="${escapeHtml(item.module_id)}"><span class="module-tab-number">Module ${moduleNumber(item)}</span></button>`;
-  }).join("");
+      : { modules: "Course modules", selected: "SELECTED KNOWLEDGE POINT", objectives: "Learning objectives", points: "KNOWLEDGE POINTS", start: "Start with 01", learn: "Learn", practice: "Practice", hint: "Hint", simulation: "Simulation", quiz: "Quiz", learnLabel: "You will learn", explore: "Explore with simulations", after: "After this module, you should be able to", order: "Recommended order" };
+  moduleTabs.innerHTML = curriculum.modules.map((item) => `<button type="button" role="tab" aria-selected="${item.module_id === module?.module_id}" aria-controls="curriculumContent" aria-label="Module ${moduleNumber(item)}" data-module-id="${escapeHtml(item.module_id)}"><span class="module-tab-number">Module ${moduleNumber(item)}</span></button>`).join("");
+  moduleTabs.querySelectorAll("[data-module-id]").forEach((button) => button.addEventListener("click", () => setRoute(`course/${button.dataset.moduleId}`)));
+  if (!module) {
+    courseTitle && (courseTitle.textContent = curriculum.course_title || "Introduction to Stochastic Processes with Applications");
+    locationBreadcrumb.textContent = ui.modules;
+    curriculumContent.innerHTML = `<div class="module-card-grid">${curriculum.modules.map((item) => `<article class="module-card"><div class="module-card-number">Module ${moduleNumber(item)}</div><h3>${escapeHtml(item.label)}</h3><p>${escapeHtml(item.purpose || item.summary || "")}</p><div class="module-card-meta"><span>${item.knowledge_points.length} ${language === "zh" ? "个知识点" : language === "sv" ? "kunskapspunkter" : "knowledge points"}</span><span>${item.knowledge_points.reduce((sum, point) => sum + (point.experiments || []).length, 0)} ${language === "zh" ? "个实验" : language === "sv" ? "experiment" : "experiments"}</span></div><button type="button" class="primary-action" data-open-module="${escapeHtml(item.module_id)}">${language === "zh" ? "打开模块" : language === "sv" ? "Öppna modul" : "Open module"} →</button></article>`).join("")}</div>`;
+    curriculumContent.querySelectorAll("[data-open-module]").forEach((button) => button.addEventListener("click", () => setRoute(`course/${button.dataset.openModule}`)));
+    return;
+  }
+  if (!module.knowledge_points.some((point) => point.id === (route.conceptId || currentConceptId))) currentConceptId = module.knowledge_points[0]?.id || null;
+  const concept = module.knowledge_points.find((point) => point.id === (route.conceptId || currentConceptId)) || module.knowledge_points[0];
+  currentConceptId = concept?.id || null;
+  activeModuleId = module.module_id;
+  window.localStorage.setItem("stochasticTutorCurrentModule", activeModuleId);
+  if (currentConceptId) window.localStorage.setItem("stochasticTutorCurrentConcept", currentConceptId);
+  locationBreadcrumb.textContent = route.conceptId ? `${module.label} / ${concept.title}` : `${ui.modules} / ${module.label}`;
   curriculumContent.innerHTML = `
-    <div class="curriculum-breadcrumb"><span>${ui.modules}</span><span aria-hidden="true">/</span><strong>${language === "zh" ? "模块" : language === "sv" ? "Modul" : "Module"} ${number}</strong><span aria-hidden="true">/</span><span>${escapeHtml(concept.title)}</span></div>
-    <div class="selected-module-heading"><div><p class="section-label">${language === "zh" ? "模块" : "MODULE"} ${number}</p><h3>${escapeHtml(module.label || "Stochastic Processes")}</h3><p class="module-purpose">${escapeHtml(module.purpose || module.summary || "Explore this stochastic-process model through practice and examples.")}</p></div><div class="module-meta"><span>${module.knowledge_points.length} ${language === "zh" ? "个知识点" : "knowledge points"}</span><span>${ui.order}</span></div></div>
-    <section class="learning-objectives" aria-labelledby="objectivesHeading"><h4 id="objectivesHeading">${ui.objectives}</h4><ul>${(module.learning_objectives || []).map((objective) => `<li>${ui.after} ${escapeHtml(objective.replace(/^After this module, you should be able to /i, "").replace(/[.]$/, ""))}.</li>`).join("")}</ul></section>
+    <div class="curriculum-breadcrumb"><button type="button" class="breadcrumb-button" data-course-root>${ui.modules}</button><span aria-hidden="true">/</span><strong>${language === "zh" ? "模块" : language === "sv" ? "Modul" : "Module"} ${moduleNumber(module)}</strong>${route.conceptId ? `<span aria-hidden="true">/</span><span>${escapeHtml(concept.title)}</span>` : ""}</div>
+    <div class="selected-module-heading"><div><p class="section-label">${language === "zh" ? "模块" : "MODULE"} ${moduleNumber(module)}</p><h3>${escapeHtml(module.label || "Stochastic Processes")}</h3><p class="module-purpose">${escapeHtml(module.purpose || module.summary || "")}</p></div><div class="module-meta"><span>${module.knowledge_points.length} ${language === "zh" ? "个知识点" : "knowledge points"}</span><span>${module.knowledge_points.reduce((sum, point) => sum + (point.experiments || []).length, 0)} ${language === "zh" ? "个实验" : "experiments"}</span></div></div>
+    <section class="learning-objectives" aria-labelledby="objectivesHeading"><h4 id="objectivesHeading">${ui.objectives}</h4><ul>${(module.learning_objectives || []).map((objective) => `<li>${escapeHtml(objective)}</li>`).join("")}</ul></section>
     <div class="kp-heading"><p class="section-label">${ui.points}</p><span>${ui.start}</span></div>
     <ol class="concept-list" role="list">${module.knowledge_points.map((point, index) => { const status = masteryByConcept[point.id]?.status || "NOT_STARTED"; return `<li><button type="button" role="listitem" aria-current="${point.id === concept.id ? "true" : "false"}" aria-label="${escapeHtml(`${index + 1}. ${point.title}`)}" data-concept-id="${escapeHtml(point.id)}"><span class="concept-index">${String(index + 1).padStart(2, "0")}</span><span class="concept-copy"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.description || point.summary)}</small></span><span class="concept-status concept-status-${status.toLowerCase().replaceAll("_", "-")}">${escapeHtml(status.replaceAll("_", " "))}</span><span class="concept-arrow" aria-hidden="true">→</span></button></li>`; }).join("")}</ol>
-    <section class="concept-detail" aria-labelledby="conceptHeading"><p class="section-label">${ui.selected}</p><h4 id="conceptHeading">${escapeHtml(concept.title)}</h4><p>${escapeHtml(concept.description || concept.summary)}</p><p class="you-learn-label">${ui.learnLabel}</p><ul><li>${escapeHtml(concept.description || concept.summary)}</li><li>${language === "zh" ? "用于回答：" : "Use it to answer: "}${escapeHtml(concept.practice_prompt)}</li></ul>${concept.experiments?.length ? `<div class="experiment-list"><p class="you-learn-label">${ui.explore}</p><ul>${concept.experiments.map((experiment) => `<li>${escapeHtml(experiment.title)}</li>`).join("")}</ul></div>` : ""}<div class="concept-actions"><button type="button" data-concept-action="learn">${ui.learn}</button><button type="button" data-concept-action="practice">${ui.practice}</button><button type="button" data-concept-action="hint">${ui.hint}</button>${concept.experiments?.length ? `<button type="button" class="primary-action" data-concept-action="simulation">${ui.simulation}</button>` : ""}<button type="button" data-concept-action="quiz">${ui.quiz}</button></div><p id="conceptActivity" class="concept-activity" role="status" aria-live="polite"></p></section>`;
-  moduleTabs.querySelectorAll("[data-module-id]").forEach((button) => button.addEventListener("click", () => {
-    const chosen = curriculum.modules.find((item) => item.module_id === button.dataset.moduleId);
-    selectConcept(chosen.module_id, chosen.knowledge_points[0].id);
-  }));
+    <section class="concept-detail" aria-labelledby="conceptHeading"><p class="section-label">${ui.selected}</p><h4 id="conceptHeading">${escapeHtml(concept.title)}</h4><p>${escapeHtml(concept.description || concept.summary)}</p><p class="you-learn-label">${ui.learnLabel}</p><ul><li>${escapeHtml(concept.description || concept.summary)}</li><li>${language === "zh" ? "用于回答：" : "Use it to answer: "}${escapeHtml(concept.practice_prompt)}</li></ul>${concept.prerequisites?.length ? `<p class="prerequisite-note"><strong>${language === "zh" ? "先修：" : language === "sv" ? "Förkunskaper: " : "Prerequisites: "}</strong>${escapeHtml(concept.prerequisites.join(", "))}</p>` : ""}${concept.experiments?.length ? `<div class="experiment-list"><p class="you-learn-label">${ui.explore}</p><ul>${concept.experiments.map((experiment) => `<li><button type="button" class="link-button" data-open-experiment="${escapeHtml(experiment.experiment_id)}">${escapeHtml(experiment.title)}</button></li>`).join("")}</ul></div>` : ""}<div class="concept-actions"><button type="button" data-concept-action="learn">${ui.learn}</button><button type="button" data-concept-action="practice">${ui.practice}</button><button type="button" data-concept-action="hint">${ui.hint}</button>${concept.experiments?.length ? `<button type="button" class="primary-action" data-concept-action="simulation">${ui.simulation}</button>` : ""}<button type="button" data-concept-action="quiz">${ui.quiz}</button></div><p id="conceptActivity" class="concept-activity" role="status" aria-live="polite"></p></section>`;
+  curriculumContent.querySelector("[data-course-root]")?.addEventListener("click", () => setRoute("course"));
   curriculumContent.querySelectorAll("[data-concept-id]").forEach((button) => button.addEventListener("click", () => selectConcept(module.module_id, button.dataset.conceptId)));
+  curriculumContent.querySelectorAll("[data-open-experiment]").forEach((button) => button.addEventListener("click", () => setRoute(`simulations/${button.dataset.openExperiment}`)));
   curriculumContent.querySelectorAll("[data-concept-action]").forEach((button) => button.addEventListener("click", () => {
     const chosen = selectedConcept();
     const activity = curriculumContent.querySelector(".concept-activity");
-    if (button.dataset.conceptAction === "learn") { pendingTutorAction = { action_type: "learn", concept_id: chosen.id }; input.value = localizedActionPrompt("learn", chosen); autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好学习问题。" : language === "sv" ? "En fokuserad inlärningsfråga är klar i handledaren." : "A focused learning question is ready in the tutor."; showView("tutorView"); }
-    if (button.dataset.conceptAction === "practice") { pendingTutorAction = { action_type: "practice", concept_id: chosen.id }; input.value = localizedActionPrompt("practice", chosen); autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好练习问题。" : language === "sv" ? "En övningsfråga är klar i handledaren." : "A practice question is ready in the tutor."; showView("tutorView"); }
+    if (button.dataset.conceptAction === "learn") { pendingTutorAction = { action_type: "learn", concept_id: chosen.id }; input.value = localizedActionPrompt("learn", chosen); autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好学习问题。" : language === "sv" ? "En fokuserad inlärningsfråga är klar i handledaren." : "A focused learning question is ready in the tutor."; setRoute("tutor"); }
+    if (button.dataset.conceptAction === "practice") { pendingTutorAction = { action_type: "practice", concept_id: chosen.id }; input.value = localizedActionPrompt("practice", chosen); autoGrowInput(); input.focus(); activity.textContent = language === "zh" ? "已在导师输入框中准备好练习问题。" : language === "sv" ? "En övningsfråga är klar i handledaren." : "A practice question is ready in the tutor."; setRoute("tutor"); }
     if (button.dataset.conceptAction === "hint") { fetchJson("/api/hint", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ concept_id: chosen.id, session_id: sessionId, hint_level: 1 }) }).then((payload) => { sessionId = payload.session_id; window.localStorage.setItem("stochasticTutorSession", sessionId); activity.textContent = `${t("common.hint")}: ${payload.hint}`; }).catch((error) => { activity.textContent = `${t("common.hintUnavailable")}: ${error.message}`; }); }
     if (button.dataset.conceptAction === "simulation") { const experiment = (chosen.experiments || [])[0]; askAgent(localizedActionPrompt("simulation", chosen, experiment), { action_type: "simulation", concept_id: chosen.id, experiment_id: experiment?.experiment_id }); }
     if (button.dataset.conceptAction === "quiz") { pendingTutorAction = { action_type: "quiz", concept_id: chosen.id }; activity.textContent = localizedActionPrompt("quiz", chosen); openQuiz(chosen.id); }
   }));
+}
+
+function experimentById(experimentId) {
+  return experimentRegistry.find((item) => item.experiment_id === experimentId) || null;
+}
+
+function experimentContext(experiment) {
+  const module = curriculum?.modules.find((item) => item.module_id === experiment?.module_id);
+  const concept = module?.knowledge_points.find((item) => item.id === experiment?.concept_id);
+  return { module, concept };
+}
+
+function experimentParameterRows(experiment) {
+  const params = experiment?.supported_parameters || [];
+  return params.filter((item) => item?.name && item.name !== "seed").slice(0, 12);
+}
+
+function renderExperimentCatalogue() {
+  if (!simulationCatalogueGrid) return;
+  const query = (simulationSearch?.value || "").trim().toLowerCase();
+  const moduleFilter = simulationFilter?.value || "all";
+  const matches = experimentRegistry.filter((experiment) => {
+    if (moduleFilter !== "all" && experiment.module_id !== moduleFilter) return false;
+    const { module, concept } = experimentContext(experiment);
+    const haystack = [experiment.title, experiment.teaching_purpose, experiment.simulation_engine, module?.label, concept?.title, experiment.source_notebook].join(" ").toLowerCase();
+    return !query || haystack.includes(query);
+  });
+  if (simulationCount) simulationCount.textContent = `${matches.length} / ${experimentRegistry.length}`;
+  simulationCatalogueGrid.innerHTML = matches.length ? matches.map((experiment) => {
+    const { module, concept } = experimentContext(experiment);
+    const params = experimentParameterRows(experiment);
+    return `<article class="experiment-card"><div class="experiment-card-top"><span class="experiment-module">${escapeHtml(moduleDisplayLabel(experiment.module_id))}</span><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><h3>${escapeHtml(experiment.title)}</h3><p>${escapeHtml(experiment.teaching_purpose || concept?.summary || "")}</p><div class="experiment-card-meta"><span>${escapeHtml(concept?.title || "Course experiment")}</span>${params.length ? `<span>${params.length} ${language === "zh" ? "个参数" : language === "sv" ? "parametrar" : "parameters"}</span>` : ""}<span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div><button type="button" class="ghost-button" data-open-experiment="${escapeHtml(experiment.experiment_id)}">${t("simulation.open")} <span aria-hidden="true">→</span></button></article>`;
+  }).join("") : `<div class="catalogue-empty"><strong>${escapeHtml(t("simulation.noMatches"))}</strong></div>`;
+  simulationCatalogueGrid.querySelectorAll("[data-open-experiment]").forEach((button) => button.addEventListener("click", () => setRoute(`simulations/${button.dataset.openExperiment}`)));
+}
+
+function showExperimentCatalogue() {
+  simulationCatalogue?.classList.remove("hidden");
+  simulationDetail?.classList.add("hidden");
+  simulationView?.classList.add("hidden");
+  dashboard?.classList.remove("simulation-mode");
+  renderExperimentCatalogue();
+}
+
+function showExperimentDetail(experimentId, { navigate = true } = {}) {
+  const experiment = experimentById(experimentId);
+  if (!experiment || !simulationDetail) return showExperimentCatalogue();
+  activeExperimentId = experimentId;
+  const { module, concept } = experimentContext(experiment);
+  const params = experimentParameterRows(experiment);
+  if (navigate) setRoute(`simulations/${experimentId}`);
+  simulationCatalogue?.classList.add("hidden");
+  simulationView?.classList.add("hidden");
+  simulationDetail.classList.remove("hidden");
+  locationBreadcrumb.textContent = `${t("nav.simulation")} / ${module?.label || experiment.module_id} / ${experiment.title}`;
+  simulationDetail.innerHTML = `<div class="simulation-detail-header"><div><button type="button" class="breadcrumb-button" data-back-catalogue>${t("simulation.backCatalogue")}</button><p class="kicker">${escapeHtml(t("simulation.verified"))}</p><h2>${escapeHtml(experiment.title)}</h2><p class="simulation-subtitle">${escapeHtml(experiment.teaching_purpose || "")}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><div class="detail-summary-grid"><div><span class="detail-label">${escapeHtml(t("simulation.goal"))}</span><strong>${escapeHtml(experiment.teaching_purpose || concept?.summary || "")}</strong></div><div><span class="detail-label">${escapeHtml(t("common.theoryConnection"))}</span><strong>${escapeHtml(experiment.theory_connection || "")}</strong></div><div><span class="detail-label">${escapeHtml(language === "zh" ? "知识点" : language === "sv" ? "Kunskapspunkt" : "Knowledge point")}</span><strong>${escapeHtml(concept?.title || "")}</strong></div></div><section class="parameter-editor"><div class="panel-heading compact"><div><p class="kicker">${escapeHtml(t("simulation.parameters"))}</p><h3>${escapeHtml(experiment.simulation_engine || "Python tool")}</h3></div></div>${params.length ? `<div class="parameter-grid">${params.map((parameter) => `<label><span>${escapeHtml(parameter.name)}</span><input type="number" step="any" data-experiment-param="${escapeHtml(parameter.name)}" value="${escapeHtml(parameter.default ?? "")}" ${parameter.required ? "required" : ""} /></label>`).join("")}</div>` : `<p class="muted-copy">${escapeHtml(language === "zh" ? "此 notebook 目标没有可编辑的工具参数；运行将使用工具默认值。" : language === "sv" ? "Detta notebookmål har inga redigerbara verktygsparametrar; standardvärden används." : "This notebook target has no editable tool parameters; the tool defaults will be used.")}</p>`}<div class="detail-actions"><button type="button" class="primary-action" data-run-experiment>${t("simulation.run")} <span aria-hidden="true">→</span></button><button type="button" class="ghost-button" data-ask-experiment>${t("simulation.ask")}</button></div><p id="experimentDetailStatus" class="concept-activity" role="status" aria-live="polite"></p></section><div class="detail-provenance"><span>${escapeHtml(module?.label || experiment.module_id)}</span><span>${escapeHtml(experiment.source_notebook || "notebook")}</span><span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div>`;
+  simulationDetail.querySelector("[data-back-catalogue]")?.addEventListener("click", () => setRoute("simulations"));
+  simulationDetail.querySelector("[data-run-experiment]")?.addEventListener("click", () => {
+    const values = [...simulationDetail.querySelectorAll("[data-experiment-param]")].filter((field) => field.value !== "").map((field) => `${field.dataset.experimentParam} ${field.value}`).join(", ");
+    const prompt = `Simulate ${experiment.title}${values ? ` with ${values}` : ""}.`;
+    pendingTutorAction = { action_type: "simulation", concept_id: experiment.concept_id || undefined, experiment_id: experiment.experiment_id };
+    askAgent(prompt, pendingTutorAction);
+  });
+  simulationDetail.querySelector("[data-ask-experiment]")?.addEventListener("click", () => {
+    const prompt = language === "zh" ? `请解释实验“${experiment.title}”与课程理论的联系。` : language === "sv" ? `Förklara hur experimentet ${experiment.title} hänger ihop med kursens teori.` : `Explain how the experiment ${experiment.title} connects to the course theory.`;
+    pendingTutorAction = { action_type: "learn", concept_id: experiment.concept_id || undefined, experiment_id: experiment.experiment_id };
+    input.value = prompt; autoGrowInput(); setRoute("tutor"); input.focus();
+  });
+}
+
+async function hydrateExperiments() {
+  try {
+    const payload = await fetchJson("/api/experiments", {}, 10_000);
+    experimentRegistry = payload.experiments || [];
+    if (simulationFilter) simulationFilter.innerHTML = `<option value="all">${escapeHtml(t("simulation.allModules"))}</option>${(curriculum?.modules || []).map((module) => `<option value="${escapeHtml(module.module_id)}">${escapeHtml(moduleDisplayLabel(module.module_id))}</option>`).join("")}`;
+    renderExperimentCatalogue();
+  } catch (_) {
+    experimentRegistry = [];
+    if (simulationCatalogueGrid) simulationCatalogueGrid.innerHTML = `<div class="catalogue-empty"><strong>${escapeHtml(t("simulation.noMatches"))}</strong></div>`;
+  }
 }
 
 async function hydrateCurriculum() {
@@ -333,6 +469,8 @@ async function hydrateCurriculum() {
       document.title = curriculum.course_title;
     }
     renderCurriculum();
+    await hydrateExperiments();
+    applyRoute({ focus: false });
   }
   catch (error) { curriculumContent.textContent = language === "zh" ? `课程模块加载失败：${error.message}` : `Course modules could not be loaded: ${error.message}`; }
 }
@@ -494,10 +632,30 @@ function showSimulationView(payload) {
   showView("simulationLabView", { focus: true });
 }
 
+function addSimulationCard(payload) {
+  if (!conversation || !payload?.tool_called) return;
+  const experiment = payload.experiment || {};
+  const card = document.createElement("article");
+  card.className = "message simulation-message-card";
+  const cardId = `inline-simulation-${Date.now()}`;
+  card.innerHTML = `<span class="message-label">${escapeHtml(t("simulation.verified"))}</span><div class="simulation-card-heading"><div><h3>${escapeHtml(experiment.title || payload.module_label || t("simulation.result"))}</h3><p>${escapeHtml(experiment.teaching_purpose || t("simulation.verifiedOutput"))}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || payload.tool || "verified")}</span></div><div id="${cardId}" class="inline-simulation-visual"></div><div class="inline-simulation-meta">${Object.entries(payload.parameters || {}).slice(0, 5).map(([key, value]) => `<span><strong>${escapeHtml(key)}</strong> ${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</span>`).join("")}</div><p class="inline-simulation-summary">${escapeHtml(payload.result_summary || experiment.expected_observation || "Verified output from the Python simulation tool.")}</p><div class="inline-simulation-actions"><button type="button" class="ghost-button" data-open-lab>${escapeHtml(t("simulation.open"))} →</button></div>`;
+  conversation.append(card);
+  const visual = card.querySelector(`#${cardId}`);
+  if (!renderStructuredVisualizations(payload.result, visual)) renderChart(payload.result?.series, payload.result?.chart, visual);
+  card.querySelector("[data-open-lab]")?.addEventListener("click", () => {
+    const id = experiment.experiment_id || payload.experiment_id;
+    if (id) setRoute(`simulations/${id}`);
+    else showSimulationView(payload);
+  });
+  renderMath(card);
+  conversation.scrollTop = conversation.scrollHeight;
+}
+
 function hideSimulationView() {
   tutorLab?.classList.remove("simulation-active");
   dashboard?.classList.remove("simulation-mode");
   document.querySelector("#simulationCatalogue")?.classList.remove("hidden");
+  simulationDetail?.classList.add("hidden");
   simulationView?.classList.add("hidden");
 }
 
@@ -521,7 +679,10 @@ function renderResponse(payload) {
     runMeta.textContent = payload.module_label || payload.module_id || "Simulation";
     if (!renderStructuredVisualizations(payload.result, chart)) renderChart(payload.result?.series, payload.result?.chart);
     parameters.innerHTML = Object.entries(payload.parameters || {}).map(([key, value]) => `<div class="metric"><span>${escapeHtml(key)}</span><strong>${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</strong></div>`).join("");
-    showSimulationView(payload);
+    // The result is also rendered as an inline Tutor artifact below. Keep the
+    // dedicated Lab route available through that card instead of taking the
+    // learner away from the conversation automatically.
+    hideSimulationView();
   } else { runMeta.textContent = language === "zh" ? "概念解释" : "Concept explanation"; hideSimulationView(); }
   renderSources(payload.sources || []);
   renderProgress(payload.memory, payload.learning_note, payload.recommendation);
@@ -563,8 +724,8 @@ async function askAgent(question, action = {}) {
         renderCurriculum();
       }
     }
-    addMessage("agent", payload.answer); renderResponse(payload);
-    if (!payload.tool_called) showView("tutorView");
+    addMessage("agent", payload.answer); renderResponse(payload); if (payload.tool_called) addSimulationCard(payload);
+    showView("tutorView");
   } catch (error) { addMessage("agent", language === "zh" ? `这次请求未能完成：${error.message}` : `I could not complete that request: ${error.message}`); }
   finally { setComposerLoading(false); input.focus(); autoGrowInput(); }
 }
@@ -606,18 +767,26 @@ form.addEventListener("submit", (event) => { event.preventDefault(); if (mutatio
 quizButton.addEventListener("click", openQuiz);
 resetButton.addEventListener("click", () => { sessionId = null; window.localStorage.removeItem("stochasticTutorSession"); hideSimulationView(); conversation.innerHTML = `<article class="message agent-message"><span class="message-label">${t("common.tutor")}</span><div class="message-body"><p>${escapeHtml(t("tutor.empty"))}</p></div></article>`; quizPanel.classList.add("hidden"); input.value = ""; autoGrowInput(); input.focus(); composerStatus.textContent = t("tutor.composer"); });
 closeSimulationView?.addEventListener("click", () => { hideSimulationView(); showView("tutorView", { focus: true }); });
-navItems.forEach((button) => button.addEventListener("click", () => showView(button.dataset.view, { focus: true })));
-document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view, { focus: true })));
+function routeForView(view) {
+  return view === "courseView" ? "course" : view === "tutorView" ? "tutor" : view === "simulationLabView" ? "simulations" : view === "progressView" ? "progress" : "overview";
+}
+navItems.forEach((button) => button.addEventListener("click", () => setRoute(routeForView(button.dataset.view))));
+document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setRoute(routeForView(button.dataset.view))));
+simulationSearch?.addEventListener("input", renderExperimentCatalogue);
+simulationFilter?.addEventListener("change", renderExperimentCatalogue);
+window.addEventListener("hashchange", () => applyRoute({ focus: false }));
+window.addEventListener("popstate", () => applyRoute({ focus: false }));
 languageSelect?.addEventListener("change", () => {
   language = ["en", "zh", "sv"].includes(languageSelect.value) ? languageSelect.value : "en";
   window.localStorage.setItem("stochlabLanguage", language);
   applyTranslations();
   hydrateHealth();
   if (curriculum) renderCurriculum();
+  if (experimentRegistry.length) renderExperimentCatalogue();
 });
 
 autoGrowInput();
 hydrateHealth();
 hydrateCurriculum();
-showView(activeViewId);
+applyRoute({ focus: false });
 applyTranslations();

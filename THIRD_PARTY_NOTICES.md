@@ -1,27 +1,18 @@
 # Third-party notices
 
-This interface adapts layout ideas from two local open-source reference
-projects. No backend, authentication, model provider, or branding from either
-project is included.
+This project remains a lightweight HTML/CSS/Vanilla JavaScript application.
 
-## Tabler
+The Phase 2 interface adapts layout and interaction ideas from the following
+local open-source references without copying branding, logos, product names, or
+backend code:
 
-The sidebar/page-wrapper/card-grid visual structure is materially adapted from
-Tabler's vertical navbar and page-layout examples:
+- **Tabler** — MIT License. Adapted patterns: vertical navigation, page
+  wrapper, page headers, responsive cards, breadcrumbs and active navigation
+  states. Source reference: `ui-references/tabler`.
+- **Vercel Chatbot** — Apache License 2.0. Adapted patterns: chat-first
+  message workspace, sticky composer, scrollable message stream, and rich
+  artifact-style simulation cards. Source reference: `ui-references/chatbot`.
 
-- Source: `/Users/macbook/Desktop/ui-references/tabler`
-- License: MIT License
-- Project: https://github.com/tabler/tabler
-
-## Vercel Chatbot
-
-The Tutor view uses interaction patterns inspired by the Chatbot project's
-chat-first message stream, bottom composer, sidebar context, and rich result
-panel:
-
-- Source: `/Users/macbook/Desktop/ui-references/chatbot`
-- License: Apache License 2.0
-- Project: https://github.com/vercel/ai-chatbot
-
-StochLab remains a lightweight HTML/CSS/JavaScript frontend and does not copy
-the referenced projects' logos, product names, authentication, or backend.
+The original projects and their licenses remain the authoritative sources for
+their respective notices. No source files from either project are bundled as
+runtime dependencies here.

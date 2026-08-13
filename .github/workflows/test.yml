@@ -45,6 +45,14 @@ jobs:
         run: |
           python3 scripts/build_course_coverage_cases.py
           python3 evals/run_course_coverage_evaluation.py --output /tmp/course_coverage_report.json
+      - name: RAG credibility hard-set evaluation
+        run: |
+          python3 scripts/build_course_hard_cases.py
+          python3 evals/run_rag_credibility_evaluation.py \
+            --output /tmp/rag_credibility_report.json \
+            --markdown /tmp/rag_credibility_report.md
+      - name: Independent course holdout evaluation
+        run: python3 evals/run_holdout_evaluation.py --output /tmp/course_holdout_report.json
       - name: Course RAG coverage audit
         run: python3 scripts/audit_course_rag_coverage.py /tmp/course_rag_coverage.json
       - name: Notebook visualization E2E verification
@@ -62,6 +70,7 @@ jobs:
             --course-coverage /tmp/course_coverage_report.json \
             --experiment-routing /tmp/experiment_routing_report.json \
             --visualization-e2e /tmp/visualization_e2e_report.json \
+            --credibility /tmp/rag_credibility_report.json \
             --output /tmp/evaluation_manifest.json
       - name: Record local node-latency benchmark
         run: python3 evals/run_latency_benchmark.py --repetitions 1 --output /tmp/latency_benchmark.json
@@ -78,6 +87,9 @@ jobs:
             /tmp/v1_acceptance_report.json
             /tmp/answerability_report.json
             /tmp/course_coverage_report.json
+            /tmp/rag_credibility_report.json
+            /tmp/rag_credibility_report.md
+            /tmp/course_holdout_report.json
             /tmp/course_rag_coverage.json
             /tmp/visualization_e2e_report.json
             /tmp/experiment_routing_report.json

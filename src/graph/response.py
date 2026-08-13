@@ -45,6 +45,7 @@ def finalize(agent: Any, graph_result: dict[str, Any], started: float) -> dict[s
             item["node"]: item.get("duration_ms", 0.0)
             for item in completed.trace
         }
+        stage_timings = dict(completed.stage_timings)
         completed.response["observability"] = {
             "request_id": None,
             "intent": completed.intent,
@@ -74,8 +75,10 @@ def finalize(agent: Any, graph_result: dict[str, Any], started: float) -> dict[s
             "latency_ms": {
                 "routing": durations.get("classify", 0.0),
                 "retrieval": durations.get("retrieve", 0.0),
+                "answerability": stage_timings.get("answerability", 0.0),
                 "llm": completed.llm_metadata.get("latency_ms", 0.0),
                 "simulation": durations.get("tool", 0.0),
+                "generation_or_fallback": durations.get("respond", 0.0),
                 "total": round((time.perf_counter() - started) * 1000, 2),
             },
             "input_tokens": completed.llm_metadata.get("input_tokens"),
@@ -94,6 +97,18 @@ def finalize(agent: Any, graph_result: dict[str, Any], started: float) -> dict[s
             "llm_call_count": llm_call_count,
             "curriculum_decision": completed.curriculum_decision,
             "assessment_result": completed.assessment_result,
+            "routing_strategy": completed.routing_strategy,
+            "routing_candidates": completed.routing_candidates,
+            "routing_confidence": completed.routing_confidence,
+            "selected_routing_reason": completed.selected_routing_reason,
+            "stage_timings": {
+                "routing_ms": durations.get("classify", 0.0),
+                "retrieval_ms": durations.get("retrieve", 0.0),
+                "answerability_ms": stage_timings.get("answerability", 0.0),
+                "generation_or_fallback_ms": durations.get("respond", 0.0),
+                "simulation_ms": durations.get("tool", 0.0),
+                "total_pipeline_ms": round((time.perf_counter() - started) * 1000, 2),
+            },
         }
         completed.response["graph"] = {
             "visited_nodes": graph_visited_nodes,

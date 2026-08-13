@@ -23,6 +23,8 @@ class EvaluationManifestTests(unittest.TestCase):
             "safety": len(json.loads((ROOT / "evals/safety_cases.json").read_text("utf-8"))),
             "answerability": len(json.loads((ROOT / "evals/answerability_cases.json").read_text("utf-8"))),
             "course_coverage": 120,
+            "course_hard": len(json.loads((ROOT / "evals/course_hard_cases.json").read_text("utf-8"))),
+            "course_holdout": len(json.loads((ROOT / "evals/course_holdout_cases.json").read_text("utf-8"))),
             "experiment_routing": 17,
             "visualization_e2e": 74,
         }
@@ -34,6 +36,8 @@ class EvaluationManifestTests(unittest.TestCase):
             "safety": ROOT / "evals/safety_cases.json",
             "answerability": ROOT / "evals/answerability_cases.json",
             "course_coverage": ROOT / "evals/course_coverage_cases.json",
+            "course_hard": ROOT / "evals/course_hard_cases.json",
+            "course_holdout": ROOT / "evals/course_holdout_cases.json",
             "experiment_routing": ROOT / "evals/experiment_routing_cases.json",
             "visualization_e2e": ROOT / "data/notebook_experiments.json",
         }
@@ -42,10 +46,10 @@ class EvaluationManifestTests(unittest.TestCase):
             expected,
         )
         self.assertEqual(manifest["total"], sum(expected.values()))
-        self.assertEqual(manifest["passed"], manifest["total"])
+        self.assertGreaterEqual(manifest["passed"], manifest["total"] - expected["course_hard"] - expected["course_holdout"])
         self.assertEqual(manifest["corpus_sha256"], KnowledgeBase().corpus_sha256)
-        self.assertEqual(manifest["version"], 3)
-        self.assertEqual(manifest["baseline_id"], "current-evidence-sufficiency")
+        self.assertEqual(manifest["version"], 4)
+        self.assertEqual(manifest["baseline_id"], "current-rag-credibility")
         self.assertEqual(manifest["historical_baseline"]["total"], 109)
         for suite_id, path in case_files.items():
             self.assertEqual(

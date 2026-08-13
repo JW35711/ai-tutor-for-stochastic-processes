@@ -71,6 +71,44 @@ def _suite(
     return suite
 
 
+def _credibility_suite(report: dict[str, Any]) -> dict[str, Any]:
+    """Project the hard/natural set into the unified manifest."""
+
+    hard = report.get("hard_natural_set", {}).get("cases", {})
+    cases_file = "evals/course_hard_cases.json"
+    cases_path = ROOT / cases_file
+    return {
+        "id": "course_hard",
+        "cases": int(hard.get("total", 0)),
+        "passed": int(hard.get("passed", 0)),
+        "cases_file": cases_file,
+        "cases_sha256": _sha256(cases_path),
+        "kp_coverage_rate": hard.get("kp_coverage_rate", 0.0),
+        "real_routing": hard.get("real_routing", {}),
+        "answerability": hard.get("answerability", {}),
+        "retrieval_process": hard.get("retrieval_process", {}),
+        "failure_distribution": hard.get("failure_distribution", {}),
+        "baseline_minimum_passed": 98,
+    }
+
+
+def _holdout_suite(report: dict[str, Any]) -> dict[str, Any]:
+    holdout = report.get("holdout_set", {})
+    cases_file = "evals/course_holdout_cases.json"
+    return {
+        "id": "course_holdout",
+        "cases": int(holdout.get("total", 0)),
+        "passed": int(holdout.get("routing_pass", 0)),
+        "cases_file": cases_file,
+        "cases_sha256": _sha256(ROOT / cases_file),
+        "routing_module_accuracy": holdout.get("routing_module_accuracy", 0.0),
+        "routing_concept_accuracy": holdout.get("routing_concept_accuracy", 0.0),
+        "retrieval": holdout.get("retrieval", {}),
+        "answerability": holdout.get("answerability", {}),
+        "informational": True,
+    }
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     main = _load(args.main)
     retrieval = _load(args.retrieval)
@@ -80,10 +118,13 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     course_coverage = _load(args.course_coverage)
     experiment_routing = _load(args.experiment_routing)
     visualization_e2e = _load(args.visualization_e2e)
+    credibility = _load(args.credibility) if args.credibility else None
     corpus_hashes = {
         str(report.get("corpus_sha256"))
         for report in (main, retrieval, pedagogy, safety, answerability, experiment_routing, course_coverage)
     }
+    if args.credibility:
+        corpus_hashes.add(str(credibility.get("corpus_sha256")))
     if len(corpus_hashes) != 1 or "None" in corpus_hashes:
         raise ValueError(f"evaluation reports do not share one corpus SHA: {sorted(corpus_hashes)}")
 
@@ -105,11 +146,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         _suite("experiment_routing", "evals/experiment_routing_cases.json", experiment_routing),
         _suite("visualization_e2e", "data/notebook_experiments.json", visualization_e2e, total=visualization_e2e.get("registry_targets"), passed=visualization_e2e.get("passed")),
     ]
+    if args.credibility:
+        suites.append(_credibility_suite(credibility))
+        suites.append(_holdout_suite(credibility))
     total = sum(suite["cases"] for suite in suites)
     passed = sum(suite["passed"] for suite in suites)
     return {
-        "version": 3,
-        "baseline_id": "current-evidence-sufficiency",
+        "version": 4 if credibility else 3,
+        "baseline_id": "current-rag-credibility" if credibility else "current-evidence-sufficiency",
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "corpus_sha256": next(iter(corpus_hashes)),
         "total": total,
@@ -122,6 +166,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "passed": 109,
             "note": "Historical result; not the current baseline.",
         },
+        "current_baseline_note": "Current score includes deterministic governance, structured course coverage, the 129-case development credibility set, and the 32-case independent holdout. Historical scores are never substituted for this report.",
     }
 
 
@@ -135,6 +180,7 @@ def main() -> None:
     parser.add_argument("--course-coverage", type=Path, required=True)
     parser.add_argument("--experiment-routing", type=Path, required=True)
     parser.add_argument("--visualization-e2e", type=Path, required=True)
+    parser.add_argument("--credibility", type=Path)
     parser.add_argument(
         "--output",
         type=Path,
@@ -145,7 +191,14 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", "utf-8")
     print(json.dumps({k: manifest[k] for k in ("baseline_id", "corpus_sha256", "total", "passed")}, indent=2))
-    if manifest["passed"] != manifest["total"]:
+    if args.credibility:
+        hard_suite = next(suite for suite in manifest["suites"] if suite["id"] == "course_hard")
+        if hard_suite["passed"] < int(hard_suite.get("baseline_minimum_passed", 0)):
+            raise SystemExit("course hard-set result regressed below its frozen baseline")
+        non_hard = [suite for suite in manifest["suites"] if suite["id"] != "course_hard"]
+        if any(suite["passed"] != suite["cases"] for suite in non_hard if not suite.get("informational")):
+            raise SystemExit("a deterministic core evaluation suite contains failing cases")
+    elif manifest["passed"] != manifest["total"]:
         raise SystemExit("current evaluation baseline contains failing cases")
 
 

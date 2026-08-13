@@ -103,9 +103,11 @@ not a hostile multi-tenant service.
 
 ## Evaluation interpretation
 
-The current repository baseline contains 207 governance cases for this curriculum:
+The current repository baseline contains 488 governance cases for this curriculum:
 30 single-turn, 5 multi-turn, 44 retrieval, 10 pedagogy, 20 safety, 7
 answerability, 17 experiment-routing and 74 visualization E2E cases. A
+plus 129 natural/hard RAG credibility cases covering all 40 knowledge points, and
+32 independently authored holdout questions. A
 perfect pass rate means the checked behaviors did not regress. It is not evidence of
 general mathematical reasoning quality, fairness across learner populations or
 improved learning outcomes. A course deployment would require instructor

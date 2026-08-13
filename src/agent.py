@@ -145,6 +145,7 @@ class StochasticTutorAgent:
         "m04-brownian-increments": ("brownsk rörelse", "brownsk rörelse", "布朗运动"),
         "m04-terminal-distribution": ("varians för brownsk rörelse", "布朗运动方差"),
         "m05-markov-property": ("markovegenskap", "马尔可夫性质"),
+        "m03-rate-effects": ("hoppintensiteten", "antalet hopp", "hoppen"),
         "m05-stationary-distribution": ("stationär fördelning", "stationära fördelningen", "平稳分布"),
         "m06-holding-times": ("uppehållstid", "uppehållstider", "停留时间"),
         "m06-generator-matrix": ("generatormatris", "generatorn", "生成矩阵"),
@@ -153,6 +154,25 @@ class StochasticTutorAgent:
         "m08-thinning": ("tunningsalgoritm", "tunning", "稀疏化算法"),
         "m09-self-avoidance": ("självundvikande vandring", "自避免游走"),
         "m10-coalescence": ("koalescerande partiklar", "partiklar som slås samman", "粒子合并"),
+    }
+    # Short, domain-level cues are used only to seed bounded candidates. They
+    # are not accepted as evidence and are deliberately broader than exact
+    # aliases so paraphrases can reach normal retrieval/evidence checking.
+    CANDIDATE_CUES: dict[str, tuple[str, ...]] = {
+        "m00-monte-carlo-estimation": ("repeated random sampling", "estimate a quantity", "random samples", "random points", "estimate an area", "monte carlo"),
+        "m00-law-large-numbers": ("running average", "less erratic", "many trials", "sample grows"),
+        "m00-standard-error": ("monte carlo uncertainty", "estimation error", "sampling variability"),
+        "m01-poisson-process": ("constant rate", "zero arrivals", "waiting longer", "interarrival", "arrival count"),
+        "m02-absorption-time": ("time to absorption", "until a boundary", "target boundary"),
+        "m04-brownian-scaling": ("scaled random walk", "approximates brownian", "grid steps"),
+        "m04-terminal-distribution": ("brownian increment", "fixed time", "variance grow", "variance of b"),
+        "m04-hitting-events": ("crosses a level", "reaches a level", "hitting chance"),
+        "m05-stationary-distribution": ("pi p = pi", "πp = π", "pi p", "invariant probability"),
+        "m06-generator-matrix": ("instantaneous transition rates", "rate matrix"),
+        "m08-integrated-intensity": ("integrating an intensity", "expected count"),
+        "m09-path-trapping": ("path become trapped", "run out of moves", "available neighbouring sites"),
+        "m10-coalescence": ("particles merging", "particles merge", "same location"),
+        "m10-coalescence-time": ("how long merging takes", "time until all", "merging time"),
     }
     SWEDISH_MARKERS = (
         "och", "är", "vad", "varför", "hur", "förklara", "jämför", "visa", "visa mig", "med", "en", "ett", "sätt", "till", "ändrades",
@@ -180,8 +200,8 @@ class StochasticTutorAgent:
         "这个agent",
         "这个 agent",
         "这门课",
-        "课程",
-        "学什么",
+        "课程概览",
+        "这门课学什么",
         "第一个module",
         "第一个 module",
         "第一个模块",
@@ -194,7 +214,7 @@ class StochasticTutorAgent:
         "架构",
         "rag",
         "agent",
-        "随机过程课程",
+        "随机过程课程介绍",
         "教学agent",
         "教学 agent",
     )
@@ -879,6 +899,10 @@ class StochasticTutorAgent:
         return question
 
     def _node_classify(self, state: AgentState) -> NodeOutcome:
+        state.routing_strategy = "EXACT"
+        state.routing_candidates = []
+        state.routing_confidence = None
+        state.selected_routing_reason = ""
         state.detected_query_language = self.detect_query_language(state.question, state.ui_language)
         if state.previous_turn and self._is_explicit_follow_up(state.question):
             prior_question = str(state.previous_turn.get("question") or "")
@@ -910,13 +934,32 @@ class StochasticTutorAgent:
         routing_question = " ".join(
             item for item in (state.question, state.retrieval_query_en) if item
         )
+        # Curriculum titles/aliases are authoritative when they are explicit.
+        # This prevents broad words such as “reliability” or “particle” from
+        # stealing a more specific knowledge point from another module.
+        exact_concept = self._exact_curriculum_concept(state.question)
         detected_modules = self._detect_module_ids(state.question)
         if not detected_modules:
             detected_modules = self._detect_module_ids(routing_question)
+        strong_module = self._strong_module_override(state.question)
+        if strong_module and exact_concept and str(exact_concept.get("module_id")) != strong_module:
+            # Specialized experiment wording outranks a broad concept alias
+            # (for example continuous-time random walk vs random walk).
+            exact_concept = None
+        if strong_module:
+            detected_modules = [strong_module, *[item for item in detected_modules if item != strong_module]]
         state.comparison_module_ids = (
             detected_modules if self._is_comparison(state.question) else []
         )
-        state.module_id = detected_modules[0] if detected_modules else self.classify_module(state.question)
+        state.module_id = (
+            str(exact_concept.get("module_id"))
+            if exact_concept
+            else detected_modules[0]
+            if detected_modules
+            else self.classify_module(state.question)
+        )
+        if strong_module and not exact_concept:
+            state.module_id = strong_module
         if state.requested_concept_id in self.curriculum_agent.concepts:
             state.module_id = str(self.curriculum_agent.concepts[state.requested_concept_id]["module_id"])
         if state.comparison_module_ids:
@@ -929,10 +972,19 @@ class StochasticTutorAgent:
             ]
         else:
             requested = state.requested_concept_id
-            state.concept_id = requested if requested in self.curriculum_agent.concepts else self._match_concept(routing_question, state.module_id)
+            state.concept_id = (
+                requested
+                if requested in self.curriculum_agent.concepts
+                else str(exact_concept["id"])
+                if exact_concept
+                else self._match_concept(routing_question, state.module_id)
+            )
             if state.module_id == "module01" and "waiting" in state.retrieval_query_en and "exponential" in state.retrieval_query_en and "geometric" not in state.retrieval_query_en:
                 state.concept_id = "m01-poisson-process"
             state.comparison_concept_ids = []
+        if strong_module and not exact_concept:
+            state.module_id = strong_module
+            state.concept_id = self._match_concept(routing_question, strong_module)
         # A Knowledge Point title is authoritative curriculum metadata.  If
         # lexical module matching misses a title variant (for example,
         # "survival and hazard functions"), recover its owning module before
@@ -945,6 +997,15 @@ class StochasticTutorAgent:
             if concept and concept.get("module_id") in MODULE_BY_ID:
                 state.module_id = str(concept["module_id"])
         explicit_follow_up = self._is_explicit_follow_up(state.question)
+        # Follow-ups inherit the active experiment before broad numeric words
+        # such as "500 steps" can be mistaken for another module.
+        if explicit_follow_up and state.active_experiment_id:
+            active = self.experiments.get(state.active_experiment_id)
+            if active and active.get("module_id") in MODULE_BY_ID:
+                state.module_id = str(active["module_id"])
+                state.module_from_context = True
+                state.module = MODULE_BY_ID[state.module_id]
+                state.topic = state.module.topic
         if state.module_id is None and state.active_experiment_id and (explicit_follow_up or self._is_active_experiment_question(state)) and not self._unsupported_experiment_parameter(state.question):
             active = self.experiments.get(state.active_experiment_id)
             if active:
@@ -962,10 +1023,59 @@ class StochasticTutorAgent:
         if state.module_id is not None:
             state.module = MODULE_BY_ID[state.module_id]
             state.topic = state.module.topic
+        # If lexical routing is absent or concept confidence is weak, use a
+        # bounded candidate set. Evidence helps choose among candidates; it
+        # is never treated as student-visible answer or gold metadata.
+        if not exact_concept and not state.requested_concept_id:
+            candidates = self._candidate_concept_routes(
+                routing_question,
+                # A broad module keyword is not strong enough to constrain
+                # disambiguation; only an explicit concept may scope it.
+                module_hint=(strong_module or (None if state.concept_id is None else state.module_id)),
+                limit=3,
+            )
+            state.routing_candidates = candidates
+            if candidates:
+                best = candidates[0]
+                second = candidates[1] if len(candidates) > 1 else None
+                state.routing_confidence = round(
+                    float(best.get("routing_score", 0.0))
+                    / max(1.0, float(best.get("routing_score", 0.0)) + float(second.get("routing_score", 0.0)) if second else 1.0),
+                    3,
+                )
+                weak_existing = state.concept_id is None or (
+                    second is not None
+                    and float(best.get("routing_score", 0.0)) - float(second.get("routing_score", 0.0)) < 10
+                )
+                # A concept-tagged hit is a useful disambiguator even when
+                # dense evidence scores are fractional.  Keep the gate
+                # bounded: require both a meaningful evidence signal and a
+                # non-trivial lexical/cue score, rather than accepting every
+                # weak global match.
+                if weak_existing and float(best.get("evidence_score", 0.0)) >= 0.05 and float(best.get("routing_score", 0.0)) >= 8.0:
+                    state.module_id = str(best["module_id"])
+                    state.concept_id = str(best["concept_id"])
+                    state.module = MODULE_BY_ID.get(state.module_id)
+                    state.topic = state.module.topic if state.module else None
+                    state.routing_strategy = "CANDIDATE_DISAMBIGUATION"
+                    state.selected_routing_reason = "bounded curriculum/evidence candidate scoring"
+            elif state.module_id or state.concept_id:
+                state.routing_strategy = "HIGH_CONFIDENCE"
+        elif exact_concept:
+            state.routing_strategy = "EXACT"
+            state.routing_confidence = 1.0
+            state.selected_routing_reason = "explicit curriculum title or alias"
         if state.module_from_context and state.concept_id is None:
             saved_concept = self.memory.context(state.session_id).get("related_concept_id")
             if saved_concept:
                 state.concept_id = str(saved_concept)
+        if explicit_follow_up and state.active_experiment_id:
+            active = self.experiments.get(state.active_experiment_id)
+            if active and active.get("module_id") in MODULE_BY_ID:
+                state.module_id = str(active["module_id"])
+                state.module = MODULE_BY_ID[state.module_id]
+                state.topic = state.module.topic
+                state.module_from_context = True
         if state.active_experiment_id and state.requested_experiment_id is None:
             active_experiment = self.experiments.get(state.active_experiment_id)
             if active_experiment and active_experiment.get("module_id") == state.module_id:
@@ -2324,9 +2434,12 @@ Use natural terminology in the requested language while retaining canonical Engl
     @staticmethod
     def _is_comparison(question: str) -> bool:
         lowered = question.lower()
-        return any(
-            marker in lowered
-            for marker in ("compare", "difference", " vs ", "versus", "compare with", "区别", "比较")
+        # ``compare with theory`` is an evaluation instruction, not a
+        # two-concept comparison.  Only treat comparison language as routing
+        # evidence when it relates two objects or an explicit contrast.
+        return bool(
+            any(marker in lowered for marker in ("difference between", "different from", " vs ", "versus", "distinguish", "what changes between", "区别", "比较"))
+            or re.search(r"\bcompare\b.+\b(with|and)\b.+\b(random walk|process|distribution|chain|motion|model|walk)\b", lowered)
         )
 
     @staticmethod
@@ -2378,6 +2491,16 @@ Use natural terminology in the requested language while retaining canonical Engl
                 "ergodic",
                 "martingale",
                 "stochastic process",
+                "monte carlo",
+                "random points",
+                "running average",
+                "sample grows",
+                "brownian increment",
+                "crosses a level",
+                "integrating an intensity",
+                "expected count",
+                "how long merging takes",
+                "merging time",
             )
         )
 
@@ -2391,6 +2514,31 @@ Use natural terminology in the requested language while retaining canonical Engl
                 scores.append((max(len(item) for item in matched), len(matched), module.module_id))
         scores.sort(key=lambda item: (item[0], item[1]), reverse=True)
         return [item[2] for item in scores]
+
+    @staticmethod
+    def _strong_module_override(question: str) -> str | None:
+        """Resolve distinctive experiment wording before broad aliases.
+
+        A query such as "nonhomogeneous Poisson thinning" contains the broad
+        Poisson alias from Module 01, but its experiment qualifier is the
+        stronger routing signal.  These are stable model terms, not case
+        strings, and are used only for deterministic first-pass routing.
+        """
+
+        lowered = question.casefold().replace("‑", "-").replace("–", "-")
+        groups = (
+            ("module08", ("nonhomogeneous", "non-homogeneous", "非齐次", "thinning", "time-varying intensity", "tidsvarierande intensitet")),
+            ("module09", ("self-avoiding", "self avoiding", "självundvikande", "自避免")),
+            ("module10", ("coalescing", "coalescence", "particles merge", "particle merging", "粒子合并", "圆上粒子")),
+            ("module03", ("continuous-time random walk", "continuous time random walk", "连续时间随机游走")),
+            ("module07", ("m/m/1", "mm1", "buffer", "queue stability", "批量到达", "可靠性模型", "reliability model", "series and parallel")),
+            ("module06", ("birth-death", "birth death", "出生死亡", "generator matrix", "holding time", "故障率", "修复率")),
+            ("module04", ("brownian motion", "brownian", "布朗运动")),
+        )
+        for module_id, markers in groups:
+            if any(marker in lowered for marker in markers):
+                return module_id
+        return None
 
     def _match_concept(self, question: str, module_id: str | None) -> str | None:
         """Resolve a concept only when title/alias evidence is sufficiently specific."""
@@ -2453,6 +2601,118 @@ Use natural terminology in the requested language while retaining canonical Engl
         if best_score < 20 or (best_score < 100 and best_score - second_score < 8):
             return self._retrieval_concept_fallback(question, module_id)
         return best_id
+
+    @staticmethod
+    def _normalize_routing_text(value: str) -> str:
+        value = value.casefold().replace("π", "pi").replace("λ", "lambda")
+        value = re.sub(r"[^\w\s-]", " ", value, flags=re.UNICODE)
+        return " ".join(value.replace("-", " ").split())
+
+    def _exact_curriculum_concept(self, question: str) -> dict[str, Any] | None:
+        """Return one unambiguous curriculum concept for explicit wording."""
+
+        normalized = self._normalize_routing_text(question)
+        matches: list[tuple[int, str, dict[str, Any]]] = []
+        for point in self._concepts:
+            phrases = {
+                str(point.get("title") or ""),
+                *self.CONCEPT_ALIASES.get(str(point["id"]), ()),
+                *self.LANGUAGE_ALIASES.get(str(point["id"]), ()),
+            }
+            for phrase in phrases:
+                candidate = self._normalize_routing_text(phrase)
+                if len(candidate) >= 5 and candidate in normalized:
+                    matches.append((len(candidate), str(point["id"]), point))
+        if not matches:
+            # Notation is often separated by spaces or Unicode punctuation in
+            # student input (for example ``πP = π``). Keep this deterministic
+            # and limited to a curriculum concept's declared aliases/cues.
+            normalized_compact = normalized.replace(" ", "")
+            for point in self._concepts:
+                for phrase in (
+                    *self.CONCEPT_ALIASES.get(str(point["id"]), ()),
+                    *self.LANGUAGE_ALIASES.get(str(point["id"]), ()),
+                    *self.CANDIDATE_CUES.get(str(point["id"]), ()),
+                ):
+                    candidate = self._normalize_routing_text(str(phrase)).replace(" ", "")
+                    if len(candidate) >= 5 and candidate in normalized_compact:
+                        matches.append((len(candidate), str(point["id"]), point))
+        if not matches:
+            return None
+        matches.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        if len(matches) > 1 and matches[0][0] == matches[1][0] and matches[0][1] != matches[1][1]:
+            return None
+        return matches[0][2]
+
+    def _candidate_concept_routes(
+        self,
+        question: str,
+        *,
+        module_hint: str | None = None,
+        limit: int = 3,
+    ) -> list[dict[str, Any]]:
+        """Bounded candidate routing using curriculum text plus evidence support."""
+
+        normalized = self._normalize_routing_text(question)
+        query_tokens = {
+            token for token in normalized.split()
+            if len(token) >= 3
+            and token not in {
+                "what", "why", "how", "does", "this", "that", "with", "from",
+                "give", "can", "you", "the", "and", "for", "is", "are", "mean",
+                "explain", "using", "course", "material", "main", "quantity", "compare",
+            }
+        }
+        scored: list[dict[str, Any]] = []
+        for point in self._concepts:
+            if module_hint and str(point["module_id"]) != module_hint:
+                continue
+            text = " ".join(
+                [
+                    str(point.get("title") or ""),
+                    str(point.get("summary") or ""),
+                    *self.CONCEPT_ALIASES.get(str(point["id"]), ()),
+                    *self.LANGUAGE_ALIASES.get(str(point["id"]), ()),
+                ]
+            )
+            tokens = set(self._normalize_routing_text(text).split())
+            overlap = len(query_tokens & tokens)
+            exact_phrase = any(
+                len(self._normalize_routing_text(str(phrase))) >= 7
+                and self._normalize_routing_text(str(phrase)) in normalized
+                for phrase in (point.get("title"), *self.CONCEPT_ALIASES.get(str(point["id"]), ()), *self.LANGUAGE_ALIASES.get(str(point["id"]), ()))
+            )
+            cue_match = any(
+                self._normalize_routing_text(cue) in normalized
+                for cue in self.CANDIDATE_CUES.get(str(point["id"]), ())
+            )
+            score = float(overlap * 4 + (30 if exact_phrase else 0) + (24 if cue_match else 0))
+            if score:
+                scored.append({
+                    "module_id": str(point["module_id"]),
+                    "concept_id": str(point["id"]),
+                    "routing_score": score,
+                    "evidence_score": 0.0,
+                })
+        # Only a small global evidence request is used to disambiguate the
+        # lexical shortlist; this does not turn every query into an all-module
+        # search and does not alter production top-k.
+        evidence = self.knowledge.retrieve(question, module_id=module_hint, limit=6)
+        evidence_by_concept: dict[str, float] = {}
+        for index, source in enumerate(evidence, start=1):
+            concept_id = source.get("concept_id")
+            if concept_id:
+                evidence_by_concept[str(concept_id)] = evidence_by_concept.get(str(concept_id), 0.0) + 1.0 / index
+            source_module = str(source.get("module_id") or "")
+            for candidate in scored:
+                if source_module and source_module == candidate["module_id"]:
+                    evidence_by_concept.setdefault(candidate["concept_id"], 0.0)
+                    evidence_by_concept[candidate["concept_id"]] += 0.15 / index
+        for candidate in scored:
+            candidate["evidence_score"] = round(evidence_by_concept.get(candidate["concept_id"], 0.0), 3)
+            candidate["routing_score"] = round(candidate["routing_score"] + candidate["evidence_score"] * 8.0, 3)
+        scored.sort(key=lambda item: (item["routing_score"], item["evidence_score"]), reverse=True)
+        return scored[: max(1, min(limit, 3))]
 
     def _retrieval_concept_fallback(
         self, question: str, module_id: str | None

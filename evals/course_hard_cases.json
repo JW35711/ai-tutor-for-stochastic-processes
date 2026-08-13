@@ -1,0 +1,2724 @@
+[
+  {
+    "case_id": "hard-m00-monte-carlo-estimation-1",
+    "module_id": "module00",
+    "concept_id": "m00-monte-carlo-estimation",
+    "question": "I keep seeing Monte Carlo estimation in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Monte Carlo estimation",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Use repeated random samples to estimate a quantity such as π."
+    ]
+  },
+  {
+    "case_id": "hard-m00-monte-carlo-estimation-2",
+    "module_id": "module00",
+    "concept_id": "m00-monte-carlo-estimation",
+    "question": "Why does Monte Carlo estimation behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Monte Carlo estimation",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Use repeated random samples to estimate a quantity such as π."
+    ]
+  },
+  {
+    "case_id": "hard-m00-monte-carlo-estimation-3",
+    "module_id": "module00",
+    "concept_id": "m00-monte-carlo-estimation",
+    "question": "Can you give a compact worked interpretation of repeated random sampling to estimate a quantity, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Monte Carlo estimation",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Use repeated random samples to estimate a quantity such as π."
+    ]
+  },
+  {
+    "case_id": "hard-m00-sample-mean-1",
+    "module_id": "module00",
+    "concept_id": "m00-sample-mean",
+    "question": "I keep seeing Sample mean in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Sample mean",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Interpret the sample mean as the estimator produced by repeated trials."
+    ]
+  },
+  {
+    "case_id": "hard-m00-sample-mean-2",
+    "module_id": "module00",
+    "concept_id": "m00-sample-mean",
+    "question": "Why does Sample mean behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Sample mean",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Interpret the sample mean as the estimator produced by repeated trials."
+    ]
+  },
+  {
+    "case_id": "hard-m00-sample-mean-3",
+    "module_id": "module00",
+    "concept_id": "m00-sample-mean",
+    "question": "Can you give a compact worked interpretation of the average computed from repeated trials, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Sample mean",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Interpret the sample mean as the estimator produced by repeated trials."
+    ]
+  },
+  {
+    "case_id": "hard-m00-law-large-numbers-1",
+    "module_id": "module00",
+    "concept_id": "m00-law-large-numbers",
+    "question": "I keep seeing Law of large numbers in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Law of large numbers",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Observe how an estimate stabilizes as the sample size grows."
+    ]
+  },
+  {
+    "case_id": "hard-m00-law-large-numbers-2",
+    "module_id": "module00",
+    "concept_id": "m00-law-large-numbers",
+    "question": "Why does Law of large numbers behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Law of large numbers",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Observe how an estimate stabilizes as the sample size grows."
+    ]
+  },
+  {
+    "case_id": "hard-m00-law-large-numbers-3",
+    "module_id": "module00",
+    "concept_id": "m00-law-large-numbers",
+    "question": "Can you give a compact worked interpretation of why averages settle as the sample grows, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Law of large numbers",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Observe how an estimate stabilizes as the sample size grows."
+    ]
+  },
+  {
+    "case_id": "hard-m00-standard-error-1",
+    "module_id": "module00",
+    "concept_id": "m00-standard-error",
+    "question": "I keep seeing Standard error in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb",
+      "reference/lectnotes_technmath.pdf#page-19"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Standard error",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Relate sampling variability to the inverse square root of the sample size."
+    ]
+  },
+  {
+    "case_id": "hard-m00-standard-error-2",
+    "module_id": "module00",
+    "concept_id": "m00-standard-error",
+    "question": "Why does Standard error behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb",
+      "reference/lectnotes_technmath.pdf#page-19"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Standard error",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Relate sampling variability to the inverse square root of the sample size."
+    ]
+  },
+  {
+    "case_id": "hard-m00-standard-error-3",
+    "module_id": "module00",
+    "concept_id": "m00-standard-error",
+    "question": "Can you give a compact worked interpretation of the uncertainty of a Monte Carlo estimate, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/00_Monte_Carlo.ipynb",
+      "reference/lectnotes_technmath.pdf#page-19"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Standard error",
+      "Module 0: Monte Carlo Simulation"
+    ],
+    "required_claims": [
+      "Relate sampling variability to the inverse square root of the sample size."
+    ]
+  },
+  {
+    "case_id": "hard-m01-bernoulli-process-1",
+    "module_id": "module01",
+    "concept_id": "m01-bernoulli-process",
+    "question": "I keep seeing Bernoulli process in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-21"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Bernoulli process",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Model independent arrivals in discrete time with a fixed event probability."
+    ]
+  },
+  {
+    "case_id": "hard-m01-bernoulli-process-2",
+    "module_id": "module01",
+    "concept_id": "m01-bernoulli-process",
+    "question": "Why does Bernoulli process behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-21"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Bernoulli process",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Model independent arrivals in discrete time with a fixed event probability."
+    ]
+  },
+  {
+    "case_id": "hard-m01-bernoulli-process-3",
+    "module_id": "module01",
+    "concept_id": "m01-bernoulli-process",
+    "question": "Can you give a compact worked interpretation of independent yes-or-no trials over discrete slots, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-21"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Bernoulli process",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Model independent arrivals in discrete time with a fixed event probability."
+    ]
+  },
+  {
+    "case_id": "hard-m01-binomial-counts-1",
+    "module_id": "module01",
+    "concept_id": "m01-binomial-counts",
+    "question": "I keep seeing Binomial counts in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Binomial counts",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Compare the accumulated Bernoulli arrivals with a binomial distribution."
+    ]
+  },
+  {
+    "case_id": "hard-m01-binomial-counts-2",
+    "module_id": "module01",
+    "concept_id": "m01-binomial-counts",
+    "question": "Why does Binomial counts behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Binomial counts",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Compare the accumulated Bernoulli arrivals with a binomial distribution."
+    ]
+  },
+  {
+    "case_id": "hard-m01-binomial-counts-3",
+    "module_id": "module01",
+    "concept_id": "m01-binomial-counts",
+    "question": "Can you give a compact worked interpretation of the number of successes in fixed Bernoulli slots, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Binomial counts",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Compare the accumulated Bernoulli arrivals with a binomial distribution."
+    ]
+  },
+  {
+    "case_id": "hard-m01-geometric-waiting-time-1",
+    "module_id": "module01",
+    "concept_id": "m01-geometric-waiting-time",
+    "question": "I keep seeing Geometric waiting time in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Geometric waiting time",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Study the first-arrival waiting time in a Bernoulli process."
+    ]
+  },
+  {
+    "case_id": "hard-m01-geometric-waiting-time-2",
+    "module_id": "module01",
+    "concept_id": "m01-geometric-waiting-time",
+    "question": "Why does Geometric waiting time behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Geometric waiting time",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Study the first-arrival waiting time in a Bernoulli process."
+    ]
+  },
+  {
+    "case_id": "hard-m01-geometric-waiting-time-3",
+    "module_id": "module01",
+    "concept_id": "m01-geometric-waiting-time",
+    "question": "Can you give a compact worked interpretation of the number of trials before the first success, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Geometric waiting time",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Study the first-arrival waiting time in a Bernoulli process."
+    ]
+  },
+  {
+    "case_id": "hard-m01-poisson-process-1",
+    "module_id": "module01",
+    "concept_id": "m01-poisson-process",
+    "question": "I keep seeing Poisson process in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-23"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Poisson process",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Use independent increments and exponential interarrival times in continuous time."
+    ]
+  },
+  {
+    "case_id": "hard-m01-poisson-process-2",
+    "module_id": "module01",
+    "concept_id": "m01-poisson-process",
+    "question": "Why does Poisson process behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-23"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Poisson process",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Use independent increments and exponential interarrival times in continuous time."
+    ]
+  },
+  {
+    "case_id": "hard-m01-poisson-process-3",
+    "module_id": "module01",
+    "concept_id": "m01-poisson-process",
+    "question": "为什么恒定速率的到达计数构成泊松过程？",
+    "language": "zh",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-23"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Poisson process",
+      "Module 1: Bernoulli and Poisson Processes"
+    ],
+    "required_claims": [
+      "Use independent increments and exponential interarrival times in continuous time."
+    ]
+  },
+  {
+    "case_id": "hard-m02-random-walk-increments-1",
+    "module_id": "module02",
+    "concept_id": "m02-random-walk-increments",
+    "question": "I keep seeing Random-walk increments in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Random-walk increments",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Build a discrete-time walk from independent up and down steps."
+    ]
+  },
+  {
+    "case_id": "hard-m02-random-walk-increments-2",
+    "module_id": "module02",
+    "concept_id": "m02-random-walk-increments",
+    "question": "Why does Random-walk increments behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Random-walk increments",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Build a discrete-time walk from independent up and down steps."
+    ]
+  },
+  {
+    "case_id": "hard-m02-random-walk-increments-3",
+    "module_id": "module02",
+    "concept_id": "m02-random-walk-increments",
+    "question": "Can you give a compact worked interpretation of a path built by adding random up and down steps, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Random-walk increments",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Build a discrete-time walk from independent up and down steps."
+    ]
+  },
+  {
+    "case_id": "hard-m02-drift-variance-1",
+    "module_id": "module02",
+    "concept_id": "m02-drift-variance",
+    "question": "I keep seeing Drift and variance in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Drift and variance",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Compare empirical endpoint mean and variance with their theoretical values."
+    ]
+  },
+  {
+    "case_id": "hard-m02-drift-variance-2",
+    "module_id": "module02",
+    "concept_id": "m02-drift-variance",
+    "question": "Why does Drift and variance behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Drift and variance",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Compare empirical endpoint mean and variance with their theoretical values."
+    ]
+  },
+  {
+    "case_id": "hard-m02-drift-variance-3",
+    "module_id": "module02",
+    "concept_id": "m02-drift-variance",
+    "question": "Can you give a compact worked interpretation of how step bias controls the mean and spread of a walk, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Drift and variance",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Compare empirical endpoint mean and variance with their theoretical values."
+    ]
+  },
+  {
+    "case_id": "hard-m02-hitting-probability-1",
+    "module_id": "module02",
+    "concept_id": "m02-hitting-probability",
+    "question": "I keep seeing Hitting probability in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Hitting probability",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Estimate the chance that a walk reaches a boundary before another boundary."
+    ]
+  },
+  {
+    "case_id": "hard-m02-hitting-probability-2",
+    "module_id": "module02",
+    "concept_id": "m02-hitting-probability",
+    "question": "Why does Hitting probability behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Hitting probability",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Estimate the chance that a walk reaches a boundary before another boundary."
+    ]
+  },
+  {
+    "case_id": "hard-m02-hitting-probability-3",
+    "module_id": "module02",
+    "concept_id": "m02-hitting-probability",
+    "question": "Can you give a compact worked interpretation of the chance of reaching one boundary before another, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Hitting probability",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Estimate the chance that a walk reaches a boundary before another boundary."
+    ]
+  },
+  {
+    "case_id": "hard-m02-absorption-time-1",
+    "module_id": "module02",
+    "concept_id": "m02-absorption-time",
+    "question": "I keep seeing Absorption time in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Absorption time",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Interpret the number of steps until a boundary is reached."
+    ]
+  },
+  {
+    "case_id": "hard-m02-absorption-time-2",
+    "module_id": "module02",
+    "concept_id": "m02-absorption-time",
+    "question": "Why does Absorption time behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Absorption time",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Interpret the number of steps until a boundary is reached."
+    ]
+  },
+  {
+    "case_id": "hard-m02-absorption-time-3",
+    "module_id": "module02",
+    "concept_id": "m02-absorption-time",
+    "question": "Can you give a compact worked interpretation of the number of steps until a boundary is reached, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Absorption time",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": [
+      "Interpret the number of steps until a boundary is reached."
+    ]
+  },
+  {
+    "case_id": "hard-m03-poisson-jump-times-1",
+    "module_id": "module03",
+    "concept_id": "m03-poisson-jump-times",
+    "question": "I keep seeing Poisson jump times in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Poisson jump times",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Use Poisson arrivals as the random clock for a continuous-time walk."
+    ]
+  },
+  {
+    "case_id": "hard-m03-poisson-jump-times-2",
+    "module_id": "module03",
+    "concept_id": "m03-poisson-jump-times",
+    "question": "Why does Poisson jump times behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Poisson jump times",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Use Poisson arrivals as the random clock for a continuous-time walk."
+    ]
+  },
+  {
+    "case_id": "hard-m03-poisson-jump-times-3",
+    "module_id": "module03",
+    "concept_id": "m03-poisson-jump-times",
+    "question": "Can you give a compact worked interpretation of the random clock that triggers jumps in continuous time, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Poisson jump times",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Use Poisson arrivals as the random clock for a continuous-time walk."
+    ]
+  },
+  {
+    "case_id": "hard-m03-continuous-time-path-1",
+    "module_id": "module03",
+    "concept_id": "m03-continuous-time-path",
+    "question": "I keep seeing Continuous-time sample paths in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Continuous-time sample paths",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Interpret the path as piecewise constant between jump times."
+    ]
+  },
+  {
+    "case_id": "hard-m03-continuous-time-path-2",
+    "module_id": "module03",
+    "concept_id": "m03-continuous-time-path",
+    "question": "Why does Continuous-time sample paths behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Continuous-time sample paths",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Interpret the path as piecewise constant between jump times."
+    ]
+  },
+  {
+    "case_id": "hard-m03-continuous-time-path-3",
+    "module_id": "module03",
+    "concept_id": "m03-continuous-time-path",
+    "question": "Can you give a compact worked interpretation of a path that stays constant between random jumps, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Continuous-time sample paths",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Interpret the path as piecewise constant between jump times."
+    ]
+  },
+  {
+    "case_id": "hard-m03-rate-effects-1",
+    "module_id": "module03",
+    "concept_id": "m03-rate-effects",
+    "question": "I keep seeing Jump-rate effects in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Jump-rate effects",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Compare how the jump rate changes the number of moves in a fixed horizon."
+    ]
+  },
+  {
+    "case_id": "hard-m03-rate-effects-2",
+    "module_id": "module03",
+    "concept_id": "m03-rate-effects",
+    "question": "Why does Jump-rate effects behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Jump-rate effects",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Compare how the jump rate changes the number of moves in a fixed horizon."
+    ]
+  },
+  {
+    "case_id": "hard-m03-rate-effects-3",
+    "module_id": "module03",
+    "concept_id": "m03-rate-effects",
+    "question": "Can you give a compact worked interpretation of how changing the jump rate changes motion over a fixed horizon, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/03_Random_Walk_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Jump-rate effects",
+      "Module 3: Continuous Time Random Walk"
+    ],
+    "required_claims": [
+      "Compare how the jump rate changes the number of moves in a fixed horizon."
+    ]
+  },
+  {
+    "case_id": "hard-m04-brownian-increments-1",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-increments",
+    "question": "I keep seeing Gaussian increments in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-16"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Gaussian increments",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Study Brownian increments as independent normal random variables."
+    ]
+  },
+  {
+    "case_id": "hard-m04-brownian-increments-2",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-increments",
+    "question": "Vad betyder oberoende Gaussiska inkrement för Brownsk rörelse?",
+    "language": "sv",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-16"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Gaussian increments",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Study Brownian increments as independent normal random variables."
+    ]
+  },
+  {
+    "case_id": "hard-m04-brownian-increments-3",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-increments",
+    "question": "Can you give a compact worked interpretation of independent Gaussian changes over disjoint time intervals, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-16"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Gaussian increments",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Study Brownian increments as independent normal random variables."
+    ]
+  },
+  {
+    "case_id": "hard-m04-brownian-scaling-1",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-scaling",
+    "question": "I keep seeing Brownian scaling in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Brownian scaling",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Compare a scaled random walk with Brownian motion."
+    ]
+  },
+  {
+    "case_id": "hard-m04-brownian-scaling-2",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-scaling",
+    "question": "Why does Brownian scaling behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Brownian scaling",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Compare a scaled random walk with Brownian motion."
+    ]
+  },
+  {
+    "case_id": "hard-m04-brownian-scaling-3",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-scaling",
+    "question": "随机游走如何通过缩放逼近布朗运动？",
+    "language": "zh",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Brownian scaling",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Compare a scaled random walk with Brownian motion."
+    ]
+  },
+  {
+    "case_id": "hard-m04-terminal-distribution-1",
+    "module_id": "module04",
+    "concept_id": "m04-terminal-distribution",
+    "question": "I keep seeing Terminal distribution in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Terminal distribution",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Verify that B(T) has mean zero and variance T."
+    ]
+  },
+  {
+    "case_id": "hard-m04-terminal-distribution-2",
+    "module_id": "module04",
+    "concept_id": "m04-terminal-distribution",
+    "question": "Why does Terminal distribution behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Terminal distribution",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Verify that B(T) has mean zero and variance T."
+    ]
+  },
+  {
+    "case_id": "hard-m04-terminal-distribution-3",
+    "module_id": "module04",
+    "concept_id": "m04-terminal-distribution",
+    "question": "Can you give a compact worked interpretation of the distribution of the process at a fixed time T, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Terminal distribution",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Verify that B(T) has mean zero and variance T."
+    ]
+  },
+  {
+    "case_id": "hard-m04-hitting-events-1",
+    "module_id": "module04",
+    "concept_id": "m04-hitting-events",
+    "question": "I keep seeing Hitting events in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Hitting events",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Use sample paths to discuss reaching a prescribed level."
+    ]
+  },
+  {
+    "case_id": "hard-m04-hitting-events-2",
+    "module_id": "module04",
+    "concept_id": "m04-hitting-events",
+    "question": "Why does Hitting events behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Hitting events",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Use sample paths to discuss reaching a prescribed level."
+    ]
+  },
+  {
+    "case_id": "hard-m04-hitting-events-3",
+    "module_id": "module04",
+    "concept_id": "m04-hitting-events",
+    "question": "Can you give a compact worked interpretation of whether a Brownian path reaches a specified level, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Hitting events",
+      "Module 4: Brownian Motion"
+    ],
+    "required_claims": [
+      "Use sample paths to discuss reaching a prescribed level."
+    ]
+  },
+  {
+    "case_id": "hard-m05-transition-matrix-1",
+    "module_id": "module05",
+    "concept_id": "m05-transition-matrix",
+    "question": "I keep seeing Transition matrix in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Transition matrix",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Use a transition matrix to specify one-step state changes."
+    ]
+  },
+  {
+    "case_id": "hard-m05-transition-matrix-2",
+    "module_id": "module05",
+    "concept_id": "m05-transition-matrix",
+    "question": "Why does Transition matrix behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Transition matrix",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Use a transition matrix to specify one-step state changes."
+    ]
+  },
+  {
+    "case_id": "hard-m05-transition-matrix-3",
+    "module_id": "module05",
+    "concept_id": "m05-transition-matrix",
+    "question": "Can you give a compact worked interpretation of the one-step probabilities between states, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Transition matrix",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Use a transition matrix to specify one-step state changes."
+    ]
+  },
+  {
+    "case_id": "hard-m05-markov-property-1",
+    "module_id": "module05",
+    "concept_id": "m05-markov-property",
+    "question": "I keep seeing Markov Property in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-34"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Markov Property",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Explain why the next state depends on the present state rather than the full past."
+    ]
+  },
+  {
+    "case_id": "hard-m05-markov-property-2",
+    "module_id": "module05",
+    "concept_id": "m05-markov-property",
+    "question": "Varför räcker det aktuella tillståndet för Markovegenskapen?",
+    "language": "sv",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-34"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Markov Property",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Explain why the next state depends on the present state rather than the full past."
+    ]
+  },
+  {
+    "case_id": "hard-m05-markov-property-3",
+    "module_id": "module05",
+    "concept_id": "m05-markov-property",
+    "question": "Can you give a compact worked interpretation of why the present state is enough for the next-step law, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-34"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Markov Property",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Explain why the next state depends on the present state rather than the full past."
+    ]
+  },
+  {
+    "case_id": "hard-m05-stationary-distribution-1",
+    "module_id": "module05",
+    "concept_id": "m05-stationary-distribution",
+    "question": "I keep seeing Stationary Distribution in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-42"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Stationary Distribution",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Compare long-run empirical state frequencies with a stationary distribution."
+    ]
+  },
+  {
+    "case_id": "hard-m05-stationary-distribution-2",
+    "module_id": "module05",
+    "concept_id": "m05-stationary-distribution",
+    "question": "Vad betyder pi P = pi för en stationär fördelning?",
+    "language": "sv",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-42"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Stationary Distribution",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Compare long-run empirical state frequencies with a stationary distribution."
+    ]
+  },
+  {
+    "case_id": "hard-m05-stationary-distribution-3",
+    "module_id": "module05",
+    "concept_id": "m05-stationary-distribution",
+    "question": "为什么平稳分布满足 πP=π？",
+    "language": "zh",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-42"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Stationary Distribution",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Compare long-run empirical state frequencies with a stationary distribution."
+    ]
+  },
+  {
+    "case_id": "hard-m05-absorption-and-ruin-1",
+    "module_id": "module05",
+    "concept_id": "m05-absorption-and-ruin",
+    "question": "I keep seeing Absorption and gambler's ruin in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Absorption and gambler's ruin",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Apply a Markov chain to absorbing boundaries and ruin events."
+    ]
+  },
+  {
+    "case_id": "hard-m05-absorption-and-ruin-2",
+    "module_id": "module05",
+    "concept_id": "m05-absorption-and-ruin",
+    "question": "Why does Absorption and gambler's ruin behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Absorption and gambler's ruin",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Apply a Markov chain to absorbing boundaries and ruin events."
+    ]
+  },
+  {
+    "case_id": "hard-m05-absorption-and-ruin-3",
+    "module_id": "module05",
+    "concept_id": "m05-absorption-and-ruin",
+    "question": "Can you give a compact worked interpretation of what happens when a chain reaches an absorbing boundary, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Absorption and gambler's ruin",
+      "Module 5: Discrete Time Markov Chains"
+    ],
+    "required_claims": [
+      "Apply a Markov chain to absorbing boundaries and ruin events."
+    ]
+  },
+  {
+    "case_id": "hard-m06-holding-times-1",
+    "module_id": "module06",
+    "concept_id": "m06-holding-times",
+    "question": "I keep seeing Holding times in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-53"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Holding times",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Describe how long a continuous-time Markov chain stays in a state."
+    ]
+  },
+  {
+    "case_id": "hard-m06-holding-times-2",
+    "module_id": "module06",
+    "concept_id": "m06-holding-times",
+    "question": "Why does Holding times behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-53"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Holding times",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Describe how long a continuous-time Markov chain stays in a state."
+    ]
+  },
+  {
+    "case_id": "hard-m06-holding-times-3",
+    "module_id": "module06",
+    "concept_id": "m06-holding-times",
+    "question": "Can you give a compact worked interpretation of the time a continuous-time chain waits in one state, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-53"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Holding times",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Describe how long a continuous-time Markov chain stays in a state."
+    ]
+  },
+  {
+    "case_id": "hard-m06-generator-matrix-1",
+    "module_id": "module06",
+    "concept_id": "m06-generator-matrix",
+    "question": "I keep seeing Generator matrix in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-53"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Generator matrix",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Use a generator matrix to encode continuous-time transition rates."
+    ]
+  },
+  {
+    "case_id": "hard-m06-generator-matrix-2",
+    "module_id": "module06",
+    "concept_id": "m06-generator-matrix",
+    "question": "Why does Generator matrix behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-53"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Generator matrix",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Use a generator matrix to encode continuous-time transition rates."
+    ]
+  },
+  {
+    "case_id": "hard-m06-generator-matrix-3",
+    "module_id": "module06",
+    "concept_id": "m06-generator-matrix",
+    "question": "Can you give a compact worked interpretation of the matrix of instantaneous transition rates, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-53"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Generator matrix",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Use a generator matrix to encode continuous-time transition rates."
+    ]
+  },
+  {
+    "case_id": "hard-m06-birth-death-process-1",
+    "module_id": "module06",
+    "concept_id": "m06-birth-death-process",
+    "question": "I keep seeing Birth-death process in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-56"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Birth-death process",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Model adjacent upward and downward transitions with birth and death rates."
+    ]
+  },
+  {
+    "case_id": "hard-m06-birth-death-process-2",
+    "module_id": "module06",
+    "concept_id": "m06-birth-death-process",
+    "question": "Why does Birth-death process behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-56"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Birth-death process",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Model adjacent upward and downward transitions with birth and death rates."
+    ]
+  },
+  {
+    "case_id": "hard-m06-birth-death-process-3",
+    "module_id": "module06",
+    "concept_id": "m06-birth-death-process",
+    "question": "Can you give a compact worked interpretation of neighbouring upward and downward state changes, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb",
+      "reference/lectnotes_technmath.pdf#page-56"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Birth-death process",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Model adjacent upward and downward transitions with birth and death rates."
+    ]
+  },
+  {
+    "case_id": "hard-m06-two-state-reliability-1",
+    "module_id": "module06",
+    "concept_id": "m06-two-state-reliability",
+    "question": "I keep seeing Two-state reliability chain in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Two-state reliability chain",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Interpret failure and repair as a two-state continuous-time Markov chain."
+    ]
+  },
+  {
+    "case_id": "hard-m06-two-state-reliability-2",
+    "module_id": "module06",
+    "concept_id": "m06-two-state-reliability",
+    "question": "Why does Two-state reliability chain behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Two-state reliability chain",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Interpret failure and repair as a two-state continuous-time Markov chain."
+    ]
+  },
+  {
+    "case_id": "hard-m06-two-state-reliability-3",
+    "module_id": "module06",
+    "concept_id": "m06-two-state-reliability",
+    "question": "Can you give a compact worked interpretation of failure and repair represented by two states, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/06_Markov_Chain_Part2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Two-state reliability chain",
+      "Module 6: Continuous Time Markov Chains and Birth Death Processes"
+    ],
+    "required_claims": [
+      "Interpret failure and repair as a two-state continuous-time Markov chain."
+    ]
+  },
+  {
+    "case_id": "hard-m07-survival-and-hazard-1",
+    "module_id": "module07",
+    "concept_id": "m07-survival-and-hazard",
+    "question": "I keep seeing Survival and hazard functions in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-61"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Survival and hazard functions",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Relate lifetimes to survival functions and hazard rates."
+    ]
+  },
+  {
+    "case_id": "hard-m07-survival-and-hazard-2",
+    "module_id": "module07",
+    "concept_id": "m07-survival-and-hazard",
+    "question": "Why does Survival and hazard functions behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-61"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Survival and hazard functions",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Relate lifetimes to survival functions and hazard rates."
+    ]
+  },
+  {
+    "case_id": "hard-m07-survival-and-hazard-3",
+    "module_id": "module07",
+    "concept_id": "m07-survival-and-hazard",
+    "question": "Can you give a compact worked interpretation of lifetime survival and instantaneous failure risk, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-61"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Survival and hazard functions",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Relate lifetimes to survival functions and hazard rates."
+    ]
+  },
+  {
+    "case_id": "hard-m07-series-parallel-systems-1",
+    "module_id": "module07",
+    "concept_id": "m07-series-parallel-systems",
+    "question": "I keep seeing Series and parallel systems in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-64"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Series and parallel systems",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Compare system lifetimes under series and parallel arrangements."
+    ]
+  },
+  {
+    "case_id": "hard-m07-series-parallel-systems-2",
+    "module_id": "module07",
+    "concept_id": "m07-series-parallel-systems",
+    "question": "Why does Series and parallel systems behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-64"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Series and parallel systems",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Compare system lifetimes under series and parallel arrangements."
+    ]
+  },
+  {
+    "case_id": "hard-m07-series-parallel-systems-3",
+    "module_id": "module07",
+    "concept_id": "m07-series-parallel-systems",
+    "question": "Can you give a compact worked interpretation of how series and parallel arrangements change reliability, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-64"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Series and parallel systems",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Compare system lifetimes under series and parallel arrangements."
+    ]
+  },
+  {
+    "case_id": "hard-m07-batch-buffer-1",
+    "module_id": "module07",
+    "concept_id": "m07-batch-buffer",
+    "question": "I keep seeing Batch buffer model in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-67"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Batch buffer model",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Track arrivals and service in a finite-capacity buffer."
+    ]
+  },
+  {
+    "case_id": "hard-m07-batch-buffer-2",
+    "module_id": "module07",
+    "concept_id": "m07-batch-buffer",
+    "question": "Why does Batch buffer model behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-67"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Batch buffer model",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Track arrivals and service in a finite-capacity buffer."
+    ]
+  },
+  {
+    "case_id": "hard-m07-batch-buffer-3",
+    "module_id": "module07",
+    "concept_id": "m07-batch-buffer",
+    "question": "Can you give a compact worked interpretation of arrivals and service in a finite-capacity buffer, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-67"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Batch buffer model",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Track arrivals and service in a finite-capacity buffer."
+    ]
+  },
+  {
+    "case_id": "hard-m07-mm1-queue-1",
+    "module_id": "module07",
+    "concept_id": "m07-mm1-queue",
+    "question": "I keep seeing M/M/1 queue in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-69"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "M/M/1 queue",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Study Poisson arrivals, exponential service and the stability condition λ<μ."
+    ]
+  },
+  {
+    "case_id": "hard-m07-mm1-queue-2",
+    "module_id": "module07",
+    "concept_id": "m07-mm1-queue",
+    "question": "Why does M/M/1 queue behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-69"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "M/M/1 queue",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Study Poisson arrivals, exponential service and the stability condition λ<μ."
+    ]
+  },
+  {
+    "case_id": "hard-m07-mm1-queue-3",
+    "module_id": "module07",
+    "concept_id": "m07-mm1-queue",
+    "question": "Can you give a compact worked interpretation of a single-server queue with Poisson arrivals and exponential service, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/07_Markov_Chain_Part3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-69"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "M/M/1 queue",
+      "Module 7: Further Markov Chain Based Models"
+    ],
+    "required_claims": [
+      "Study Poisson arrivals, exponential service and the stability condition λ<μ."
+    ]
+  },
+  {
+    "case_id": "hard-m08-time-varying-intensity-1",
+    "module_id": "module08",
+    "concept_id": "m08-time-varying-intensity",
+    "question": "I keep seeing Time-varying intensity in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Time-varying intensity",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Describe a Poisson process whose event rate changes over time."
+    ]
+  },
+  {
+    "case_id": "hard-m08-time-varying-intensity-2",
+    "module_id": "module08",
+    "concept_id": "m08-time-varying-intensity",
+    "question": "Why does Time-varying intensity behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Time-varying intensity",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Describe a Poisson process whose event rate changes over time."
+    ]
+  },
+  {
+    "case_id": "hard-m08-time-varying-intensity-3",
+    "module_id": "module08",
+    "concept_id": "m08-time-varying-intensity",
+    "question": "Can you give a compact worked interpretation of an arrival rate that changes with time, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Time-varying intensity",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Describe a Poisson process whose event rate changes over time."
+    ]
+  },
+  {
+    "case_id": "hard-m08-thinning-1",
+    "module_id": "module08",
+    "concept_id": "m08-thinning",
+    "question": "I keep seeing Thinning algorithm in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Thinning algorithm",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Generate candidate events and accept them according to a time-varying rate."
+    ]
+  },
+  {
+    "case_id": "hard-m08-thinning-2",
+    "module_id": "module08",
+    "concept_id": "m08-thinning",
+    "question": "Hur fungerar tunningsalgoritmen för en tidsvarierande intensitet?",
+    "language": "sv",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Thinning algorithm",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Generate candidate events and accept them according to a time-varying rate."
+    ]
+  },
+  {
+    "case_id": "hard-m08-thinning-3",
+    "module_id": "module08",
+    "concept_id": "m08-thinning",
+    "question": "Can you give a compact worked interpretation of accepting candidate arrivals according to a changing intensity, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Thinning algorithm",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Generate candidate events and accept them according to a time-varying rate."
+    ]
+  },
+  {
+    "case_id": "hard-m08-integrated-intensity-1",
+    "module_id": "module08",
+    "concept_id": "m08-integrated-intensity",
+    "question": "I keep seeing Integrated intensity in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Integrated intensity",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Compare the mean count with the integral of the intensity function."
+    ]
+  },
+  {
+    "case_id": "hard-m08-integrated-intensity-2",
+    "module_id": "module08",
+    "concept_id": "m08-integrated-intensity",
+    "question": "Why does Integrated intensity behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Integrated intensity",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Compare the mean count with the integral of the intensity function."
+    ]
+  },
+  {
+    "case_id": "hard-m08-integrated-intensity-3",
+    "module_id": "module08",
+    "concept_id": "m08-integrated-intensity",
+    "question": "Can you give a compact worked interpretation of why integrating the rate gives the expected count, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/08_Exploratory_Module_1.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Integrated intensity",
+      "Module 8: Nonhomogeneous Poisson Processes by Thinning"
+    ],
+    "required_claims": [
+      "Compare the mean count with the integral of the intensity function."
+    ]
+  },
+  {
+    "case_id": "hard-m09-self-avoidance-1",
+    "module_id": "module09",
+    "concept_id": "m09-self-avoidance",
+    "question": "I keep seeing Self-avoidance in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Self-avoidance",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Construct a walk that never revisits a previously visited site."
+    ]
+  },
+  {
+    "case_id": "hard-m09-self-avoidance-2",
+    "module_id": "module09",
+    "concept_id": "m09-self-avoidance",
+    "question": "Why does Self-avoidance behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Self-avoidance",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Construct a walk that never revisits a previously visited site."
+    ]
+  },
+  {
+    "case_id": "hard-m09-self-avoidance-3",
+    "module_id": "module09",
+    "concept_id": "m09-self-avoidance",
+    "question": "自避免游走为什么不能只看当前位置？",
+    "language": "zh",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Self-avoidance",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Construct a walk that never revisits a previously visited site."
+    ]
+  },
+  {
+    "case_id": "hard-m09-path-trapping-1",
+    "module_id": "module09",
+    "concept_id": "m09-path-trapping",
+    "question": "I keep seeing Path trapping in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Path trapping",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Observe that a growing path can exhaust all available neighbouring sites."
+    ]
+  },
+  {
+    "case_id": "hard-m09-path-trapping-2",
+    "module_id": "module09",
+    "concept_id": "m09-path-trapping",
+    "question": "Why does Path trapping behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Path trapping",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Observe that a growing path can exhaust all available neighbouring sites."
+    ]
+  },
+  {
+    "case_id": "hard-m09-path-trapping-3",
+    "module_id": "module09",
+    "concept_id": "m09-path-trapping",
+    "question": "Can you give a compact worked interpretation of how a growing path can run out of legal moves, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Path trapping",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Observe that a growing path can exhaust all available neighbouring sites."
+    ]
+  },
+  {
+    "case_id": "hard-m09-stopping-length-1",
+    "module_id": "module09",
+    "concept_id": "m09-stopping-length",
+    "question": "I keep seeing Stopping length in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Stopping length",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Compare stopping lengths over repeated self-avoiding walks."
+    ]
+  },
+  {
+    "case_id": "hard-m09-stopping-length-2",
+    "module_id": "module09",
+    "concept_id": "m09-stopping-length",
+    "question": "Why does Stopping length behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Stopping length",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Compare stopping lengths over repeated self-avoiding walks."
+    ]
+  },
+  {
+    "case_id": "hard-m09-stopping-length-3",
+    "module_id": "module09",
+    "concept_id": "m09-stopping-length",
+    "question": "Can you give a compact worked interpretation of the distribution of the length at which paths stop, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Stopping length",
+      "Module 9: Growing Self-Avoiding Walks"
+    ],
+    "required_claims": [
+      "Compare stopping lengths over repeated self-avoiding walks."
+    ]
+  },
+  {
+    "case_id": "hard-m10-particle-motion-1",
+    "module_id": "module10",
+    "concept_id": "m10-particle-motion",
+    "question": "I keep seeing Random particle motion in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Random particle motion",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Move particles randomly on a discrete circle."
+    ]
+  },
+  {
+    "case_id": "hard-m10-particle-motion-2",
+    "module_id": "module10",
+    "concept_id": "m10-particle-motion",
+    "question": "Why does Random particle motion behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Random particle motion",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Move particles randomly on a discrete circle."
+    ]
+  },
+  {
+    "case_id": "hard-m10-particle-motion-3",
+    "module_id": "module10",
+    "concept_id": "m10-particle-motion",
+    "question": "Can you give a compact worked interpretation of random particles moving on a discrete circle, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Random particle motion",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Move particles randomly on a discrete circle."
+    ]
+  },
+  {
+    "case_id": "hard-m10-coalescence-1",
+    "module_id": "module10",
+    "concept_id": "m10-coalescence",
+    "question": "I keep seeing Coalescence in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-79"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Coalescence",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Merge particles when they meet and track the number of clusters."
+    ]
+  },
+  {
+    "case_id": "hard-m10-coalescence-2",
+    "module_id": "module10",
+    "concept_id": "m10-coalescence",
+    "question": "Why does Coalescence behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-79"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Coalescence",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Merge particles when they meet and track the number of clusters."
+    ]
+  },
+  {
+    "case_id": "hard-m10-coalescence-3",
+    "module_id": "module10",
+    "concept_id": "m10-coalescence",
+    "question": "Can you give a compact worked interpretation of particles merging when they occupy the same location, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb",
+      "reference/lectnotes_technmath.pdf#page-79"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Coalescence",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Merge particles when they meet and track the number of clusters."
+    ]
+  },
+  {
+    "case_id": "hard-m10-coalescence-time-1",
+    "module_id": "module10",
+    "concept_id": "m10-coalescence-time",
+    "question": "I keep seeing Coalescence time in the notebook. What does it mean in this stochastic-process model?",
+    "language": "en",
+    "question_type": "definition",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Coalescence time",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Summarize the time until all particles have merged into one cluster."
+    ]
+  },
+  {
+    "case_id": "hard-m10-coalescence-time-2",
+    "module_id": "module10",
+    "concept_id": "m10-coalescence-time",
+    "question": "Why does Coalescence time behave that way, and what should I look for in a sample path?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Coalescence time",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Summarize the time until all particles have merged into one cluster."
+    ]
+  },
+  {
+    "case_id": "hard-m10-coalescence-time-3",
+    "module_id": "module10",
+    "concept_id": "m10-coalescence-time",
+    "question": "Can you give a compact worked interpretation of the time until all moving particles form one cluster, including the main quantity I should compare with theory?",
+    "language": "en",
+    "question_type": "example",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/10_Exploratory_Module_3.ipynb"
+    ],
+    "acceptable_source_locators": [],
+    "gold_evidence_phrases": [
+      "Coalescence time",
+      "Module 10: Coalescing Particles on a Circle"
+    ],
+    "required_claims": [
+      "Summarize the time until all particles have merged into one cluster."
+    ]
+  },
+  {
+    "case_id": "hard-comparison-random-walk-self-avoiding",
+    "module_id": "module02",
+    "concept_id": "m02-random-walk-increments",
+    "related_module_ids": [
+      "module09"
+    ],
+    "related_concept_ids": [
+      "m09-self-avoidance"
+    ],
+    "question": "Compare an ordinary random walk with a self-avoiding walk: what changes in the state information and the possible next step?",
+    "language": "en",
+    "question_type": "comparison",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb",
+      "notebooks/09_Exploratory_Module_2.ipynb"
+    ],
+    "gold_evidence_phrases": [
+      "random walk",
+      "self-avoiding"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-notation-stationary-distribution",
+    "module_id": "module05",
+    "concept_id": "m05-stationary-distribution",
+    "question": "What does the equation πP = π mean, and why does it not mean that the Markov chain stops moving?",
+    "language": "en",
+    "question_type": "misconception",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-42"
+    ],
+    "gold_evidence_phrases": [
+      "stationary distribution",
+      "πP"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-hint-stationary-distribution",
+    "module_id": "module05",
+    "concept_id": "m05-stationary-distribution",
+    "question": "Give me a hint for finding a stationary distribution without solving the whole problem for me.",
+    "language": "en",
+    "question_type": "hint",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/05_Markov_Chain_Part1.ipynb",
+      "reference/lectnotes_technmath.pdf#page-42"
+    ],
+    "gold_evidence_phrases": [
+      "stationary distribution"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-why-poisson-waiting",
+    "module_id": "module01",
+    "concept_id": "m01-poisson-process",
+    "question": "If arrivals have constant rate λ, why is the event of waiting longer than t the same as observing zero arrivals before t?",
+    "language": "en",
+    "question_type": "why",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/01_Bernoulli&Poisson.ipynb",
+      "reference/lectnotes_technmath.pdf#page-23"
+    ],
+    "gold_evidence_phrases": [
+      "Poisson process",
+      "exponential"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-condition-hitting-time",
+    "module_id": "module02",
+    "concept_id": "m02-absorption-time",
+    "question": "For a random walk, how would the expected time to absorption change if the starting state moved closer to the target boundary?",
+    "language": "en",
+    "question_type": "conditions",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "gold_evidence_phrases": [
+      "Absorption time"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-follow-up-brownian-scaling",
+    "module_id": "module04",
+    "concept_id": "m04-brownian-scaling",
+    "question": "After changing the number of grid steps, what should I compare to decide whether the random walk still approximates Brownian motion?",
+    "language": "en",
+    "question_type": "follow_up",
+    "expected_status": "SUPPORTED",
+    "answerable": true,
+    "gold_source_locators": [
+      "notebooks/04_Random_Walk_Part3.ipynb"
+    ],
+    "gold_evidence_phrases": [
+      "Brownian",
+      "scaled random walk"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-partial-hitting-time-missing-conditions",
+    "module_id": "module02",
+    "concept_id": "m02-absorption-time",
+    "question": "What is the exact expected hitting time for this random walk?",
+    "language": "en",
+    "question_type": "derivation",
+    "expected_status": "PARTIAL",
+    "answerable": false,
+    "gold_source_locators": [
+      "notebooks/02_Random_Walk_Part1.ipynb"
+    ],
+    "gold_evidence_phrases": [
+      "Absorption time",
+      "Module 2: Discrete Time Random Walk"
+    ],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-out-of-scope-travel-expenses",
+    "module_id": null,
+    "concept_id": null,
+    "question": "Can an external contractor claim travel expenses?",
+    "language": "en",
+    "question_type": "out_of_scope",
+    "expected_status": "OUT_OF_SCOPE",
+    "answerable": false,
+    "gold_source_locators": [],
+    "gold_evidence_phrases": [],
+    "required_claims": []
+  },
+  {
+    "case_id": "hard-out-of-scope-weather",
+    "module_id": null,
+    "concept_id": null,
+    "question": "What will the weather be tomorrow in Stockholm?",
+    "language": "en",
+    "question_type": "out_of_scope",
+    "expected_status": "OUT_OF_SCOPE",
+    "answerable": false,
+    "gold_source_locators": [],
+    "gold_evidence_phrases": [],
+    "required_claims": []
+  }
+]

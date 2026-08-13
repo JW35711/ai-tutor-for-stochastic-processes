@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 from src.agent import StochasticTutorAgent
 from src.memory import LearnerMemory
 from src.workflow import AgentState
+from evals.credibility_metrics import answerability_metrics
 
 
 CASES = ROOT / "evals" / "answerability_cases.json"
@@ -113,11 +114,21 @@ def run() -> dict[str, object]:
     )
     supplementary_cases = [item for item in results if item["id"] == "supplementary_waiting_evidence"]
     conflict_cases = [item for item in results if item["id"] == "conflicting_memoryless_claims"]
+    outcome_metrics = answerability_metrics(
+        {
+            "expected_status": item["expected"],
+            "actual_status": item["actual"],
+        }
+        for item in results
+    )
     return {
         "corpus_sha256": corpus_sha256,
         "total": len(results),
         "passed": correct,
         "answerability_accuracy": round(correct / len(results), 4),
+        "answer_success_rate": outcome_metrics["answer_success_rate"],
+        "false_abstention_rate": outcome_metrics["false_abstention_rate"],
+        "evidence_sufficiency_accuracy": outcome_metrics["evidence_sufficiency_accuracy"],
         "unsupported_answer_rate": round(
             sum(item["actual"] == "SUPPORTED" and item["expected"] in expected_unsupported for item in results)
             / len(expected_abstentions),
