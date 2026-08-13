@@ -15,67 +15,69 @@
           <div class="brand-mark" aria-hidden="true">S</div>
           <div><strong>StochLab</strong><span>Course Tutor</span></div>
         </div>
-        <nav class="side-nav" aria-label="Course navigation">
-          <button class="nav-item active" type="button" data-scroll="courseModules">Course Modules</button>
-          <button class="nav-item" type="button" data-scroll="tutorLab">AI Tutor</button>
-          <button class="nav-item" type="button" data-scroll="progressSection">Your Progress</button>
+        <nav class="side-nav" aria-label="Primary navigation">
+          <button class="nav-item active" type="button" data-view="overviewView"><span class="nav-icon">⌂</span><span data-i18n="nav.overview">Overview</span></button>
+          <button class="nav-item" type="button" data-view="courseView"><span class="nav-icon">▦</span><span data-i18n="nav.course">Course</span></button>
+          <button class="nav-item" type="button" data-view="tutorView"><span class="nav-icon">✦</span><span data-i18n="nav.tutor">AI Tutor</span></button>
+          <button class="nav-item" type="button" data-view="simulationLabView"><span class="nav-icon">◒</span><span data-i18n="nav.simulation">Simulation Lab</span></button>
+          <button class="nav-item" type="button" data-view="progressView"><span class="nav-icon">↗</span><span data-i18n="nav.progress">My Progress</span></button>
         </nav>
-        <div class="sidebar-note"><span class="live-dot"></span><div><strong>Ready to learn</strong><small>Verified simulations are available when useful.</small></div></div>
+        <div class="sidebar-note"><span class="live-dot"></span><div><strong data-i18n="sidebar.ready">Ready to learn</strong><small data-i18n="sidebar.note">Verified simulations are available when useful.</small></div></div>
       </aside>
 
       <div class="app-main">
         <header class="topbar">
-          <div><span class="breadcrumb">STOCHLAB /</span><strong id="locationBreadcrumb">Course workspace</strong></div>
-          <div class="topbar-status"><span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i>Connecting</span></div>
+          <div><span class="breadcrumb">STOCHLAB /</span><strong id="locationBreadcrumb" data-i18n="topbar.workspace">Course workspace</strong></div>
+          <div class="topbar-status"><label class="language-picker" for="languageSelect"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh">中文</option><option value="sv">Svenska</option></select></label><span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i><span data-i18n="health.connecting">Connecting</span></span></div>
         </header>
 
         <main class="dashboard">
-          <section class="page-intro">
-            <div><p class="eyebrow">ENGINEERING MATHEMATICS</p><h1 id="courseTitle">Introduction to Stochastic Processes with Applications</h1></div>
-            <p class="intro-copy">Learn concepts, practice problems, and explore stochastic models through verified simulations.</p>
-          </section>
-
-          <section id="courseModules" class="panel-card course-modules" aria-label="Course modules">
-            <div class="panel-heading"><div><p class="kicker">COURSE MODULES</p><h2>Choose a module</h2></div><button id="resetButton" class="ghost-button" type="button">New chat</button></div>
-            <div id="moduleTabs" class="module-tabs" role="tablist" aria-label="Course modules"></div>
-            <div id="curriculumContent" class="curriculum-content" aria-live="polite">Loading course modules…</div>
-          </section>
-
-          <section id="tutorLab" class="workspace">
-            <article id="conversationPanel" class="chat-panel panel-card">
-              <div class="panel-heading"><div><p class="kicker">AI TUTOR</p><h2>Ask a question</h2></div><button id="quizButton" type="button">Check your understanding</button></div>
-              <div id="quizPanel" class="quiz-panel hidden" role="region" aria-label="Module quiz" aria-live="polite"></div>
-              <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions">
-                <article class="message agent-message"><span class="message-label">TUTOR</span><div class="message-body"><p>Ask me about a concept, a module, or a simulation.</p></div></article>
-              </div>
-              <form id="chatForm" class="composer"><label for="questionInput" class="sr-only">Ask the tutor</label><textarea id="questionInput" rows="3" maxlength="4000" aria-describedby="composerStatus" placeholder="For example: What is Brownian motion?" required></textarea><button id="submitButton" type="submit">Ask Tutor <span aria-hidden="true">→</span></button><p id="composerStatus" class="composer-status" role="status" aria-live="polite">Press Enter to ask · Shift+Enter for a new line</p></form>
-            </article>
-
-            <aside id="resultPanel" class="result-panel panel-card" aria-live="polite">
-              <div class="panel-heading compact"><div><p class="kicker">LEARNING SUPPORT</p><h2>Results</h2></div><span id="verificationBadge" class="verified-badge">READY</span></div>
-              <div id="emptyEvidence" class="empty-evidence"><strong>Ready when you are</strong><p>Simulation charts and useful parameters will appear here after a run.</p></div>
-              <div id="evidenceContent" class="evidence-content hidden"><div id="runMeta" class="run-meta"></div><section id="simulationSection" class="hidden"><p class="section-label">SIMULATION</p><div id="chart" class="chart"></div><div id="parameters" class="metric-grid"></div></section><section id="sourcesSection" class="sources-section"><details><summary>Sources</summary><div id="sources" class="source-list"></div></details></section></div>
-            </aside>
-          </section>
-
-          <section id="simulationView" class="simulation-view panel-card hidden" aria-live="polite" aria-label="Simulation result">
-            <div class="simulation-view-heading">
-              <div>
-                <p class="kicker">SIMULATION LAB</p>
-                <h2 id="simulationTitle">Simulation result</h2>
-                <p id="simulationSubtitle" class="simulation-subtitle">Verified output from the selected stochastic-process model.</p>
-                <p id="experimentPurpose" class="simulation-subtitle"></p>
-              </div>
-              <button id="closeSimulationView" class="ghost-button" type="button">Back to tutor</button>
+          <section id="overviewView" class="app-view active-view" aria-labelledby="overviewTitle">
+            <div class="page-intro">
+              <div><p class="eyebrow" data-i18n="common.engineering">ENGINEERING MATHEMATICS</p><h1 id="overviewTitle" data-i18n="overview.title">Continue your stochastic-process journey</h1></div>
+              <p class="intro-copy" data-i18n="overview.intro">Learn concepts, practice problems, and explore stochastic models through verified simulations.</p>
             </div>
-            <div id="simulationChart" class="simulation-chart" aria-label="Large simulation chart"></div>
-            <div id="simulationLegend" class="simulation-legend" aria-label="Chart legend"></div>
-            <div id="simulationMetrics" class="simulation-metrics"></div>
-            <div id="experimentTeachingNote" class="simulation-teaching-note"></div>
-            <details class="simulation-sources"><summary>Sources and parameters</summary><div id="simulationSources" class="source-list"></div></details>
+            <div class="overview-grid">
+              <article class="panel-card overview-hero"><div><p class="kicker" data-i18n="overview.next">NEXT UP</p><h2 id="overviewNextTitle" data-i18n="overview.nextTitle">Start with Module 00</h2><p id="overviewNextText" data-i18n="overview.nextText">Build a reliable Monte Carlo foundation before exploring stochastic models.</p><button class="primary-action" type="button" data-view="courseView" data-i18n="overview.openCourse">Open course</button></div><div class="overview-orb" aria-hidden="true"><span>01</span><small data-i18n="overview.recommended">recommended</small></div></article>
+              <article class="panel-card overview-card"><p class="kicker" data-i18n="overview.snapshot">YOUR SNAPSHOT</p><div class="overview-stat-grid"><div><strong id="overviewModules">11</strong><span data-i18n="overview.modules">modules</span></div><div><strong id="overviewPoints">40</strong><span data-i18n="overview.points">knowledge points</span></div><div><strong id="overviewTools">15</strong><span data-i18n="overview.tools">verified tools</span></div></div><p id="overviewActivity" class="muted-copy" data-i18n="overview.activity">Your learning activity will appear here after your first practice or quiz.</p></article>
+            </div>
+            <div class="section-heading"><div><p class="kicker" data-i18n="overview.quick">QUICK ACCESS</p><h2 data-i18n="overview.choose">Choose how to learn</h2></div></div>
+            <div class="quick-grid"><button class="quick-card" type="button" data-view="tutorView"><span class="quick-icon">✦</span><strong data-i18n="overview.askTutor">Ask the Tutor</strong><small data-i18n="overview.askTutorDesc">Get a grounded explanation from the course material.</small></button><button class="quick-card" type="button" data-view="simulationLabView"><span class="quick-icon">◒</span><strong data-i18n="overview.explore">Explore a simulation</strong><small data-i18n="overview.exploreDesc">Run an approved experiment and inspect its chart.</small></button><button class="quick-card" type="button" data-view="progressView"><span class="quick-icon">↗</span><strong data-i18n="overview.review">Review progress</strong><small data-i18n="overview.reviewDesc">See mastery, review items, and the next recommendation.</small></button></div>
+            <section class="panel-card recent-card"><div class="panel-heading compact"><div><p class="kicker" data-i18n="overview.recent">RECENT ACTIVITY</p><h2 data-i18n="overview.momentum">Keep your momentum</h2></div><button class="ghost-button" type="button" data-view="tutorView" data-i18n="overview.openTutor">Open tutor</button></div><p id="overviewRecent" data-i18n="overview.noRecent">No recent activity yet. Ask a concept question or try the first module.</p></section>
           </section>
 
-          <section id="progressSection" class="panel-card progress-section"><div class="panel-heading compact"><div><p class="kicker">YOUR PROGRESS</p><h2>Learning record</h2></div></div><p id="learningNote" class="learning-note">Your practice and quiz activity will appear here.</p><div id="learnerProfile" class="profile-list"><p>No learning record yet.</p></div><div id="misconceptions" class="misconception-list"></div><div id="nextRecommendation" class="next-recommendation"></div></section>
+          <section id="courseView" class="app-view" aria-labelledby="courseViewTitle">
+            <div class="page-intro compact-intro"><div><p class="eyebrow" data-i18n="nav.course">COURSE</p><h1 id="courseViewTitle">Introduction to Stochastic Processes with Applications</h1></div><p class="intro-copy" data-i18n="course.intro">Browse the eleven modules and move from a knowledge point to a verified experiment.</p></div>
+            <section id="courseModules" class="panel-card course-modules" aria-label="Course modules">
+              <div class="panel-heading"><div><p class="kicker" data-i18n="course.modules">COURSE MODULES</p><h2 data-i18n="course.choose">Choose a module</h2></div><button id="resetButton" class="ghost-button" type="button" data-i18n="common.newChat">New chat</button></div>
+              <div id="moduleTabs" class="module-tabs" role="tablist" aria-label="Course modules"></div>
+              <div id="curriculumContent" class="curriculum-content" aria-live="polite" data-i18n="course.loading">Loading course modules…</div>
+            </section>
+          </section>
+
+          <section id="tutorView" class="app-view" aria-labelledby="tutorViewTitle">
+            <div class="page-intro compact-intro"><div><p class="eyebrow" data-i18n="nav.tutor">AI TUTOR</p><h1 id="tutorViewTitle" data-i18n="tutor.title">Ask, understand, and follow up</h1></div><p class="intro-copy" data-i18n="tutor.intro">Chat with the course tutor. Explanations are grounded in the notebooks and lecture notes.</p></div>
+            <section id="tutorLab" class="workspace">
+              <article id="conversationPanel" class="chat-panel panel-card">
+                <div class="panel-heading"><div><p class="kicker" data-i18n="tutor.chat">TUTOR CHAT</p><h2 data-i18n="tutor.ask">Ask a question</h2></div><button id="quizButton" type="button" data-i18n="tutor.quiz">Check your understanding</button></div>
+                <div id="quizPanel" class="quiz-panel hidden" role="region" aria-label="Module quiz" aria-live="polite"></div>
+                <div id="conversation" class="conversation" role="log" aria-live="polite" aria-relevant="additions"><article class="message agent-message"><span class="message-label">TUTOR</span><div class="message-body"><p data-i18n="tutor.empty">Ask me about a concept, a module, or a simulation.</p></div></article></div>
+                <form id="chatForm" class="composer"><label for="questionInput" class="sr-only" data-i18n="tutor.askLabel">Ask the tutor</label><textarea id="questionInput" rows="3" maxlength="4000" aria-describedby="composerStatus" data-i18n-placeholder="tutor.placeholder" placeholder="For example: What is Brownian motion?" required></textarea><button id="submitButton" type="submit"><span data-i18n="tutor.askButton">Ask Tutor</span> <span aria-hidden="true">→</span></button><p id="composerStatus" class="composer-status" role="status" aria-live="polite" data-i18n="tutor.composer">Press Enter to ask · Shift+Enter for a new line</p></form>
+              </article>
+              <aside id="resultPanel" class="result-panel panel-card" aria-live="polite"><div class="panel-heading compact"><div><p class="kicker" data-i18n="tutor.support">LEARNING SUPPORT</p><h2 data-i18n="tutor.results">Results</h2></div><span id="verificationBadge" class="verified-badge">READY</span></div><div id="emptyEvidence" class="empty-evidence"><strong data-i18n="tutor.ready">Ready when you are</strong><p data-i18n="tutor.resultHint">Sources and simulation details will appear here after a Tutor response.</p></div><div id="evidenceContent" class="evidence-content hidden"><div id="runMeta" class="run-meta"></div><section id="simulationSection" class="hidden"><p class="section-label" data-i18n="simulation.label">SIMULATION</p><div id="chart" class="chart"></div><div id="parameters" class="metric-grid"></div></section><section id="sourcesSection" class="sources-section"><details><summary data-i18n="common.sources">Sources</summary><div id="sources" class="source-list"></div></details></section></div></aside>
+            </section>
+          </section>
+
+          <section id="simulationLabView" class="app-view" aria-labelledby="simulationLabTitle">
+            <div class="page-intro compact-intro"><div><p class="eyebrow" data-i18n="nav.simulation">SIMULATION LAB</p><h1 id="simulationLabTitle" data-i18n="simulation.title">Explore verified experiments</h1></div><p class="intro-copy" data-i18n="simulation.intro">Choose a knowledge point in Course or ask the Tutor for an explicit simulation.</p></div>
+            <section class="panel-card lab-empty" id="simulationCatalogue"><div class="lab-icon">◒</div><p class="kicker" data-i18n="simulation.catalogue">EXPERIMENT CATALOGUE</p><h2 data-i18n="simulation.emptyTitle">Simulation results appear here</h2><p data-i18n="simulation.emptyText">Start from a course knowledge point with a Simulation action, or ask the Tutor: “Simulate Brownian motion with 100 steps.”</p><button class="primary-action" type="button" data-view="courseView" data-i18n="simulation.browse">Browse course experiments</button></section>
+            <section id="simulationView" class="simulation-view panel-card hidden" aria-live="polite" aria-label="Simulation result"><div class="simulation-view-heading"><div><p class="kicker" data-i18n="simulation.verified">VERIFIED EXPERIMENT</p><h2 id="simulationTitle" data-i18n="simulation.result">Simulation result</h2><p id="simulationSubtitle" class="simulation-subtitle" data-i18n="simulation.verifiedOutput">Verified output from the selected stochastic-process model.</p><p id="experimentPurpose" class="simulation-subtitle"></p></div><button id="closeSimulationView" class="ghost-button" type="button" data-i18n="simulation.backTutor">Back to tutor</button></div><div id="simulationChart" class="simulation-chart" aria-label="Large simulation chart"></div><div id="simulationLegend" class="simulation-legend" aria-label="Chart legend"></div><div id="simulationMetrics" class="simulation-metrics"></div><div id="experimentTeachingNote" class="simulation-teaching-note"></div><details class="simulation-sources"><summary data-i18n="simulation.sources">Sources and parameters</summary><div id="simulationSources" class="source-list"></div></details></section>
+          </section>
+
+          <section id="progressView" class="app-view" aria-labelledby="progressViewTitle">
+            <div class="page-intro compact-intro"><div><p class="eyebrow" data-i18n="nav.progress">MY PROGRESS</p><h1 id="progressViewTitle" data-i18n="progress.title">Your learning record</h1></div><p class="intro-copy" data-i18n="progress.intro">Practice and quiz activity are saved to your local learner profile.</p></div>
+            <section id="progressSection" class="panel-card progress-section"><div class="panel-heading compact"><div><p class="kicker" data-i18n="progress.record">LEARNING RECORD</p><h2 data-i18n="progress.mastery">Mastery by module</h2></div><span class="runtime-pill" data-i18n="progress.local">Local memory</span></div><p id="learningNote" class="learning-note" data-i18n="progress.emptyNote">Your practice and quiz activity will appear here.</p><div id="learnerProfile" class="profile-list"><p data-i18n="progress.noRecord">No learning record yet.</p></div><div id="misconceptions" class="misconception-list"></div><div id="nextRecommendation" class="next-recommendation"></div></section>
+          </section>
 
           <section id="debugPanel" class="panel-card debug-panel hidden"><div class="panel-heading compact"><div><p class="kicker">DEBUG</p><h2>Technical diagnostics</h2></div></div><div id="debugContent"></div></section>
         </main>

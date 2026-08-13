@@ -23,7 +23,11 @@ class WebContractTests(unittest.TestCase):
         self.assertIn("Learn concepts, practice problems", self.html)
         for old_label in ("MODULE COVERAGE", "RAG EVIDENCE", "STATE GRAPH TRACE", "Export Profile"):
             self.assertNotIn(old_label, self.html + self.javascript)
-        self.assertIsNone(re.search(r"[\u4e00-\u9fff]", self.html + self.javascript))
+        self.assertIn('id="languageSelect"', self.html)
+        self.assertIn('<option value="zh">中文</option>', self.html)
+        self.assertIn('<option value="sv">Svenska</option>', self.html)
+        self.assertIn('stochlabLanguage', self.javascript)
+        self.assertIn('sv-SE', self.javascript)
 
     def test_curriculum_is_loaded_from_the_backend(self) -> None:
         self.assertIn('fetchJson("/api/curriculum"', self.javascript)
