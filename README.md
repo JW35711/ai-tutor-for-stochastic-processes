@@ -157,13 +157,11 @@ For the runtime gate:
 python -m unittest discover -s tests -v
 ```
 
-## Recruiter and interview links
+## Project links
 
 - [Live repository](https://github.com/JW35711/ai-tutor-for-stochastic-processes)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Verified metrics](docs/VERIFIED_METRICS.md)
-- [Chinese interview Q&A](docs/INTERVIEW_QA_CN.md)
-- [Technical deep dive](docs/TECHNICAL_DEEP_DIVE_CN.md)
 - [Responsible AI notes](docs/RESPONSIBLE_AI.md)
 - [Thesis-only simulation repository](https://github.com/JW35711/simulation-visualization-stochastic-processes)
 

@@ -131,11 +131,10 @@ python -m pytest e2e -q
 python -m unittest discover -s tests -v
 ```
 
-## 招聘与面试链接
+## 项目链接
 
 - [GitHub 仓库](https://github.com/JW35711/ai-tutor-for-stochastic-processes)
 - [架构](docs/ARCHITECTURE.md) · [验证指标](docs/VERIFIED_METRICS.md)
-- [中文面试问答](docs/INTERVIEW_QA_CN.md) · [技术深挖](docs/TECHNICAL_DEEP_DIVE_CN.md)
 - [Responsible AI](docs/RESPONSIBLE_AI.md)
 - [论文模拟项目](https://github.com/JW35711/simulation-visualization-stochastic-processes)
 

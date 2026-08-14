@@ -142,11 +142,11 @@ Runtime-gate:
 python -m unittest discover -s tests -v
 ```
 
-## Länkar för rekryterare och intervjuer
+## Projektlänkar
 
 - [GitHub-repository](https://github.com/JW35711/ai-tutor-for-stochastic-processes)
 - [Arkitektur](docs/ARCHITECTURE.md) · [Verifierade mått](docs/VERIFIED_METRICS.md)
-- [Teknisk fördjupning](docs/TECHNICAL_DEEP_DIVE_CN.md)
+- [Ansvarsfull AI](docs/RESPONSIBLE_AI.md)
 - [Thesis-simulatorrepository](https://github.com/JW35711/simulation-visualization-stochastic-processes)
 
 ## Aktuella begränsningar
