@@ -114,8 +114,8 @@ not a hostile multi-tenant service.
 
 ## Evaluation interpretation
 
-The current repository baseline contains 488 deterministic governance cases for this curriculum,
-plus 9 real-browser acceptance tests:
+The current repository baseline contains separate runtime and browser gates:
+319 Python runtime tests plus 11 real-browser acceptance tests:
 30 single-turn, 5 multi-turn, 44 retrieval, 10 pedagogy, 20 safety, 7
 answerability, 17 experiment-routing and 74 visualization E2E cases. A
 plus 129 natural/hard RAG credibility cases covering all 40 knowledge points, and

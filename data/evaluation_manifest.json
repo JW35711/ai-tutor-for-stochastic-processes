@@ -1,10 +1,10 @@
 {
   "version": 4,
   "baseline_id": "current-rag-credibility",
-  "generated_at": "2026-08-13T16:30:16+00:00",
+  "generated_at": "2026-08-14T08:47:15+00:00",
   "corpus_sha256": "bca3e9cc6ae22642d42434f60e8243d53baee7175c799d00534fc932ab28f942",
   "total": 488,
-  "passed": 477,
+  "passed": 447,
   "suites": [
     {
       "id": "single_turn",
@@ -97,94 +97,94 @@
     {
       "id": "course_hard",
       "cases": 129,
-      "passed": 119,
+      "passed": 99,
       "cases_file": "evals/course_hard_cases.json",
       "cases_sha256": "35befcc4633e9811ee4826e32768a26647f4e1d12d513233f67a4eeb6a689d72",
       "kp_coverage_rate": 1.0,
       "real_routing": {
-        "module_accuracy": 0.9134,
-        "concept_accuracy": 0.8583,
-        "hit_at_1": 0.9134,
-        "hit_at_3": 0.9134,
-        "mrr": 0.9154
+        "module_accuracy": 0.7717,
+        "concept_accuracy": 0.7165,
+        "hit_at_1": 0.7717,
+        "hit_at_3": 0.7717,
+        "mrr": 0.7736
       },
       "answerability": {
-        "answer_success_rate": 0.9225,
-        "false_abstention_rate": 0.0794,
+        "answer_success_rate": 0.7674,
+        "false_abstention_rate": 0.2302,
         "unsupported_answer_rate": 0.0,
-        "abstention_precision": 0.2308,
-        "evidence_sufficiency_accuracy": 0.9225
+        "abstention_precision": 0.0938,
+        "evidence_sufficiency_accuracy": 0.7674
       },
       "retrieval_process": {
-        "mean_total_latency_ms": 45.457,
-        "p95_total_latency_ms": 95.321,
-        "mean_retrieval_latency_ms": 27.752,
-        "p95_retrieval_latency_ms": 34.897,
-        "average_retrieval_rounds": 0.93,
+        "mean_total_latency_ms": 39.718,
+        "p95_total_latency_ms": 104.297,
+        "mean_retrieval_latency_ms": 34.129,
+        "p95_retrieval_latency_ms": 45.144,
+        "average_retrieval_rounds": 0.783,
         "max_retrieval_rounds": 3,
-        "average_final_evidence_chunks": 4.69,
+        "average_final_evidence_chunks": 3.946,
         "initial_retrieval_success_rate": 0.6693,
         "supplementary_retrieval_trigger_rate": 0.0078,
         "supplementary_retrieval_success_rate": 0.0,
         "supplementary_retrieval_observed": true,
         "latency_ms": {
           "routing_ms": {
-            "mean": 14.334,
-            "p50": 1.686,
-            "p95": 56.022,
+            "mean": 8.503,
+            "p50": 1.488,
+            "p95": 64.547,
             "definition": "same-request graph stage duration"
           },
           "retrieval_ms": {
-            "mean": 26.64,
-            "p50": 27.259,
-            "p95": 36.282,
+            "mean": 26.749,
+            "p50": 31.576,
+            "p95": 45.417,
             "definition": "same-request graph stage duration"
           },
           "answerability_ms": {
-            "mean": 0.452,
-            "p50": 0.461,
-            "p95": 0.731,
+            "mean": 0.474,
+            "p50": 0.542,
+            "p95": 0.939,
             "definition": "same-request graph stage duration"
           },
           "generation_or_fallback_ms": {
-            "mean": 1.526,
-            "p50": 1.643,
-            "p95": 2.442,
+            "mean": 1.453,
+            "p50": 1.631,
+            "p95": 2.807,
             "definition": "same-request graph stage duration"
           },
           "total_pipeline_ms": {
-            "mean": 45.457,
-            "p50": 32.958,
-            "p95": 96.741,
+            "mean": 39.718,
+            "p50": 37.719,
+            "p95": 107.526,
             "definition": "wall-clock from agent.answer entry to finalized response"
           }
         }
       },
       "failure_distribution": {
-        "PASS": 111,
-        "ROUTING_FAILURE": 18
+        "PASS": 92,
+        "ROUTING_FAILURE": 37
       },
       "baseline_minimum_passed": 98
     },
     {
       "id": "course_holdout",
       "cases": 32,
-      "passed": 31,
+      "passed": 21,
       "cases_file": "evals/course_holdout_cases.json",
       "cases_sha256": "c1d0ab710c695a6b5b83eb30a1c3e694bf84d1cee2648565e86824adb8cb1a53",
-      "routing_module_accuracy": 0.9688,
-      "routing_concept_accuracy": 0.75,
+      "routing_module_accuracy": 0.6562,
+      "routing_concept_accuracy": 0.4688,
       "retrieval": {
-        "hit_at_1": 0.9375,
-        "hit_at_3": 1.0,
-        "mrr": 0.9635
+        "hit_at_1": 0.625,
+        "hit_at_3": 0.6875,
+        "mrr": 0.651
       },
       "answerability": {
-        "answer_success_rate": 1.0,
-        "false_abstention_rate": 0.0,
+        "answer_success_rate": 0.6875,
+        "false_abstention_rate": 0.3125,
         "unsupported_answer_rate": 0.0,
-        "abstention_precision": 1.0,
-        "evidence_sufficiency_accuracy": 1.0
+        "abstention_precision": 0.0,
+        "evidence_sufficiency_accuracy": 0.6875
       },
       "informational": true
     }
