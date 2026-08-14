@@ -55,7 +55,7 @@ def assess(agent: "StochasticTutorAgent", state: AgentState) -> NodeOutcome:
             event_type="QUIZ_RESULT" if attempt.get("event_type") != "PRACTICE_ANSWER" else "PRACTICE_ATTEMPT",
             concept_id=concept_id,
             question_id=attempt.get("question_id"),
-            payload={"correctness": result.correctness, "hints_used": result.hints_used, "status": updated.status, "grading_method": result.grading_method},
+            payload={"correctness": result.correctness, "hints_used": result.hints_used, "reference_shown": bool(attempt.get("reference_shown", False)), "status": updated.status, "grading_method": result.grading_method},
         )
     state.profile = agent.memory.profile(state.session_id)
     state.assessment_result["mastery"] = updated.to_dict() if concept_id else {}

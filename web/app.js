@@ -92,6 +92,7 @@ let currentConceptId = window.localStorage.getItem("stochasticTutorCurrentConcep
 let curriculum = null;
 let mutationInFlight = false;
 let latestPayload = null;
+let latestSimulationPayload = null;
 let masteryByConcept = {};
 let activeViewId = window.localStorage.getItem("stochasticTutorActiveView") || "overviewView";
 let language = window.localStorage.getItem("stochlabLanguage") || "en";
@@ -106,6 +107,41 @@ function t(key, fallback = key) {
   return translations[language]?.[key] || translations.en[key] || fallback;
 }
 
+const assessmentStrings = {
+  en: {
+    check: "CHECK YOUR UNDERSTANDING", practiceLabel: "KNOWLEDGE POINT PRACTICE",
+    submit: "Submit answer", retry: "Retry", showReference: "Show reference answer",
+    reference: "Reference answer", empty: "Write an answer before submitting.",
+    correct: "Correct", incorrect: "Not quite", incomplete: "Incomplete",
+    needsMore: "Your answer needs more information.", allHints: "All hints used",
+    continue: "Continue", review: "Review this concept", quizRetry: "Try the quiz again",
+  },
+  zh: {
+    check: "检查理解", practiceLabel: "知识点练习",
+    submit: "提交答案", retry: "重试", showReference: "显示参考答案",
+    reference: "参考答案", empty: "请先写下答案再提交。",
+    correct: "回答正确", incorrect: "还不够准确", incomplete: "信息不完整",
+    needsMore: "你的答案还需要更多信息。", allHints: "提示已全部使用",
+    continue: "继续", review: "复习这个知识点", quizRetry: "再做一次测验",
+  },
+  sv: {
+    check: "KONTROLLERA DIN FÖRSTÅELSE", practiceLabel: "ÖVNING FÖR KUNSKAPSPUNKT",
+    submit: "Skicka svar", retry: "Försök igen", showReference: "Visa referenssvar",
+    reference: "Referenssvar", empty: "Skriv ett svar innan du skickar in det.",
+    correct: "Rätt", incorrect: "Inte riktigt", incomplete: "Ofullständigt",
+    needsMore: "Ditt svar behöver mer information.", allHints: "Alla ledtrådar använda",
+    continue: "Fortsätt", review: "Repetera detta begrepp", quizRetry: "Försök med quizet igen",
+  },
+};
+
+function assessmentText(key) {
+  return assessmentStrings[language]?.[key] || assessmentStrings.en[key] || key;
+}
+
+function conceptTitleForId(conceptId) {
+  return curriculum?.modules.flatMap((module) => module.knowledge_points).find((point) => point.id === conceptId)?.title || conceptId;
+}
+
 function applyTranslations() {
   document.documentElement.lang = language === "zh" ? "zh-CN" : language === "sv" ? "sv-SE" : "en";
   document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -118,6 +154,7 @@ function applyTranslations() {
     languageSelect.value = language;
     languageSelect.setAttribute("aria-label", language === "zh" ? "语言" : language === "sv" ? "Språk" : "Language");
   }
+  if (verificationBadge && !latestPayload) verificationBadge.textContent = t("tutor.ready");
   if (activeViewId) showView(activeViewId, { syncHash: false });
   if (curriculum) renderCurriculum();
   if (experimentRegistry.length) renderExperimentCatalogue();
@@ -186,6 +223,17 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+// Experiment metadata is authored in notebooks and may contain Markdown
+// headings.  The catalogue is a compact card, so strip presentation markers
+// rather than exposing raw notebook syntax to students.
+function cleanExperimentText(value) {
+  return String(value || "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function renderTutorMarkdown(text) {
@@ -416,7 +464,7 @@ function renderExperimentCatalogue() {
   simulationCatalogueGrid.innerHTML = matches.length ? matches.map((experiment) => {
     const { module, concept } = experimentContext(experiment);
     const params = experimentParameterRows(experiment);
-    return `<article class="experiment-card"><div class="experiment-card-top"><span class="experiment-module">${escapeHtml(moduleDisplayLabel(experiment.module_id))}</span><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><h3>${escapeHtml(experiment.title)}</h3><p>${escapeHtml(experiment.teaching_purpose || concept?.summary || "")}</p><div class="experiment-card-meta"><span>${escapeHtml(concept?.title || "Course experiment")}</span>${params.length ? `<span>${params.length} ${language === "zh" ? "个参数" : language === "sv" ? "parametrar" : "parameters"}</span>` : ""}<span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div><button type="button" class="ghost-button" data-open-experiment="${escapeHtml(experiment.experiment_id)}">${t("simulation.open")} <span aria-hidden="true">→</span></button></article>`;
+    return `<article class="experiment-card"><div class="experiment-card-top"><span class="experiment-module">${escapeHtml(moduleDisplayLabel(experiment.module_id))}</span><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><h3>${escapeHtml(experiment.title)}</h3><p>${escapeHtml(cleanExperimentText(experiment.teaching_purpose || concept?.summary || ""))}</p><div class="experiment-card-meta"><span>${escapeHtml(concept?.title || "Course experiment")}</span>${params.length ? `<span>${params.length} ${language === "zh" ? "个参数" : language === "sv" ? "parametrar" : "parameters"}</span>` : ""}<span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div><button type="button" class="ghost-button" data-open-experiment="${escapeHtml(experiment.experiment_id)}">${t("simulation.open")} <span aria-hidden="true">→</span></button></article>`;
   }).join("") : `<div class="catalogue-empty"><strong>${escapeHtml(t("simulation.noMatches"))}</strong></div>`;
   simulationCatalogueGrid.querySelectorAll("[data-open-experiment]").forEach((button) => button.addEventListener("click", () => setRoute(`simulations/${button.dataset.openExperiment}`)));
 }
@@ -440,7 +488,9 @@ function showExperimentDetail(experimentId, { navigate = true } = {}) {
   simulationView?.classList.add("hidden");
   simulationDetail.classList.remove("hidden");
   locationBreadcrumb.textContent = `${t("nav.simulation")} / ${module?.label || experiment.module_id} / ${experiment.title}`;
-  simulationDetail.innerHTML = `<div class="simulation-detail-header"><div><button type="button" class="breadcrumb-button" data-back-catalogue>${t("simulation.backCatalogue")}</button><p class="kicker">${escapeHtml(t("simulation.verified"))}</p><h2>${escapeHtml(experiment.title)}</h2><p class="simulation-subtitle">${escapeHtml(experiment.teaching_purpose || "")}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><div class="detail-summary-grid"><div><span class="detail-label">${escapeHtml(t("simulation.goal"))}</span><strong>${escapeHtml(experiment.teaching_purpose || concept?.summary || "")}</strong></div><div><span class="detail-label">${escapeHtml(t("common.theoryConnection"))}</span><strong>${escapeHtml(experiment.theory_connection || "")}</strong></div><div><span class="detail-label">${escapeHtml(language === "zh" ? "知识点" : language === "sv" ? "Kunskapspunkt" : "Knowledge point")}</span><strong>${escapeHtml(concept?.title || "")}</strong></div></div><section class="parameter-editor"><div class="panel-heading compact"><div><p class="kicker">${escapeHtml(t("simulation.parameters"))}</p><h3>${escapeHtml(experiment.simulation_engine || "Python tool")}</h3></div></div>${params.length ? `<div class="parameter-grid">${params.map((parameter) => `<label><span>${escapeHtml(parameter.name)}</span><input type="number" step="any" data-experiment-param="${escapeHtml(parameter.name)}" value="${escapeHtml(parameter.default ?? "")}" ${parameter.required ? "required" : ""} /></label>`).join("")}</div>` : `<p class="muted-copy">${escapeHtml(language === "zh" ? "此 notebook 目标没有可编辑的工具参数；运行将使用工具默认值。" : language === "sv" ? "Detta notebookmål har inga redigerbara verktygsparametrar; standardvärden används." : "This notebook target has no editable tool parameters; the tool defaults will be used.")}</p>`}<div class="detail-actions"><button type="button" class="primary-action" data-run-experiment>${t("simulation.run")} <span aria-hidden="true">→</span></button><button type="button" class="ghost-button" data-ask-experiment>${t("simulation.ask")}</button></div><p id="experimentDetailStatus" class="concept-activity" role="status" aria-live="polite"></p></section><div class="detail-provenance"><span>${escapeHtml(module?.label || experiment.module_id)}</span><span>${escapeHtml(experiment.source_notebook || "notebook")}</span><span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div>`;
+  const teachingPurpose = cleanExperimentText(experiment.teaching_purpose || "");
+  const theoryConnection = cleanExperimentText(experiment.theory_connection || "");
+  simulationDetail.innerHTML = `<div class="simulation-detail-header"><div><button type="button" class="breadcrumb-button" data-back-catalogue>${t("simulation.backCatalogue")}</button><p class="kicker">${escapeHtml(t("simulation.verified"))}</p><h2>${escapeHtml(experiment.title)}</h2><p class="simulation-subtitle">${escapeHtml(teachingPurpose)}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><div class="detail-summary-grid"><div><span class="detail-label">${escapeHtml(t("simulation.goal"))}</span><strong>${escapeHtml(teachingPurpose || cleanExperimentText(concept?.summary || ""))}</strong></div><div><span class="detail-label">${escapeHtml(t("common.theoryConnection"))}</span><strong>${escapeHtml(theoryConnection)}</strong></div><div><span class="detail-label">${escapeHtml(language === "zh" ? "知识点" : language === "sv" ? "Kunskapspunkt" : "Knowledge point")}</span><strong>${escapeHtml(concept?.title || "")}</strong></div></div><section class="parameter-editor"><div class="panel-heading compact"><div><p class="kicker">${escapeHtml(t("simulation.parameters"))}</p><h3>${escapeHtml(experiment.simulation_engine || "Python tool")}</h3></div></div>${params.length ? `<div class="parameter-grid">${params.map((parameter) => `<label><span>${escapeHtml(parameter.name)}</span><input type="number" step="any" data-experiment-param="${escapeHtml(parameter.name)}" value="${escapeHtml(parameter.default ?? "")}" ${parameter.required ? "required" : ""} /></label>`).join("")}</div>` : `<p class="muted-copy">${escapeHtml(language === "zh" ? "此 notebook 目标没有可编辑的工具参数；运行将使用工具默认值。" : language === "sv" ? "Detta notebookmål har inga redigerbara verktygsparametrar; standardvärden används." : "This notebook target has no editable tool parameters; the tool defaults will be used.")}</p>`}<div class="detail-actions"><button type="button" class="primary-action" data-run-experiment>${t("simulation.run")} <span aria-hidden="true">→</span></button><button type="button" class="ghost-button" data-ask-experiment>${t("simulation.ask")}</button></div><p id="experimentDetailStatus" class="concept-activity" role="status" aria-live="polite"></p></section><div class="detail-provenance"><span>${escapeHtml(module?.label || experiment.module_id)}</span><span>${escapeHtml(experiment.source_notebook || "notebook")}</span><span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div>`;
   simulationDetail.querySelector("[data-back-catalogue]")?.addEventListener("click", () => setRoute("simulations"));
   simulationDetail.querySelector("[data-run-experiment]")?.addEventListener("click", () => {
     const values = [...simulationDetail.querySelectorAll("[data-experiment-param]")].filter((field) => field.value !== "").map((field) => `${field.dataset.experimentParam} ${field.value}`).join(", ");
@@ -644,7 +694,7 @@ function addSimulationCard(payload) {
   const card = document.createElement("article");
   card.className = "message simulation-message-card";
   const cardId = `inline-simulation-${Date.now()}`;
-  card.innerHTML = `<span class="message-label">${escapeHtml(t("simulation.verified"))}</span><div class="simulation-card-heading"><div><h3>${escapeHtml(experiment.title || payload.module_label || t("simulation.result"))}</h3><p>${escapeHtml(experiment.teaching_purpose || t("simulation.verifiedOutput"))}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || payload.tool || "verified")}</span></div><div id="${cardId}" class="inline-simulation-visual"></div><div class="inline-simulation-meta">${Object.entries(payload.parameters || {}).slice(0, 5).map(([key, value]) => `<span><strong>${escapeHtml(key)}</strong> ${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</span>`).join("")}</div><p class="inline-simulation-summary">${escapeHtml(payload.result_summary || experiment.expected_observation || "Verified output from the Python simulation tool.")}</p><div class="inline-simulation-actions"><button type="button" class="ghost-button" data-open-lab>${escapeHtml(t("simulation.open"))} →</button></div>`;
+  card.innerHTML = `<span class="message-label">${escapeHtml(t("simulation.verified"))}</span><div class="simulation-card-heading"><div><h3>${escapeHtml(experiment.title || payload.module_label || t("simulation.result"))}</h3><p>${renderTutorMarkdown(cleanExperimentText(experiment.teaching_purpose || t("simulation.verifiedOutput")))}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || payload.tool || "verified")}</span></div><div id="${cardId}" class="inline-simulation-visual"></div><div class="inline-simulation-meta">${Object.entries(payload.parameters || {}).slice(0, 5).map(([key, value]) => `<span><strong>${escapeHtml(key)}</strong> ${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</span>`).join("")}</div><p class="inline-simulation-summary">${renderTutorMarkdown(cleanExperimentText(payload.result_summary || experiment.expected_observation || "Verified output from the Python simulation tool."))}</p><div class="inline-simulation-actions"><button type="button" class="ghost-button" data-open-lab>${escapeHtml(t("simulation.open"))} →</button></div>`;
   conversation.append(card);
   const visual = card.querySelector(`#${cardId}`);
   if (!renderStructuredVisualizations(payload.result, visual)) renderChart(payload.result?.series, payload.result?.chart, visual);
@@ -692,15 +742,22 @@ function renderOverview(memory, recommendation) {
 
 function renderResponse(payload) {
   latestPayload = payload;
+  const isSimulation = payload.intent === "simulation" || payload.tool_called;
+  if (isSimulation) latestSimulationPayload = payload;
+  // A short follow-up such as “What changed?” is still attached to the last
+  // experiment. Keep its verified chart visible while the new explanation is
+  // shown in chat, but do not carry stale simulation evidence into an
+  // unrelated concept question.
+  const displaySimulation = isSimulation || Boolean(payload.active_experiment_id && latestSimulationPayload);
+  const simulationPayload = isSimulation ? payload : latestSimulationPayload;
   evidenceContent.classList.remove("hidden");
   emptyEvidence.classList.add("hidden");
-  verificationBadge.textContent = payload.tool_called ? (payload.verified ? "VERIFIED" : "CHECK RESULT") : "CONCEPT";
-  const isSimulation = payload.intent === "simulation" || payload.tool_called;
-  simulationSection.classList.toggle("hidden", !isSimulation);
-  if (isSimulation) {
-    runMeta.textContent = payload.module_label || payload.module_id || "Simulation";
-    if (!renderStructuredVisualizations(payload.result, chart)) renderChart(payload.result?.series, payload.result?.chart);
-    parameters.innerHTML = Object.entries(payload.parameters || {}).map(([key, value]) => `<div class="metric"><span>${escapeHtml(key)}</span><strong>${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</strong></div>`).join("");
+  verificationBadge.textContent = displaySimulation ? (simulationPayload?.verified ? "VERIFIED" : "CHECK RESULT") : "CONCEPT";
+  simulationSection.classList.toggle("hidden", !displaySimulation);
+  if (displaySimulation && simulationPayload) {
+    runMeta.textContent = simulationPayload.module_label || simulationPayload.module_id || "Simulation";
+    if (!renderStructuredVisualizations(simulationPayload.result, chart)) renderChart(simulationPayload.result?.series, simulationPayload.result?.chart);
+    parameters.innerHTML = Object.entries(simulationPayload.parameters || {}).map(([key, value]) => `<div class="metric"><span>${escapeHtml(key)}</span><strong>${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</strong></div>`).join("");
     // The result is also rendered as an inline Tutor artifact below. Keep the
     // dedicated Lab route available through that card instead of taking the
     // learner away from the conversation automatically.
@@ -758,10 +815,13 @@ async function openQuiz(conceptId = null) {
     const payload = await fetchJson(`/api/quiz?${conceptId ? `concept_id=${encodeURIComponent(conceptId)}` : `module_id=${encodeURIComponent(activeModuleId)}`}`);
     const quiz = payload.quiz;
     quizPanel.classList.remove("hidden");
+    quizPanel.setAttribute("aria-label", assessmentText("check"));
     quizPanel.dataset.actionType = "quiz";
+    quizPanel.dataset.questionId = quiz.id;
     if (conceptId) quizPanel.dataset.conceptId = conceptId;
-    quizPanel.innerHTML = `<p class="quiz-module">${escapeHtml(moduleDisplayLabel(quiz.module_id))} · ${t("common.checkUnderstanding")}</p><h3 id="quizQuestion">${escapeHtml(quiz.question)}</h3><div class="quiz-choices" role="group" aria-labelledby="quizQuestion">${quiz.choices.map((choice, index) => `<button type="button" data-answer="${index}">${String.fromCharCode(65 + index)}. ${escapeHtml(choice)}</button>`).join("")}</div><p class="quiz-feedback" role="status"></p>`;
+    quizPanel.innerHTML = `<p class="quiz-module">${escapeHtml(moduleDisplayLabel(quiz.module_id))} · ${escapeHtml(assessmentText("check"))}</p><h3 id="quizQuestion">${escapeHtml(quiz.question)}</h3><div class="quiz-choices" role="group" aria-labelledby="quizQuestion">${quiz.choices.map((choice, index) => `<button type="button" data-answer="${index}">${String.fromCharCode(65 + index)}. ${escapeHtml(choice)}</button>`).join("")}</div><p class="quiz-feedback" role="status" aria-live="polite"></p><div class="assessment-next-actions"></div>`;
     quizPanel.querySelectorAll("[data-answer]").forEach((button) => button.addEventListener("click", () => submitQuiz(quiz.id, Number(button.dataset.answer))));
+    setRoute("tutor");
   } catch (error) { quizPanel.classList.remove("hidden"); quizPanel.textContent = language === "zh" ? `测验加载失败：${error.message}` : `The quiz could not be loaded: ${error.message}`; }
 }
 
@@ -771,11 +831,14 @@ async function openPractice(conceptId) {
     const payload = await fetchJson(`/api/practice?concept_id=${encodeURIComponent(conceptId)}`);
     const practice = payload.practice;
     practicePanel.classList.remove("hidden");
+    practicePanel.setAttribute("aria-label", assessmentText("practiceLabel"));
     practicePanel.dataset.conceptId = conceptId;
     practicePanel.dataset.questionId = practice.id;
     practicePanel.dataset.attemptNumber = "1";
     practicePanel.dataset.hintLevel = "0";
-    practicePanel.innerHTML = `<p class="quiz-module">${escapeHtml(practice.concept_id || conceptId)} · ${escapeHtml(t("common.checkUnderstanding"))}</p><h3>${escapeHtml(practice.question)}</h3><textarea class="practice-answer" rows="4" maxlength="2000" placeholder="${language === "zh" ? "写下你的答案…" : language === "sv" ? "Skriv ditt svar…" : "Write your answer…"}"></textarea><div class="practice-actions"><button type="button" class="ghost-button" data-practice-hint>① ${escapeHtml(t("common.hint"))}</button><button type="button" class="primary-action" data-practice-submit>${language === "zh" ? "提交答案" : language === "sv" ? "Skicka svar" : "Submit answer"}</button></div><p class="practice-hint" role="status"></p><p class="quiz-feedback" role="status"></p>`;
+    practicePanel.dataset.referenceShown = "false";
+    practicePanel.classList.remove("practice-correct", "practice-incorrect", "practice-incomplete");
+    practicePanel.innerHTML = `<p class="quiz-module">${escapeHtml(conceptTitleForId(conceptId))} · ${escapeHtml(assessmentText("practiceLabel"))}</p><h3>${escapeHtml(practice.question)}</h3><textarea class="practice-answer" rows="4" maxlength="2000" placeholder="${language === "zh" ? "写下你的答案…" : language === "sv" ? "Skriv ditt svar…" : "Write your answer…"}"></textarea><div class="practice-actions"><button type="button" class="ghost-button" data-practice-hint>① ${escapeHtml(t("common.hint"))}</button><button type="button" class="primary-action" data-practice-submit>${escapeHtml(assessmentText("submit"))}</button></div><p class="practice-hint" role="status" aria-live="polite"></p><p class="practice-feedback quiz-feedback" role="status" aria-live="polite"></p><div class="assessment-next-actions"></div>`;
     practicePanel.querySelector("[data-practice-hint]")?.addEventListener("click", () => requestPracticeHint(practicePanel));
     practicePanel.querySelector("[data-practice-submit]")?.addEventListener("click", () => submitPractice(practicePanel));
     setRoute("tutor");
@@ -783,23 +846,74 @@ async function openPractice(conceptId) {
 }
 
 async function requestPracticeHint(panel) {
+  const hintButton = panel.querySelector("[data-practice-hint]");
+  if (!hintButton || hintButton.disabled) return;
   const nextLevel = Math.min(3, Number(panel.dataset.hintLevel || 0) + 1);
   try {
     const payload = await fetchJson("/api/hint", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ concept_id: panel.dataset.conceptId, question_id: panel.dataset.questionId, hint_level: nextLevel, session_id: sessionId, ui_language: language }) });
     panel.dataset.hintLevel = String(payload.hint_level);
     panel.querySelector(".practice-hint").textContent = `${t("common.hint")} ${payload.hint_level}: ${payload.hint}`;
+    if (payload.hint_level >= 3) {
+      hintButton.disabled = true;
+      hintButton.textContent = assessmentText("allHints");
+    } else {
+      hintButton.textContent = `${payload.hint_level + 1} ${t("common.hint")}`;
+    }
   } catch (error) { panel.querySelector(".practice-hint").textContent = `${t("common.hintUnavailable")}: ${error.message}`; }
+}
+
+function renderPracticeState(panel, state, result = {}, payload = {}) {
+  const feedback = panel.querySelector(".practice-feedback");
+  const textarea = panel.querySelector(".practice-answer");
+  const submit = panel.querySelector("[data-practice-submit]");
+  const actions = panel.querySelector(".assessment-next-actions");
+  const icon = state === "correct" ? "✓" : state === "incorrect" ? "✕" : "!";
+  const label = state === "correct" ? assessmentText("correct") : state === "incorrect" ? assessmentText("incorrect") : assessmentText("incomplete");
+  const explanation = state === "incomplete" ? (result.explanation || assessmentText("needsMore")) : (result.explanation || "");
+  panel.classList.remove("practice-correct", "practice-incorrect", "practice-incomplete");
+  panel.classList.add(`practice-${state}`);
+  feedback.className = `practice-feedback quiz-feedback ${state}`;
+  feedback.innerHTML = `<span class="assessment-state-icon" aria-hidden="true">${icon}</span> <strong>${escapeHtml(label)}</strong> ${escapeHtml(explanation)}`;
+  if (state === "correct") {
+    textarea.disabled = true;
+    submit.disabled = true;
+    actions.innerHTML = `<button type="button" class="primary-action" data-practice-continue>${escapeHtml(assessmentText("continue"))}</button>`;
+    actions.querySelector("[data-practice-continue]")?.addEventListener("click", () => {
+      const recommendation = payload.recommendation;
+      if (recommendation?.module_id && recommendation?.concept_id) setRoute(`course/${recommendation.module_id}/${recommendation.concept_id}`);
+      else setRoute("course");
+    });
+    return;
+  }
+  textarea.disabled = false;
+  submit.disabled = false;
+  actions.innerHTML = `<button type="button" class="ghost-button" data-practice-retry>${escapeHtml(assessmentText("retry"))}</button><button type="button" class="ghost-button" data-practice-reference>${escapeHtml(assessmentText("showReference"))}</button>`;
+  actions.querySelector("[data-practice-retry]")?.addEventListener("click", () => { textarea.value = ""; textarea.focus(); feedback.textContent = ""; });
+  actions.querySelector("[data-practice-reference]")?.addEventListener("click", () => {
+    panel.dataset.referenceShown = "true";
+    const reference = payload.reference_answer || result.reference_answer || result.expected_answer;
+    // Keep the action container in the DOM so a later retry can render a new
+    // state without losing its controls.
+    actions.innerHTML = `<div class="practice-reference"><strong>${escapeHtml(assessmentText("reference"))}</strong><p>${escapeHtml(reference || assessmentText("needsMore"))}</p></div>`;
+  });
 }
 
 async function submitPractice(panel) {
   const answer = panel.querySelector(".practice-answer")?.value.trim();
-  if (!answer) return;
+  if (!answer) {
+    renderPracticeState(panel, "incomplete", { explanation: assessmentText("empty") });
+    panel.querySelector(".practice-answer")?.focus();
+    return;
+  }
   const button = panel.querySelector("[data-practice-submit]"); button.disabled = true;
   try {
-    const payload = await fetchJson("/api/practice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ concept_id: panel.dataset.conceptId, question_id: panel.dataset.questionId, student_answer: answer, hint_level: Number(panel.dataset.hintLevel || 0), attempt_number: Number(panel.dataset.attemptNumber || 1), session_id: sessionId, ui_language: language }) });
+    const payload = await fetchJson("/api/practice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ concept_id: panel.dataset.conceptId, question_id: panel.dataset.questionId, student_answer: answer, hint_level: Number(panel.dataset.hintLevel || 0), attempt_number: Number(panel.dataset.attemptNumber || 1), session_id: sessionId, ui_language: language, reference_shown: panel.dataset.referenceShown === "true" }) });
     sessionId = payload.session_id; window.localStorage.setItem("stochasticTutorSession", sessionId);
-    const result = payload.result || {}; panel.querySelector(".quiz-feedback").textContent = `${result.correct ? (language === "zh" ? "回答正确。" : language === "sv" ? "Rätt." : "Correct.") : (language === "zh" ? "需要复习。" : language === "sv" ? "Detta behöver repeteras." : "This needs review.")} ${result.explanation || ""}`;
-    panel.querySelector(".practice-answer").disabled = true; renderProgress(payload.memory, payload.learning_note, payload.recommendation); renderOverview(payload.memory, payload.recommendation);
+    const result = payload.result || {};
+    panel.dataset.attemptNumber = String(Number(panel.dataset.attemptNumber || 1) + 1);
+    const state = result.correct === true ? "correct" : result.correct === false ? "incorrect" : "incomplete";
+    renderPracticeState(panel, state, result, payload);
+    renderProgress(payload.memory, payload.learning_note, payload.recommendation); renderOverview(payload.memory, payload.recommendation);
   } catch (error) { panel.querySelector(".quiz-feedback").textContent = `${language === "zh" ? "答案保存失败" : language === "sv" ? "Svaret kunde inte sparas" : "The answer could not be saved"}: ${error.message}`; button.disabled = false; }
 }
 
@@ -808,7 +922,21 @@ async function submitQuiz(questionId, answerIndex) {
   try {
     const payload = await fetchJson("/api/quiz/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question_id: questionId, answer_index: answerIndex, session_id: sessionId, ui_language: language }) });
     sessionId = payload.session_id; window.localStorage.setItem("stochasticTutorSession", sessionId);
-    const result = payload.result; quizPanel.querySelector(".quiz-feedback").textContent = `${result.correct ? (language === "zh" ? "回答正确。" : language === "sv" ? "Rätt. " : "Correct. ") : (language === "zh" ? "再想想。" : language === "sv" ? "Inte riktigt. " : "Not quite. ")}${result.explanation}`; renderProgress(payload.memory, language === "zh" ? "测验结果已保存。" : language === "sv" ? "Quizresultatet har sparats." : "Your quiz result has been saved.", payload.recommendation);
+    const result = payload.result;
+    const selected = buttons[answerIndex];
+    buttons.forEach((button) => button.classList.remove("correct-answer", "incorrect-answer"));
+    if (result.correct) selected.classList.add("correct-answer");
+    else {
+      selected.classList.add("incorrect-answer");
+      if (buttons[result.correct_index]) buttons[result.correct_index].classList.add("correct-answer");
+    }
+    const feedback = quizPanel.querySelector(".quiz-feedback");
+    feedback.className = `quiz-feedback ${result.correct ? "correct" : "incorrect"}`;
+    feedback.innerHTML = `<span class="assessment-state-icon" aria-hidden="true">${result.correct ? "✓" : "✕"}</span> <strong>${escapeHtml(result.correct ? assessmentText("correct") : assessmentText("incorrect"))}</strong> ${escapeHtml(result.explanation || "")}`;
+    const next = quizPanel.querySelector(".assessment-next-actions");
+    next.innerHTML = `<button type="button" class="${result.correct ? "primary-action" : "ghost-button"}" data-quiz-next>${escapeHtml(result.correct ? assessmentText("continue") : assessmentText("quizRetry"))}</button>`;
+    next.querySelector("[data-quiz-next]")?.addEventListener("click", () => result.correct ? setRoute(`course/${payload.recommendation?.module_id || activeModuleId}`) : openQuiz(quizPanel.dataset.conceptId || null));
+    renderProgress(payload.memory, language === "zh" ? "测验结果已保存。" : language === "sv" ? "Quizresultatet har sparats." : "Your quiz result has been saved.", payload.recommendation);
   } catch (error) { quizPanel.querySelector(".quiz-feedback").textContent = language === "zh" ? `答案保存失败：${error.message}` : `The answer could not be saved: ${error.message}`; buttons.forEach((button) => { button.disabled = false; }); }
 }
 
@@ -824,8 +952,8 @@ input.addEventListener("keydown", (event) => {
   if (!mutationInFlight && input.value.trim()) form.requestSubmit();
 });
 form.addEventListener("submit", (event) => { event.preventDefault(); if (mutationInFlight) return; const question = input.value.trim(); if (question) { input.value = ""; autoGrowInput(); askAgent(question); } });
-quizButton.addEventListener("click", openQuiz);
-resetButton.addEventListener("click", () => { sessionId = null; window.localStorage.removeItem("stochasticTutorSession"); hideSimulationView(); conversation.innerHTML = `<article class="message agent-message"><span class="message-label">${t("common.tutor")}</span><div class="message-body"><p>${escapeHtml(t("tutor.empty"))}</p></div></article>`; quizPanel.classList.add("hidden"); input.value = ""; autoGrowInput(); input.focus(); composerStatus.textContent = t("tutor.composer"); });
+quizButton.addEventListener("click", () => openQuiz());
+resetButton.addEventListener("click", () => { sessionId = null; latestSimulationPayload = null; window.localStorage.removeItem("stochasticTutorSession"); hideSimulationView(); conversation.innerHTML = `<article class="message agent-message"><span class="message-label">${t("common.tutor")}</span><div class="message-body"><p>${escapeHtml(t("tutor.empty"))}</p></div></article>`; quizPanel.classList.add("hidden"); input.value = ""; autoGrowInput(); input.focus(); composerStatus.textContent = t("tutor.composer"); });
 closeSimulationView?.addEventListener("click", () => { hideSimulationView(); showView("tutorView", { focus: true }); });
 function routeForView(view) {
   return view === "courseView" ? "course" : view === "tutorView" ? "tutor" : view === "simulationLabView" ? "simulations" : view === "progressView" ? "progress" : "overview";

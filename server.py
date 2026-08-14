@@ -579,7 +579,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             query = parse_qs(parsed.query)
             concept_id = query.get("concept_id", [""])[0]
             try:
-                self._json({"practice": ASSESSMENTS.question_for_concept(concept_id)})
+                self._json({"practice": ASSESSMENTS.practice_for_concept(concept_id)})
             except ValueError as error:
                 self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_concept")
         elif path.startswith("/api/sessions/") and path.endswith("/export"):
@@ -668,7 +668,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             elif path == "/api/practice":
                 validate_payload_fields(
                     payload,
-                    allowed={"concept_id", "question_id", "student_answer", "hint_level", "attempt_number", "session_id", "ui_language"},
+                    allowed={"concept_id", "question_id", "student_answer", "hint_level", "attempt_number", "session_id", "ui_language", "reference_shown"},
                     required={"concept_id", "student_answer"},
                 )
                 session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
@@ -677,11 +677,15 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     raise ValueError("concept_id is not in the curriculum")
                 question_id = payload.get("question_id")
                 if not isinstance(question_id, str):
-                    question = ASSESSMENTS.question_for_concept(concept_id)
+                    question = ASSESSMENTS.practice_for_concept(concept_id)
                     question_id = question["id"]
                 result = ASSESSMENTS.grade_free_text(question_id, payload.get("student_answer", ""))
-                result.update({"answer_index": 0, "hints_used": max(0, int(payload.get("hint_level", 0) or 0)), "attempt_number": payload.get("attempt_number", 1), "event_type": "PRACTICE_ANSWER", "grading_method": "deterministic_keyword_or_relation_check"})
+                reference_shown = bool(payload.get("reference_shown", False))
+                result.update({"answer_index": 0, "hints_used": max(0, int(payload.get("hint_level", 0) or 0), 3 if reference_shown else 0), "reference_shown": reference_shown, "attempt_number": payload.get("attempt_number", 1), "event_type": "PRACTICE_ANSWER", "grading_method": "deterministic_keyword_or_relation_check"})
                 response = AGENT.handle_assessment(result, session_id, str(payload.get("ui_language") or "en"))
+                # Keep the reference answer out of the rendered feedback until
+                # the learner explicitly asks to see it.
+                response["reference_answer"] = result.get("expected_answer")
             else:
                 validate_payload_fields(
                     payload,

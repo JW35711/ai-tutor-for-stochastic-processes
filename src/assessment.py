@@ -22,6 +22,7 @@ class AssessmentEngine:
         self._validate_bank(questions)
         self.bank_sha256 = hashlib.sha256(raw).hexdigest()
         self.questions = {item["id"]: item for item in questions}
+        self.practice_questions: dict[str, dict[str, Any]] = {}
         self.by_module = {}
         for item in questions:
             self.by_module.setdefault(item["module_id"], item)
@@ -32,29 +33,30 @@ class AssessmentEngine:
             for point in module["knowledge_points"]
         }
         generated: list[dict[str, Any]] = []
+        reviewed_concepts = {item.get("concept_id") for item in questions}
         for concept_id, point in self.concepts.items():
-            if concept_id in {item.get("concept_id") for item in questions}:
-                continue
-            generated.append(
-                {
-                    "id": f"kp-{concept_id}",
-                    "module_id": point["module_id"],
-                    "concept_id": concept_id,
-                    "question_type": "free_text",
-                    "difficulty": "core",
-                    "hint_levels": [f"Focus on the defining relationship in {point['title']}."],
-                    "question": point["practice_prompt"],
-                    "expected_answer": point["summary"],
-                    "choices": [],
-                    "correct_index": 0,
-                    "explanation": point["summary"],
-                }
-            )
+            practice_item = {
+                "id": f"kp-{concept_id}",
+                "module_id": point["module_id"],
+                "concept_id": concept_id,
+                "question_type": "free_text",
+                "difficulty": "core",
+                "hint_levels": [f"Focus on the defining relationship in {point['title']}."],
+                "question": point["practice_prompt"],
+                "expected_answer": point["summary"],
+                "choices": [],
+                "correct_index": 0,
+                "explanation": point["summary"],
+            }
+            self.practice_questions[practice_item["id"]] = practice_item
+            if concept_id not in reviewed_concepts:
+                generated.append(practice_item)
         self.questions.update({item["id"]: item for item in generated})
         # The hash remains the reviewed source-bank hash; generated KP prompts
         # are deterministic projections of curriculum.json and are not hidden
         # content versions.
         self.by_concept = {item["concept_id"]: item for item in self.questions.values() if item.get("concept_id")}
+        self.by_practice_concept = {item["concept_id"]: item for item in self.practice_questions.values() if item.get("concept_id")}
 
     @staticmethod
     def _validate_bank(questions: object) -> None:
@@ -143,8 +145,19 @@ class AssessmentEngine:
             raise ValueError(f"no assessment for {concept_id}")
         return self._public(item)
 
+    def practice_for_concept(self, concept_id: str) -> dict[str, Any]:
+        item = self.by_practice_concept.get(concept_id)
+        if item is None:
+            raise ValueError(f"no practice for {concept_id}")
+        return self._public(item)
+
     def hint(self, *, concept_id: str, question_id: str | None = None, hint_level: int = 1, language: str = "en") -> dict[str, Any]:
-        item = self.questions.get(question_id or "") or self.by_concept.get(concept_id)
+        item = (
+            self.questions.get(question_id or "")
+            or self.practice_questions.get(question_id or "")
+            or self.by_practice_concept.get(concept_id)
+            or self.by_concept.get(concept_id)
+        )
         if item is None or item.get("concept_id") != concept_id:
             raise ValueError("unknown concept assessment")
         levels = list(item.get("hint_levels", []))
@@ -179,7 +192,7 @@ class AssessmentEngine:
         return {"question_id": item["id"], "concept_id": concept_id, "hint_level": level, "hint": localized[level - 1]}
 
     def grade_free_text(self, question_id: str, student_answer: str) -> dict[str, Any]:
-        item = self.questions.get(question_id)
+        item = self.questions.get(question_id) or self.practice_questions.get(question_id)
         if item is None:
             raise ValueError("unknown question id")
         answer = str(student_answer or "").strip().lower()

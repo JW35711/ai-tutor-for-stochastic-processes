@@ -838,9 +838,20 @@ h1 {
 
 .quiz-feedback.correct { color: var(--green); }
 .quiz-feedback.incorrect { color: var(--danger); }
-.practice-answer { width: 100%; box-sizing: border-box; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font: inherit; resize: vertical; }
+.practice-answer { width: 100%; box-sizing: border-box; margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font: inherit; resize: vertical; }
+.practice-answer:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 91, 219, .1); outline: none; }
 .practice-actions { display: flex; gap: 10px; align-items: center; }
 .practice-hint { min-height: 1.3em; color: var(--muted); }
+.practice-feedback { display: block; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.practice-correct .practice-feedback,
+.quiz-feedback.correct { color: #176548; border-color: #a9d4c2; background: #edf8f3; }
+.practice-incorrect .practice-feedback,
+.quiz-feedback.incorrect { color: #8a3e3e; border-color: #e9b9b2; background: #fff1ef; }
+.practice-incomplete .practice-feedback { color: #6b4c16; border-color: #ead29c; background: #fff8e6; }
+.assessment-state-icon { display: inline-grid; width: 1.3em; height: 1.3em; place-items: center; border: 1px solid currentColor; border-radius: 999px; font-weight: 800; }
+.assessment-next-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.practice-reference { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--primary); background: var(--primary-tint); }
+.practice-reference p { margin: 4px 0 0; line-height: 1.55; }
 .kp-profile-item { align-items: center; }
 
 .conversation {
@@ -1564,8 +1575,13 @@ body { color: var(--ink); background: var(--paper); }
 .hidden { display: none !important; }
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
-  .app-main { margin-left: 0; }
+  .sidebar { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: block; width: 100%; height: 68px; padding: 5px 8px max(5px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); border-right: 0; background: rgba(255, 255, 255, .96); }
+  .sidebar .brand, .sidebar .sidebar-note { display: none; }
+  .side-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; height: 100%; }
+  .nav-item { min-width: 0; height: 100%; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 2px; text-align: center; border-radius: 9px; font-size: .62rem; }
+  .nav-item.active::before { top: 2px; right: 28%; left: 28%; width: auto; height: 2px; border-radius: 4px; }
+  .nav-icon { width: auto; font-size: .9rem; }
+  .app-main { margin-left: 0; padding-bottom: 68px; }
 }
 
 /* Student-first curriculum and composer polish. */
