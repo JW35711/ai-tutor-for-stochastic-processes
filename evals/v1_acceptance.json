@@ -19,6 +19,6 @@
   {"id":"course_navigation","question":"What do we learn in this course?","expected_intent":"course_navigation","expected_sub_intent":"definition","expected_module":null,"tool_called":false},
   {"id":"brownian_simulation","question":"Simulate Brownian motion with 100 steps.","expected_intent":"simulation","expected_sub_intent":"definition","expected_module":"module04","expected_tool":"simulate_brownian_motion","tool_called":true},
   {"id":"poisson_simulation","question":"Run a Poisson process with rate 2 for 5 time units.","expected_intent":"simulation","expected_sub_intent":"definition","expected_module":"module01","expected_tool":"simulate_poisson_process","tool_called":true},
-  {"id":"scope_identity","question":"Who are you?","expected_intent":"unsupported","expected_sub_intent":"definition","expected_module":"general","tool_called":false},
+  {"id":"scope_identity","question":"Who are you?","expected_intent":"general_chat","expected_sub_intent":"definition","expected_module":"general","tool_called":false},
   {"id":"scope_file_request","question":"Can you read files from my computer?","expected_intent":"unsupported","expected_sub_intent":"definition","expected_module":"general","tool_called":false}
 ]

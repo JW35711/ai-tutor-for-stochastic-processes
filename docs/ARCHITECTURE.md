@@ -217,7 +217,7 @@ the parameter column to existing local profiles without deleting earlier turns.
 File-backed memory uses WAL mode, enforced foreign keys and a bounded busy
 timeout; application-level locking keeps the shared standard-library connection
 consistent across request threads.
-Schema version 3 is stored in SQLite `user_version`. Older local databases are
+Schema version 6 is stored in SQLite `user_version`. Older local databases are
 migrated in place, while a database created by a newer application is rejected
 instead of being silently downgraded. Simulation turns and quiz attempts are
 independently capped per session, and the learner can export all retained rows
@@ -266,3 +266,34 @@ The hardened Compose profile runs the non-root image with a read-only root
 filesystem, no Linux capabilities, bounded resources and a dedicated SQLite
 volume. CI starts this profile, verifies readiness and OpenAPI, then removes its
 temporary volume.
+
+## Browser and learner identity boundary
+
+The browser is a vanilla JavaScript client with five independent views. A
+guest keeps a browser-local learner session. A registered learner receives a
+random, HttpOnly, SameSite=Lax cookie; only its server-side hash is stored in
+SQLite. The `users`, `auth_sessions` and `learner_identities` tables map that
+cookie to the existing learner session tables. Every authenticated read or
+write resolves the server-side identity and ignores an arbitrary frontend
+`session_id`, which provides the two-user isolation boundary used by the
+browser acceptance tests.
+
+```mermaid
+flowchart LR
+    B[Browser / KaTeX UI] --> API[HTTP API]
+    API --> AUTH[Auth and learner identity]
+    AUTH --> L[(SQLite users and learner state)]
+    API --> G[LangGraph conditional workflow]
+    G --> R[Curriculum / Assessment / Tutor agents]
+    R --> K[Knowledge and evidence gate]
+    R --> P[15 Python tools]
+    P --> V[Structured visualization]
+    V --> B
+```
+
+The current system is intentionally one AI Tutor application with three
+bounded responsibility agents. It is not an OAuth provider, teacher admin
+system, distributed session service or Multi-Agent platform. Playwright tests
+start a real isolated `server.py`, exercise the browser and collect console,
+page-error and local 5xx failures. CI runs this browser job separately from
+the fast runtime/evaluation job.

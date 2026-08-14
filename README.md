@@ -8,6 +8,37 @@
 | ---: | ---: | ---: | ---: | ---: |
 | 11/11 modules | 40 | 15 | 421 | 477/488 current credibility baseline (327 core + 129 hard + 32 holdout) |
 
+The release gate also includes `329 pytest` checks and `9` real-browser
+Playwright acceptance tests; Docker is verified in CI on a runner with Docker.
+
+## Current v1 release surface
+
+StochLab is a single educational AI Tutor with a conditional LangGraph
+workflow, not a free-form multi-agent platform. The browser has five views:
+Overview, Course, AI Tutor, Simulation Lab and My Progress. It supports
+English, Chinese and Swedish UI/query languages, guest sessions and optional
+local registered accounts. Registered learner identities are mapped to the
+existing SQLite turns, assessments, concept mastery, learning events and
+tutor context; the server never trusts a frontend `session_id` over an
+authenticated identity.
+
+The current acceptance surface is 11 modules / 40 knowledge points / 15
+Python simulation tools / 421 RAG entries, with 74 verified visualization
+targets, browser acceptance tests, deterministic evaluation suites and a
+Docker/CI contract. DeepSeek and other OpenAI-compatible providers are
+optional: without a key the same grounded, concise English fallback keeps the
+demo usable. KaTeX renders supported inline and display mathematics.
+
+Run the service locally with `python server.py --host 127.0.0.1 --port 8000`.
+For the real browser gate, install `requirements-e2e.txt`, run
+`python -m playwright install chromium`, then use `python -m pytest tests/e2e -q`.
+
+Architecture and interview handoff material lives in `docs/`:
+[architecture](docs/ARCHITECTURE.md), [responsible AI](docs/RESPONSIBLE_AI.md),
+[demo script](docs/DEMO_SCRIPT_CN.md), [project pitch](docs/PROJECT_PITCH_CN.md),
+[interview Q&A](docs/INTERVIEW_QA_CN.md), [technical deep dive](docs/TECHNICAL_DEEP_DIVE_CN.md),
+[verified metrics](docs/VERIFIED_METRICS.md) and [resume bullets](docs/RESUME_BULLETS_CN.md).
+
 An educational AI Agent prototype extending the degree project:
 **Simulation and Visualization of Stochastic Mechanisms: Applications to
 Engineering Course Development**.
@@ -540,8 +571,9 @@ For Chinese interviews, use the prepared
 - The lightweight web chart does not replace the notebook's Matplotlib figures.
 
 Future work may add a learned reranker, a larger calibrated assessment bank,
-authentication and hosted deployment. LangGraph is now the orchestration
-runtime; true Multi-Agent coordination remains outside the current scope.
+formal identity/retention governance and hosted multi-instance deployment.
+LangGraph is now the orchestration runtime; true Multi-Agent coordination
+remains outside the current scope.
 
 ## License
 

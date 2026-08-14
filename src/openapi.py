@@ -35,8 +35,9 @@ OPENAPI_SPEC: dict[str, Any] = {
         "version": APP_VERSION,
         "description": (
             "Local-first API for a source-aware stochastic-process teaching Agent. "
-            "The interview build has no application-level authentication and must "
-            "sit behind an authenticated reverse proxy before public exposure."
+            "The interview build has optional minimal local accounts; production "
+            "deployment still requires HTTPS, formal identity management and a "
+            "multi-instance learner store."
         ),
     },
     "x-api-version": API_VERSION,
@@ -90,6 +91,37 @@ OPENAPI_SPEC: dict[str, Any] = {
                 },
             }
         },
+        "/api/auth/me": {
+            "get": {
+                "operationId": "getAuthIdentity",
+                "summary": "Get the current cookie-backed learner identity",
+                "responses": {"200": _json_response("Auth identity", OBJECT), "429": ERROR_RESPONSE},
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "operationId": "registerLearner",
+                "summary": "Create a minimal local learner account",
+                "requestBody": {"required": True, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AuthRequest"}}}},
+                "responses": {"200": _json_response("Registered identity", OBJECT), "400": ERROR_RESPONSE, "409": ERROR_RESPONSE, "429": ERROR_RESPONSE},
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "operationId": "loginLearner",
+                "summary": "Start a cookie-backed learner session",
+                "requestBody": {"required": True, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AuthRequest"}}}},
+                "responses": {"200": _json_response("Authenticated identity", OBJECT), "401": ERROR_RESPONSE, "429": ERROR_RESPONSE},
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "operationId": "logoutLearner",
+                "summary": "Invalidate the current learner session",
+                "requestBody": {"required": True, "content": {"application/json": {"schema": OBJECT}}},
+                "responses": {"200": _json_response("Logged out", OBJECT), "429": ERROR_RESPONSE},
+            }
+        },
         "/api/curriculum": {
             "get": {
                 "operationId": "getCurriculum",
@@ -137,7 +169,7 @@ OPENAPI_SPEC: dict[str, Any] = {
                     {
                         "name": "session_id",
                         "in": "query",
-                        "required": True,
+                        "required": False,
                         "schema": {"$ref": "#/components/schemas/SessionId"},
                     }
                 ],
@@ -247,6 +279,15 @@ OPENAPI_SPEC: dict[str, Any] = {
                 "maxLength": 128,
                 "pattern": "^[^/\\u0000-\\u001F]{1,128}$",
                 "description": "Printable opaque learner-session identifier without slash.",
+            },
+            "AuthRequest": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["username", "password"],
+                "properties": {
+                    "username": {"type": "string", "pattern": "^[a-zA-Z0-9_]{3,32}$"},
+                    "password": {"type": "string", "minLength": 8, "maxLength": 128},
+                },
             },
             "ChatRequest": {
                 "type": "object",

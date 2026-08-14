@@ -28,8 +28,9 @@
       <div class="app-main">
         <header class="topbar">
           <div><span class="breadcrumb">STOCHLAB /</span><strong id="locationBreadcrumb" data-i18n="topbar.workspace">Course workspace</strong></div>
-          <div class="topbar-status"><label class="language-picker" for="languageSelect"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh">中文</option><option value="sv">Svenska</option></select></label><span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i><span data-i18n="health.connecting">Connecting</span></span></div>
+          <div class="topbar-status"><label class="language-picker" for="languageSelect"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh">中文</option><option value="sv">Svenska</option></select></label><span id="healthStatus" class="health-pill" role="status" aria-live="polite"><i></i><span data-i18n="health.connecting">Connecting</span></span><div id="authControls" class="auth-controls"></div></div>
         </header>
+        <div id="authPopover" class="auth-popover hidden" role="dialog" aria-label="Account access"></div>
 
         <main class="dashboard">
           <section id="overviewView" class="app-view active-view" aria-labelledby="overviewTitle">

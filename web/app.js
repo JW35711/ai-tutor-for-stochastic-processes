@@ -52,6 +52,8 @@ const simulationCatalogue = document.querySelector("#simulationCatalogue");
 const simulationCatalogueGrid = document.querySelector("#simulationCatalogueGrid");
 const simulationCount = document.querySelector("#simulationCount");
 const simulationDetail = document.querySelector("#simulationDetail");
+const authControls = document.querySelector("#authControls");
+const authPopover = document.querySelector("#authPopover");
 
 const translations = {
   en: {
@@ -63,6 +65,7 @@ const translations = {
     "tutor.title": "Ask, understand, and follow up", "tutor.intro": "Chat with the course tutor. Explanations are grounded in the notebooks and lecture notes.", "tutor.chat": "TUTOR CHAT", "tutor.ask": "Ask a question", "tutor.quiz": "Check your understanding", "tutor.empty": "Ask me about a concept, a module, or a simulation.", "tutor.askLabel": "Ask the tutor", "tutor.placeholder": "For example: What is Brownian motion?", "tutor.askButton": "Ask Tutor", "tutor.composer": "Press Enter to ask · Shift+Enter for a new line", "tutor.support": "LEARNING SUPPORT", "tutor.results": "Results", "tutor.ready": "Ready when you are", "tutor.resultHint": "Sources and simulation details will appear here after a Tutor response.",
     "simulation.label": "SIMULATION", "simulation.title": "Explore verified experiments", "simulation.intro": "Choose a knowledge point in Course or ask the Tutor for an explicit simulation.", "simulation.catalogue": "EXPERIMENT CATALOGUE", "simulation.emptyTitle": "Simulation results appear here", "simulation.emptyText": "Start from a course knowledge point with a Simulation action, or ask the Tutor: “Simulate Brownian motion with 100 steps.”", "simulation.browse": "Browse course experiments", "simulation.verified": "VERIFIED EXPERIMENT", "simulation.result": "Simulation result", "simulation.verifiedOutput": "Verified output from the selected stochastic-process model.", "simulation.backTutor": "Back to tutor", "simulation.sources": "Sources and parameters", "simulation.search": "Search title, module, or knowledge point", "simulation.allModules": "All modules", "simulation.goal": "Learning goal", "simulation.type": "Experiment type", "simulation.parameters": "Parameters", "simulation.visualization": "Visualization", "simulation.open": "Open experiment", "simulation.run": "Run experiment", "simulation.ask": "Ask Tutor about this", "simulation.backCatalogue": "Back to catalogue", "simulation.noMatches": "No experiments match this search.", "simulation.verifiedCard": "Verified notebook experiment",
     "progress.title": "Your learning record", "progress.intro": "Practice and quiz activity are saved to your local learner profile.", "progress.record": "LEARNING RECORD", "progress.mastery": "Mastery by module", "progress.local": "Local memory", "progress.emptyNote": "Your practice and quiz activity will appear here.", "progress.noRecord": "No learning record yet.",
+    "auth.signIn": "Sign in", "auth.register": "Create account", "auth.continueGuest": "Continue as Guest", "auth.username": "Username", "auth.password": "Password", "auth.submit": "Continue", "auth.logout": "Log out", "auth.signedIn": "Signed in as", "auth.switch": "Use another account", "auth.invalid": "Please check your username and password.",
   },
   zh: {
     "nav.overview": "概览", "nav.course": "课程", "nav.tutor": "AI 导师", "nav.simulation": "模拟实验室", "nav.progress": "我的进度",
@@ -73,6 +76,7 @@ const translations = {
     "tutor.title": "提问、理解并继续追问", "tutor.intro": "与课程导师对话。回答基于 notebook 和课程讲义。", "tutor.chat": "导师对话", "tutor.ask": "提出问题", "tutor.quiz": "检查理解", "tutor.empty": "你可以问我概念、模块或模拟实验。", "tutor.askLabel": "询问导师", "tutor.placeholder": "例如：什么是布朗运动？", "tutor.askButton": "询问导师", "tutor.composer": "按 Enter 提问 · Shift+Enter 换行", "tutor.support": "学习支持", "tutor.results": "结果", "tutor.ready": "准备好了", "tutor.resultHint": "导师回答后，来源和模拟详情会显示在这里。",
     "simulation.label": "模拟", "simulation.title": "探索经过验证的实验", "simulation.intro": "在课程中选择知识点，或向导师明确提出模拟请求。", "simulation.catalogue": "实验目录", "simulation.emptyTitle": "模拟结果会显示在这里", "simulation.emptyText": "从课程知识点点击知识点中的 Simulation，或向导师提问：“模拟 100 步布朗运动。”", "simulation.browse": "浏览课程实验", "simulation.verified": "经过验证的实验", "simulation.result": "模拟结果", "simulation.verifiedOutput": "所选随机过程模型的验证输出。", "simulation.backTutor": "返回导师", "simulation.sources": "来源和参数", "simulation.search": "搜索实验标题、模块或知识点", "simulation.allModules": "全部模块", "simulation.goal": "学习目标", "simulation.type": "实验类型", "simulation.parameters": "参数", "simulation.visualization": "可视化", "simulation.open": "打开实验", "simulation.run": "运行实验", "simulation.ask": "询问导师", "simulation.backCatalogue": "返回实验目录", "simulation.noMatches": "没有匹配的实验。", "simulation.verifiedCard": "已验证的 notebook 实验",
     "progress.title": "你的学习记录", "progress.intro": "练习和测验活动会保存到本地学习者档案。", "progress.record": "学习记录", "progress.mastery": "按模块查看掌握度", "progress.local": "本地记忆", "progress.emptyNote": "你的练习和测验活动会显示在这里。", "progress.noRecord": "还没有学习记录。",
+    "auth.signIn": "登录", "auth.register": "创建账户", "auth.continueGuest": "以访客继续", "auth.username": "用户名", "auth.password": "密码", "auth.submit": "继续", "auth.logout": "退出登录", "auth.signedIn": "已登录：", "auth.switch": "切换账户", "auth.invalid": "请检查用户名和密码。",
   },
   sv: {
     "nav.overview": "Översikt", "nav.course": "Kurs", "nav.tutor": "AI-handledare", "nav.simulation": "Simuleringslabb", "nav.progress": "Mina framsteg",
@@ -83,6 +87,7 @@ const translations = {
     "tutor.title": "Fråga, förstå och följ upp", "tutor.intro": "Chatta med kursens handledare. Förklaringarna bygger på notebook-filerna och föreläsningsanteckningarna.", "tutor.chat": "HANDLEDARCHATT", "tutor.ask": "Ställ en fråga", "tutor.quiz": "Kontrollera din förståelse", "tutor.empty": "Fråga mig om ett begrepp, en modul eller en simulering.", "tutor.askLabel": "Fråga handledaren", "tutor.placeholder": "Till exempel: Vad är Browns rörelse?", "tutor.askButton": "Fråga handledaren", "tutor.composer": "Tryck Enter för att fråga · Shift+Enter för ny rad", "tutor.support": "LÄRANDESTÖD", "tutor.results": "Resultat", "tutor.ready": "Redo när du är", "tutor.resultHint": "Källor och simuleringsdetaljer visas här efter ett svar från handledaren.",
     "simulation.label": "SIMULERING", "simulation.title": "Utforska verifierade experiment", "simulation.intro": "Välj en kunskapspunkt i Kurs eller be handledaren om en uttrycklig simulering.", "simulation.catalogue": "EXPERIMENTKATALOG", "simulation.emptyTitle": "Simuleringsresultat visas här", "simulation.emptyText": "Börja från en kunskapspunkt med åtgärden Simulation, eller fråga handledaren: ”Simulate Brownian motion with 100 steps.”", "simulation.browse": "Bläddra bland kursexperiment", "simulation.verified": "VERIFIERAT EXPERIMENT", "simulation.result": "Simuleringsresultat", "simulation.verifiedOutput": "Verifierat resultat från den valda stokastiska modellen.", "simulation.backTutor": "Tillbaka till handledaren", "simulation.sources": "Källor och parametrar", "simulation.search": "Sök efter titel, modul eller kunskapspunkt", "simulation.allModules": "Alla moduler", "simulation.goal": "Lärandemål", "simulation.type": "Experimenttyp", "simulation.parameters": "Parametrar", "simulation.visualization": "Visualisering", "simulation.open": "Öppna experiment", "simulation.run": "Kör experiment", "simulation.ask": "Fråga handledaren", "simulation.backCatalogue": "Tillbaka till katalogen", "simulation.noMatches": "Inga experiment matchar sökningen.", "simulation.verifiedCard": "Verifierat notebook-experiment",
     "progress.title": "Din studiehistorik", "progress.intro": "Övnings- och quizaktivitet sparas i din lokala lärarprofil.", "progress.record": "STUDIEHISTORIK", "progress.mastery": "Behärskning per modul", "progress.local": "Lokalt minne", "progress.emptyNote": "Din övnings- och quizaktivitet visas här.", "progress.noRecord": "Ingen studiehistorik ännu.",
+    "auth.signIn": "Logga in", "auth.register": "Skapa konto", "auth.continueGuest": "Fortsätt som gäst", "auth.username": "Användarnamn", "auth.password": "Lösenord", "auth.submit": "Fortsätt", "auth.logout": "Logga ut", "auth.signedIn": "Inloggad som", "auth.switch": "Byt konto", "auth.invalid": "Kontrollera användarnamn och lösenord.",
   },
 };
 
@@ -100,11 +105,89 @@ let pendingTutorAction = {};
 let experimentRegistry = [];
 let toolCatalogue = {};
 let activeExperimentId = null;
+let currentUser = null;
 const debugMode = new URLSearchParams(window.location.search).get("debug") === "1";
 if (debugMode) debugPanel.classList.remove("hidden");
 
 function t(key, fallback = key) {
   return translations[language]?.[key] || translations.en[key] || fallback;
+}
+
+function closeAuthPopover() {
+  authPopover?.classList.add("hidden");
+  if (authPopover) authPopover.innerHTML = "";
+}
+
+function renderAuthControls() {
+  if (!authControls) return;
+  if (currentUser) {
+    authControls.innerHTML = `<span class="auth-user">${escapeHtml(t("auth.signedIn"))} ${escapeHtml(currentUser.username)}</span><button type="button" class="ghost-button" data-auth-logout>${escapeHtml(t("auth.logout"))}</button>`;
+    authControls.querySelector("[data-auth-logout]")?.addEventListener("click", logoutUser);
+    closeAuthPopover();
+    return;
+  }
+  authControls.innerHTML = `<button type="button" class="ghost-button" data-auth-mode="login">${escapeHtml(t("auth.signIn"))}</button><button type="button" class="ghost-button" data-auth-mode="register">${escapeHtml(t("auth.register"))}</button><button type="button" class="ghost-button" data-auth-guest>${escapeHtml(t("auth.continueGuest"))}</button>`;
+  authControls.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => openAuthPopover(button.dataset.authMode)));
+  authControls.querySelector("[data-auth-guest]")?.addEventListener("click", continueAsGuest);
+}
+
+function openAuthPopover(mode = "login", message = "") {
+  if (!authPopover) return;
+  const isRegister = mode === "register";
+  authPopover.classList.remove("hidden");
+  authPopover.innerHTML = `<form id="authForm"><h3>${escapeHtml(isRegister ? t("auth.register") : t("auth.signIn"))}</h3><label>${escapeHtml(t("auth.username"))}<input name="username" autocomplete="username" minlength="3" maxlength="32" required /></label><label>${escapeHtml(t("auth.password"))}<input name="password" type="password" autocomplete="${isRegister ? "new-password" : "current-password"}" minlength="8" maxlength="128" required /></label><p class="auth-error" role="alert">${escapeHtml(message)}</p><div class="auth-actions"><button type="submit" class="primary-action">${escapeHtml(t("auth.submit"))}</button><button type="button" class="ghost-button" data-auth-close>${escapeHtml(t("auth.continueGuest"))}</button></div></form>`;
+  authPopover.querySelector("[data-auth-close]")?.addEventListener("click", closeAuthPopover);
+  authPopover.querySelector("form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
+    try {
+      const payload = await fetchJson(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: formData.get("username"), password: formData.get("password") }) });
+      currentUser = payload.user;
+      sessionId = payload.user.session_id;
+      window.localStorage.setItem("stochasticTutorSession", sessionId);
+      renderAuthControls();
+      await hydrateProfile();
+    } catch (error) {
+      openAuthPopover(mode, error.message || t("auth.invalid"));
+    }
+  });
+  authPopover.querySelector("input")?.focus();
+}
+
+async function hydrateProfile() {
+  if (!sessionId) return;
+  try {
+    const payload = await fetchJson(`/api/profile?session_id=${encodeURIComponent(sessionId)}&ui_language=${encodeURIComponent(language)}`);
+    renderProgress(payload.profile, "", payload.recommendation);
+    renderOverview(payload.profile, payload.recommendation);
+  } catch (_) { /* a guest can start with an empty profile */ }
+}
+
+function continueAsGuest() {
+  currentUser = null;
+  sessionId = null;
+  window.localStorage.removeItem("stochasticTutorSession");
+  renderAuthControls();
+  hydrateProfile();
+}
+
+async function logoutUser() {
+  try { await fetchJson("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); } catch (_) { /* clear local state even if the server is unavailable */ }
+  continueAsGuest();
+}
+
+async function hydrateAuth() {
+  try {
+    const payload = await fetchJson("/api/auth/me", {}, 5_000);
+    currentUser = payload.authenticated ? payload.user : null;
+    if (currentUser) {
+      sessionId = currentUser.session_id;
+      window.localStorage.setItem("stochasticTutorSession", sessionId);
+    }
+  } catch (_) { currentUser = null; }
+  renderAuthControls();
+  await hydrateProfile();
 }
 
 const assessmentStrings = {
@@ -158,6 +241,7 @@ function applyTranslations() {
   if (activeViewId) showView(activeViewId, { syncHash: false });
   if (curriculum) renderCurriculum();
   if (experimentRegistry.length) renderExperimentCatalogue();
+  renderAuthControls();
 }
 
 function showView(viewId, options = {}) {
@@ -787,6 +871,7 @@ function renderResponse(payload) {
 async function askAgent(question, action = {}) {
   const cleanQuestion = String(question || "").trim();
   if (mutationInFlight || !cleanQuestion) return;
+  const fromSimulationLab = activeViewId === "simulationLabView" && action.action_type === "simulation";
   setComposerLoading(true);
   addMessage("user", cleanQuestion);
   try {
@@ -804,7 +889,8 @@ async function askAgent(question, action = {}) {
       }
     }
     addMessage("agent", payload.answer); renderResponse(payload); if (payload.tool_called) addSimulationCard(payload); renderOverview(payload.memory, payload.recommendation);
-    showView("tutorView");
+    if (fromSimulationLab && payload.tool_called) showSimulationView(payload);
+    else showView("tutorView");
   } catch (error) { addMessage("agent", language === "zh" ? `这次请求未能完成：${error.message}` : `I could not complete that request: ${error.message}`); }
   finally { setComposerLoading(false); input.focus(); autoGrowInput(); }
 }
@@ -812,7 +898,9 @@ async function askAgent(question, action = {}) {
 async function openQuiz(conceptId = null) {
   if (mutationInFlight) return;
   try {
-    const payload = await fetchJson(`/api/quiz?${conceptId ? `concept_id=${encodeURIComponent(conceptId)}` : `module_id=${encodeURIComponent(activeModuleId)}`}`);
+    // The course has one compact quiz per module; a knowledge-point action
+    // keeps its concept context for navigation but uses the module bank.
+    const payload = await fetchJson(`/api/quiz?module_id=${encodeURIComponent(activeModuleId)}`);
     const quiz = payload.quiz;
     quizPanel.classList.remove("hidden");
     quizPanel.setAttribute("aria-label", assessmentText("check"));
@@ -976,6 +1064,6 @@ languageSelect?.addEventListener("change", () => {
 autoGrowInput();
 hydrateHealth();
 hydrateCurriculum();
-if (sessionId) fetchJson(`/api/profile?session_id=${encodeURIComponent(sessionId)}&ui_language=${encodeURIComponent(language)}`).then((payload) => renderProgress(payload.profile, "", payload.recommendation)).catch(() => {});
+hydrateAuth();
 applyRoute({ focus: false });
 applyTranslations();

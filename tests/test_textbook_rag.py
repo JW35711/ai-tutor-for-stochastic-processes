@@ -57,7 +57,8 @@ class TextbookRagTests(unittest.TestCase):
         finally:
             memory.close()
         self.assertEqual(response["tool"], "no_simulation")
-        self.assertEqual(response["intent"], "unsupported")
+        self.assertEqual(response["intent"], "general_chat")
+        self.assertEqual(response["sources"], [])
 
 
 if __name__ == "__main__":

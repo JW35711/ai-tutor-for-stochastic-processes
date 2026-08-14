@@ -10,11 +10,13 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import RLock
 from typing import Any
 
+from .auth import hash_password, normalize_username, token_hash, validate_password
 from .config import env_int
 
 
@@ -30,7 +32,7 @@ DEFAULT_MEMORY_PATH = (
         )
     )
 )
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class LearnerMemory:
@@ -165,6 +167,32 @@ class LearnerMemory:
                     updated_at TEXT NOT NULL,
                     FOREIGN KEY(session_id) REFERENCES sessions(session_id)
                 );
+
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS learner_identities (
+                    user_id TEXT PRIMARY KEY,
+                    learner_session_id TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                    FOREIGN KEY(learner_session_id) REFERENCES sessions(session_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS auth_sessions (
+                    token_hash TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS auth_sessions_expiry_index
+                    ON auth_sessions(expires_at);
                 """
             )
             # Existing local demos may have created the first schema version.
@@ -198,6 +226,82 @@ class LearnerMemory:
                     "ALTER TABLE tutor_context ADD COLUMN latest_result_summary TEXT"
                 )
             self._connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+
+    def create_user(self, username: object, password: object) -> dict[str, str]:
+        """Create a user and its stable learner identity in one transaction."""
+
+        normalized = normalize_username(username)
+        checked_password = validate_password(password)
+        user_id = str(uuid.uuid4())
+        learner_session_id = str(uuid.uuid4())
+        now = self._now()
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO users(user_id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                (user_id, normalized, hash_password(checked_password), now),
+            )
+            self._connection.execute(
+                "INSERT INTO sessions(session_id, created_at, updated_at) VALUES (?, ?, ?)",
+                (learner_session_id, now, now),
+            )
+            self._connection.execute(
+                "INSERT INTO learner_identities(user_id, learner_session_id, created_at) VALUES (?, ?, ?)",
+                (user_id, learner_session_id, now),
+            )
+        return {"user_id": user_id, "username": normalized, "learner_session_id": learner_session_id}
+
+    def user_by_username(self, username: object) -> dict[str, str] | None:
+        normalized = normalize_username(username)
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT user_id, username, password_hash FROM users WHERE username=?",
+                (normalized,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def user_with_identity(self, user_id: str) -> dict[str, str] | None:
+        with self._lock:
+            row = self._connection.execute(
+                """
+                SELECT u.user_id, u.username, i.learner_session_id
+                FROM users u JOIN learner_identities i ON i.user_id=u.user_id
+                WHERE u.user_id=?
+                """,
+                (user_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def create_auth_session(self, raw_token: str, user_id: str, expires_at: str) -> None:
+        now = self._now()
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO auth_sessions(token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+                (token_hash(raw_token), user_id, now, expires_at),
+            )
+
+    def user_for_auth_token(self, raw_token: str | None) -> dict[str, str] | None:
+        if not raw_token:
+            return None
+        now = self._now()
+        with self._lock, self._connection:
+            self._connection.execute("DELETE FROM auth_sessions WHERE expires_at <= ?", (now,))
+            row = self._connection.execute(
+                "SELECT user_id FROM auth_sessions WHERE token_hash=? AND expires_at > ?",
+                (token_hash(raw_token), now),
+            ).fetchone()
+        return self.user_with_identity(str(row["user_id"])) if row else None
+
+    def invalidate_auth_token(self, raw_token: str | None) -> None:
+        if not raw_token:
+            return
+        with self._lock, self._connection:
+            self._connection.execute("DELETE FROM auth_sessions WHERE token_hash=?", (token_hash(raw_token),))
+
+    def auth_stats(self) -> dict[str, int]:
+        with self._lock:
+            users = self._connection.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            sessions = self._connection.execute("SELECT COUNT(*) FROM auth_sessions").fetchone()[0]
+        return {"users": int(users), "active_auth_sessions": int(sessions)}
 
     @property
     def schema_version(self) -> int:
@@ -638,7 +742,13 @@ class LearnerMemory:
         ).isoformat(timespec="seconds")
         with self._lock, self._connection:
             rows = self._connection.execute(
-                "SELECT session_id FROM sessions WHERE updated_at < ?",
+                """
+                SELECT session_id FROM sessions
+                WHERE updated_at < ?
+                  AND session_id NOT IN (
+                      SELECT learner_session_id FROM learner_identities
+                  )
+                """,
                 (cutoff,),
             ).fetchall()
             session_ids = [row["session_id"] for row in rows]

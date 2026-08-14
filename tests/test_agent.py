@@ -73,9 +73,10 @@ class AgentTests(unittest.TestCase):
     def test_course_overview_never_inherits_a_previous_simulation(self) -> None:
         prior = self.agent.answer("解释伯努利过程的几何等待时间")
         response = self.agent.answer("这门课在学什么", prior["session_id"])
-        self.assertEqual(response["module_id"], "general")
+        self.assertIsNone(response["module_id"])
         self.assertEqual(response["tool"], "no_simulation")
-        self.assertIn("course develops", response["answer"])
+        self.assertEqual(response["intent"], "course_navigation")
+        self.assertIn("Stochastic Processes", response["answer"])
 
     def test_general_architecture_question_has_an_offline_answer(self) -> None:
         response = self.agent.answer("这个 Agent 的技术栈是什么")
@@ -85,7 +86,8 @@ class AgentTests(unittest.TestCase):
 
     def test_first_module_question_is_course_navigation_not_a_simulation(self) -> None:
         response = self.agent.answer("第一个module是什么")
-        self.assertEqual(response["module_id"], "general")
+        self.assertEqual(response["module_id"], "module01")
+        self.assertEqual(response["intent"], "course_navigation")
         self.assertIn("Module 01", response["answer"])
 
     def test_parameter_follow_up_still_inherits_the_previous_simulation(self) -> None:

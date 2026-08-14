@@ -27,6 +27,7 @@ class AgentState:
     topic: str | None = None
     intent: str = "unsupported"
     concept_sub_intent: str = "definition"
+    follow_up_kind: str | None = None
     concept_id: str | None = None
     comparison_module_ids: list[str] = field(default_factory=list)
     comparison_concept_ids: list[str] = field(default_factory=list)

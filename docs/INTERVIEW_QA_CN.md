@@ -119,8 +119,9 @@ capability 全部移除、禁止提权和 PID/CPU/内存限制。CI 会真实启
 
 每个来源带课程语料 `corpus_sha256`，每次测验带题库 `bank_sha256`。学生可以分别
 导出单次 Agent 运行和完整学习档案；完整档案含仿真历史、测验历史、当前推荐、内容
-版本与留存策略。`DELETE /api/sessions/{id}` 只删除该 session。当前原型没有身份
-认证，因此公开部署前必须在反向代理和数据库层增加用户身份与 session 所有权校验。
+版本与留存策略。`DELETE /api/sessions/{id}` 只删除当前 authenticated identity
+或 guest session。v1 有最小本地账户，但公开部署前仍需 HTTPS、正式身份服务和生产级
+数据库权限校验。
 
 ## 开源项目参考边界
 
@@ -138,3 +139,52 @@ capability 全部移除、禁止提权和 PID/CPU/内存限制。CI 会真实启
 5. 输入布朗运动方差误区，展示透明纠正和学习画像。
 6. 打开 `/health`、`/ready`、`/api/tools` 和 `/openapi.json`，说明工程监控、就绪
    判定与工具/API 参数契约。
+
+## 46 个高频追问（每题 20–60 秒）
+
+1. **为什么不是普通聊天机器人？** 有路由、证据 gate、工具白名单、状态和评测闭环。
+2. **为什么需要 LangGraph？** 用显式 conditional edges 表达 navigation、concept、simulation 和 assessment 分支。
+3. **三个 Agent 如何分工？** Curriculum 管目标，Assessment 管证据，Tutor 管解释与工具反馈。
+4. **RAG 的 source of truth？** `data/curriculum.json`、notebook cards、reviewed notes 和 textbook chunks。
+5. **421 条是什么？** 当前索引 entries，不代表 421 篇独立文献。
+6. **为什么相关不等于可回答？** 相关 passage 可能缺少条件或关键结论，所以需要 answerability。
+7. **五种 answerability 状态？** SUPPORTED、PARTIAL、CONFLICT、NONE、OUT_OF_SCOPE。
+8. **补充检索会不会死循环？** 最多两轮，并记录 missing requirements 和 retrieval rounds。
+9. **如何处理冲突证据？** 不静默选一边，列出来源分歧并请求上下文。
+10. **模型会不会算模拟数字？** 不会；Python tool 是数字唯一来源。
+11. **LLM 失败怎么办？** 返回短、英文、基于最相关 evidence 的 offline fallback。
+12. **API key 放哪里？** 仅本地 `.env` 或部署环境，不进仓库、镜像或日志。
+13. **为什么默认 local hash embedding？** 确定、离线、可复现；hosted embedding 是可选后端。
+14. **如何避免不同向量空间混用？** hosted query 失败时退 sparse，不把 local 和 hosted cosine 混算。
+15. **如何验证来源？** 每个 evidence 带 module、concept、cell/page locator 和 corpus SHA。
+16. **为什么要保存 corpus SHA？** 评测和回答必须对应同一份内容版本。
+17. **如何避免 raw PDF dump？** synthesis 只接收 bounded evidence，fallback 也有字符和词数上限。
+18. **概念题为什么不调用 tool？** intent branch 明确分离 concept 与 simulation。
+19. **如何识别 simulation？** deterministic phrases、实验 ID、参数变化和 active context 优先。
+20. **多轮如何实现？** SQLite 只保存 active experiment、参数和 compact summary。
+21. **Set lambda to 4 如何工作？** 从 active experiment 提取参数，只替换明确的 lambda。
+22. **什么是 follow-up 失败边界？** 没有 active experiment 时澄清，不强行分配 tool。
+23. **15 tools 如何安全？** registry 白名单、类型/范围/乘积工作量校验。
+24. **如何防 M/M/1 数学不稳定？** 先检查 `lambda < mu`，否则拒绝平稳分布讨论。
+25. **如何保证无 NaN？** JSON 序列化前拒绝非有限值，参数入口也拒绝非数值。
+26. **图表为何用结构化 payload？** renderer 不解析任意 Python 或 HTML，只消费受控 schema。
+27. **74/74 的含义？** 74 个 notebook visualization target 都能走 engine、renderer 和 API。
+28. **KaTeX 如何避免 amp 问题？** 先 stash math、再 HTML escape，最后只在公式节点渲染。
+29. **$5 会不会被当公式？** 解析器要求成对 delimiter，孤立货币符号保持普通文本。
+30. **practice 怎样影响学习记录？** 只有提交的 practice/quiz evidence 更新一个 KP。
+31. **Tutor 解释会不会改变 mastery？** 不会，导航和 simulation 也不会改变 mastery。
+32. **mastery 是不是能力测量？** 不是，是透明的 practice evidence product heuristic。
+33. **如何防重复 quiz 刷覆盖？** 统计 distinct question ID，同时保存 raw attempts。
+34. **SQLite 为什么够用？** 单实例面试 demo 要求简单持久化；多实例应换托管数据库。
+35. **账户的密码怎么存？** stdlib `hashlib.scrypt`、随机 salt、versioned format、constant-time compare。
+36. **cookie 是否可被前端读取？** 不可，HttpOnly；SameSite=Lax，生产 HTTPS 时开启 Secure。
+37. **前端伪造 session_id 怎么办？** authenticated request 从 cookie 映射 identity，忽略 payload session。
+38. **Guest 与 registered 如何分开？** Guest 使用浏览器 session；registered 使用服务端 learner identity。
+39. **账户功能的边界？** 无邮箱、OAuth、重置密码、2FA、管理员后台。
+40. **如何验证两用户隔离？** 真实浏览器注册 alpha/beta，切换登录并用 beta ID 攻击 alpha profile。
+41. **如何测试浏览器错误？** fixture 收集 console error、pageerror 和本地 5xx，失败存 screenshot/JSON。
+42. **为什么不是只做 source-string 测试？** Playwright 启动真实 server、真实 Chromium 和真实 UI 事件。
+43. **CI 有哪些 job？** fast runtime/eval、Docker smoke、独立 browser-e2e。
+44. **没有 provider key 能否演示？** 可以，offline fallback、Python tool 和 assessment 都可运行。
+45. **当前 hard set 119/129 怎么解释？** 是困难可信度诊断，不包装成通用完美检索。
+46. **如果继续生产化？** HTTPS/反向代理、集中身份、分布式 DB/限流、内容审核和学生研究。

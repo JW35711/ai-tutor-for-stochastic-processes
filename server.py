@@ -6,18 +6,22 @@ import argparse
 import hashlib
 import json
 import mimetypes
+import os
 import re
+import sqlite3
 import signal
 import time
 import uuid
 from dataclasses import asdict
 from datetime import datetime, timezone
 from http import HTTPStatus
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from src.agent import StochasticTutorAgent
+from src.auth import new_session_token, verify_password
 from src.assessment import AssessmentEngine
 from src.config import env_float, env_int
 from src.curriculum import curriculum_catalog
@@ -66,6 +70,11 @@ MAX_JSON_BODY_BYTES = env_int(
     1_000_000,
     minimum=1_024,
     maximum=20_000_000,
+)
+AUTH_SESSION_DAYS = env_int("AUTH_SESSION_DAYS", 30, minimum=1, maximum=365)
+AUTH_COOKIE_SECURE = (
+    str(os.environ.get("AUTH_COOKIE_SECURE", "0")).strip().lower()
+    in {"1", "true", "yes"}
 )
 REQUEST_SOCKET_TIMEOUT_SECONDS = env_float(
     "REQUEST_SOCKET_TIMEOUT_SECONDS",
@@ -306,7 +315,9 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; img-src 'self' data:; "
-            "style-src 'self' https://cdn.jsdelivr.net; "
+            # The visualization catalogue uses bounded inline positioning for
+            # event markers; keep scripts strict while allowing those styles.
+            "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
             "font-src 'self' https://cdn.jsdelivr.net; "
             "script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'",
         )
@@ -407,6 +418,46 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             raise ValueError("JSON body must be an object")
         return payload
 
+    def _auth_token(self) -> str | None:
+        cookie = SimpleCookie()
+        try:
+            cookie.load(self.headers.get("Cookie", ""))
+        except Exception:
+            return None
+        morsel = cookie.get("stochlab_auth")
+        return morsel.value if morsel else None
+
+    def _auth_user(self) -> dict[str, str] | None:
+        return AGENT.memory.user_for_auth_token(self._auth_token())
+
+    def _resolved_session_id(self, supplied: object = None) -> str:
+        """Authenticated identity wins; a guest may keep a browser session id."""
+
+        user = self._auth_user()
+        if user:
+            return user["learner_session_id"]
+        return validate_session_id(supplied) or str(uuid.uuid4())
+
+    @staticmethod
+    def _auth_cookie(token: str, *, clear: bool = False) -> str:
+        parts = [
+            f"stochlab_auth={'' if clear else token}",
+            "Path=/",
+            "HttpOnly",
+            "SameSite=Lax",
+            f"Max-Age={0 if clear else AUTH_SESSION_DAYS * 86400}",
+        ]
+        if AUTH_COOKIE_SECURE:
+            parts.append("Secure")
+        return "; ".join(parts)
+
+    def _safe_user_response(self, user: dict[str, str]) -> dict[str, str]:
+        return {
+            "user_id": user["user_id"],
+            "username": user["username"],
+            "session_id": user["learner_session_id"],
+        }
+
     def _static(self, request_path: str) -> None:
         relative = "index.html" if request_path in {"", "/"} else unquote(request_path[1:])
         candidate = (WEB_ROOT / relative).resolve()
@@ -484,6 +535,11 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     "tools": len(AGENT.tools),
                     "persistent_memory": True,
                     "multi_turn_context": True,
+                    "accounts": {
+                        **AGENT.memory.auth_stats(),
+                        "cookie": "HttpOnly; SameSite=Lax",
+                        "session_days": AUTH_SESSION_DAYS,
+                    },
                     "learner_data": {
                         "retention_days": MEMORY_RETENTION_DAYS or None,
                         "max_events_per_type_per_session": (
@@ -525,6 +581,9 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 prometheus_metrics(),
                 content_type="text/plain; version=0.0.4; charset=utf-8",
             )
+        elif path == "/api/auth/me":
+            user = self._auth_user()
+            self._json({"authenticated": bool(user), "user": self._safe_user_response(user) if user else None})
         elif path == "/api/topics":
             self._json({"modules": module_catalog()})
         elif path == "/api/curriculum":
@@ -553,7 +612,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             session_id = parse_qs(parsed.query).get("session_id", [""])[0]
             ui_language = parse_qs(parsed.query).get("ui_language", ["en"])[0]
             try:
-                session_id = validate_session_id(session_id, required=True)
+                session_id = self._resolved_session_id(session_id)
             except ValueError as error:
                 self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
             else:
@@ -584,7 +643,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                 self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_concept")
         elif path.startswith("/api/sessions/") and path.endswith("/export"):
             try:
-                session_id = validate_session_path(path, suffix="/export")
+                requested_session_id = validate_session_path(path, suffix="/export")
+                session_id = self._resolved_session_id(requested_session_id)
             except ValueError as error:
                 self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
             else:
@@ -617,21 +677,60 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
 
     def _do_post(self) -> None:
         path = urlparse(self.path).path
-        if path not in {"/api/chat", "/api/quiz/submit", "/api/practice", "/api/hint"}:
+        if path not in {"/api/chat", "/api/quiz/submit", "/api/practice", "/api/hint", "/api/auth/register", "/api/auth/login", "/api/auth/logout"}:
             self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         if not self._allow_api_request():
             return
         try:
             payload = self._read_json_object()
-            if path == "/api/chat":
+            if path == "/api/auth/register":
+                validate_payload_fields(payload, allowed={"username", "password"}, required={"username", "password"})
+                try:
+                    user = AGENT.memory.create_user(payload["username"], payload["password"])
+                except ValueError as error:
+                    self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_credentials")
+                    return
+                except sqlite3.IntegrityError:
+                    self._error("username is unavailable", HTTPStatus.CONFLICT, "username_unavailable")
+                    return
+                token = new_session_token()
+                expires = datetime.now(timezone.utc).timestamp() + AUTH_SESSION_DAYS * 86400
+                expires_at = datetime.fromtimestamp(expires, timezone.utc).isoformat(timespec="seconds")
+                AGENT.memory.create_auth_session(token, user["user_id"], expires_at)
+                self._json({"authenticated": True, "user": self._safe_user_response(user)}, extra_headers={"Set-Cookie": self._auth_cookie(token)})
+            elif path == "/api/auth/login":
+                validate_payload_fields(payload, allowed={"username", "password"}, required={"username", "password"})
+                user_row = None
+                try:
+                    user_row = AGENT.memory.user_by_username(payload["username"])
+                except ValueError:
+                    user_row = None
+                valid = bool(user_row and verify_password(payload.get("password"), user_row["password_hash"]))
+                if not valid:
+                    self._error("invalid username or password", HTTPStatus.UNAUTHORIZED, "invalid_credentials")
+                    return
+                user = AGENT.memory.user_with_identity(user_row["user_id"])
+                if not user:
+                    self._error("invalid username or password", HTTPStatus.UNAUTHORIZED, "invalid_credentials")
+                    return
+                token = new_session_token()
+                expires = datetime.now(timezone.utc).timestamp() + AUTH_SESSION_DAYS * 86400
+                expires_at = datetime.fromtimestamp(expires, timezone.utc).isoformat(timespec="seconds")
+                AGENT.memory.create_auth_session(token, user["user_id"], expires_at)
+                self._json({"authenticated": True, "user": self._safe_user_response(user)}, extra_headers={"Set-Cookie": self._auth_cookie(token)})
+            elif path == "/api/auth/logout":
+                validate_payload_fields(payload, allowed=set(), required=set())
+                AGENT.memory.invalidate_auth_token(self._auth_token())
+                self._json({"authenticated": False}, extra_headers={"Set-Cookie": self._auth_cookie("", clear=True)})
+            elif path == "/api/chat":
                 validate_payload_fields(
                     payload,
                     allowed={"question", "session_id", "ui_language", "action_type", "concept_id", "experiment_id"},
                     required={"question"},
                 )
                 question = validate_question(payload.get("question"))
-                raw_session_id = validate_session_id(payload.get("session_id"))
+                raw_session_id = self._resolved_session_id(payload.get("session_id"))
                 response = AGENT.answer(
                     question,
                     session_id=raw_session_id,
@@ -646,7 +745,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     allowed={"concept_id", "question_id", "hint_level", "session_id", "ui_language"},
                     required={"concept_id"},
                 )
-                session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
+                session_id = self._resolved_session_id(payload.get("session_id"))
                 concept_id = payload.get("concept_id")
                 if not isinstance(concept_id, str) or concept_id not in AGENT.curriculum_agent.concepts:
                     raise ValueError("concept_id is not in the curriculum")
@@ -671,7 +770,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     allowed={"concept_id", "question_id", "student_answer", "hint_level", "attempt_number", "session_id", "ui_language", "reference_shown"},
                     required={"concept_id", "student_answer"},
                 )
-                session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
+                session_id = self._resolved_session_id(payload.get("session_id"))
                 concept_id = payload.get("concept_id")
                 if not isinstance(concept_id, str) or concept_id not in AGENT.curriculum_agent.concepts:
                     raise ValueError("concept_id is not in the curriculum")
@@ -692,8 +791,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     allowed={"question_id", "answer_index", "session_id", "ui_language"},
                     required={"question_id", "answer_index"},
                 )
-                session_id = validate_session_id(payload.get("session_id"))
-                session_id = session_id or str(uuid.uuid4())
+                session_id = self._resolved_session_id(payload.get("session_id"))
                 question_id = payload.get("question_id")
                 if not isinstance(question_id, str):
                     raise ValueError("question_id must be a string")
@@ -728,7 +826,8 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             self._error("not found", HTTPStatus.NOT_FOUND, "not_found")
             return
         try:
-            session_id = validate_session_path(path)
+            requested_session_id = validate_session_path(path)
+            session_id = self._resolved_session_id(requested_session_id)
         except ValueError as error:
             self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_session")
             return

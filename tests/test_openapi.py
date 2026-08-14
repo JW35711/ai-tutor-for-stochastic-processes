@@ -25,6 +25,10 @@ class OpenAPIContractTests(unittest.TestCase):
             "/api/quiz/submit",
             "/api/practice",
             "/api/hint",
+            "/api/auth/me",
+            "/api/auth/register",
+            "/api/auth/login",
+            "/api/auth/logout",
             "/api/sessions/{session_id}",
             "/api/sessions/{session_id}/export",
         }

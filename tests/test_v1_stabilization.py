@@ -91,6 +91,32 @@ class V1StabilizationTests(unittest.TestCase):
         self.assertNotIn("retrieved", response["answer"].lower())
         self.assertNotIn("lectnotes_technmath.pdf", response["answer"])
 
+    def test_monte_carlo_fallback_answers_the_question(self) -> None:
+        response = self.ask(
+            "What is Monte Carlo estimation? Explain it using the course material."
+        )
+        answer = response["answer"].lower()
+        self.assertIn("repeated random samples", answer)
+        self.assertIn("average", answer)
+        self.assertIn("\\hat p_n", answer)
+        self.assertNotIn("model evidence", answer)
+        self.assertNotIn("# module 0", answer)
+
+    def test_confirmation_follow_up_inherits_the_previous_concept(self) -> None:
+        first = self.ask("What is Monte Carlo estimation?")
+        follow_up = self.ask_with_session("Are you sure?", first["session_id"])
+        self.assertEqual(follow_up["intent"], "concept")
+        self.assertEqual(follow_up["module_id"], "module00")
+        self.assertEqual(follow_up["concept_id"], "m00-monte-carlo-estimation")
+        self.assertEqual(follow_up["concept_sub_intent"], "confirmation")
+        self.assertNotEqual(follow_up["answerability_status"], "OUT_OF_SCOPE")
+        self.assertIn("consistent", follow_up["answer"].lower())
+
+    def ask_with_session(self, question: str, session_id: str) -> dict:
+        response = self.agent.answer(question, session_id=session_id)
+        self.assertIsNone(re.search(r"[\u4e00-\u9fff]", response["answer"]))
+        return response
+
     def test_debug_contract_fields_are_present_in_backend_response(self) -> None:
         response = self.ask("What is Brownian motion?")
         for field in ("llm_enabled", "llm_applied", "workflow", "trace", "sources"):

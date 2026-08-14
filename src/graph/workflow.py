@@ -72,7 +72,7 @@ def _run_node(
 
 
 def _route(graph_state: TutorState) -> Literal[
-    "curriculum", "concept", "simulation", "practice", "quiz", "out_of_scope"
+    "curriculum", "concept", "simulation", "practice", "quiz", "respond", "out_of_scope"
 ]:
     intent = graph_state["runtime"].intent
     if intent == "course_navigation":
@@ -83,6 +83,10 @@ def _route(graph_state: TutorState) -> Literal[
         return "simulation"
     if intent in {"practice", "quiz"}:
         return intent
+    # Social and harmless general turns deliberately bypass retrieval,
+    # evidence sufficiency, tools, and memory updates.
+    if intent in {"social_chat", "general_chat"}:
+        return "respond"
     return "out_of_scope"
 
 
@@ -212,6 +216,7 @@ def build_graph(agent: Any):
             "simulation": "retrieve",
             "practice": "assessment",
             "quiz": "assessment",
+            "respond": "respond",
             "out_of_scope": "out_of_scope",
         },
     )

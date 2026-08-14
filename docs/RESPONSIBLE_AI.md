@@ -51,16 +51,21 @@ quiz bank are too small to support population-level claims about learning.
 The single-instance demo stores session IDs, learner questions, parameters,
 quiz results and misconception findings in local SQLite. Request logs exclude
 question text and learner identifiers. A learner can reset one session through
-the UI or `DELETE /api/sessions/{id}`.
+the UI or `DELETE /api/sessions/{id}`. The v1 demo also supports optional local
+accounts: usernames are normalized and bounded, passwords use versioned scrypt,
+and the browser stores only an HttpOnly SameSite cookie whose token hash is
+retained server-side.
 The browser clears its local session identifier only after that DELETE returns
 success. On a network, rate-limit or server error it keeps the identifier and
 asks the learner to retry, rather than hiding potentially retained data.
 
-Before public use, the operator must add authentication, define retention and
-deletion periods, publish a privacy notice and avoid sharing a SQLite file
-between users or instances. Model and embedding providers may have separate
-data policies; enabling them is an operator decision, not a requirement for
-the offline application.
+Before public use, the operator must define retention and deletion periods,
+publish a privacy notice, serve cookies over HTTPS with
+`AUTH_COOKIE_SECURE=1`, and move learner storage to a properly managed
+multi-instance database. The current account layer is intentionally minimal:
+no email verification, reset flow, OAuth, 2FA or admin roles. Model and
+embedding providers may have separate data policies; enabling them is an
+operator decision, not a requirement for the offline application.
 
 When the optional provider is enabled for a concept answer, it receives only
 the current question, routed course context and bounded retrieved evidence.
@@ -100,7 +105,8 @@ draft.
 
 Regression tests cover the function whitelist, prompt text containing an
 unregistered Python call, and parameterized SQLite session deletion. These
-tests do not replace authentication or external penetration testing.
+tests do not replace external penetration testing or production identity
+management.
 
 The server still needs an authenticated reverse proxy before public exposure.
 Its in-process rate limiter and request limits protect an interview deployment,
@@ -108,7 +114,8 @@ not a hostile multi-tenant service.
 
 ## Evaluation interpretation
 
-The current repository baseline contains 488 governance cases for this curriculum:
+The current repository baseline contains 488 deterministic governance cases for this curriculum,
+plus 9 real-browser acceptance tests:
 30 single-turn, 5 multi-turn, 44 retrieval, 10 pedagogy, 20 safety, 7
 answerability, 17 experiment-routing and 74 visualization E2E cases. A
 plus 129 natural/hard RAG credibility cases covering all 40 knowledge points, and

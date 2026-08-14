@@ -177,10 +177,19 @@ class StochasticTutorAgent:
     SWEDISH_MARKERS = (
         "och", "är", "vad", "varför", "hur", "förklara", "jämför", "visa", "visa mig", "med", "en", "ett", "sätt", "till", "ändrades",
         "väntetid", "fördelning", "sannolikhet", "stationär", "brownsk", "poissonprocess", "markovkedja",
+        "tack", "bra", "toppen", "förstår", "säker",
     )
     ENGLISH_MARKERS = (
         "what", "why", "how", "explain", "compare", "show", "set", "give", "define", "does", "is", "are",
         "the", "with", "using", "course", "process", "distribution", "waiting", "property", "changed",
+        "thanks", "thank", "got", "great", "nice", "okay", "ok", "sure", "smart", "python",
+    )
+    SOCIAL_CHAT_MARKERS = (
+        "thanks", "thank you", "thx", "got it", "understood", "great", "nice", "okay", "ok", "ok you are smart",
+        "all clear", "that makes sense", "i see", "sounds good", "good job", "well done", "cool",
+        "awesome", "perfect", "brilliant", "that helps", "you are smart", "you're smart",
+        "谢谢", "多谢", "明白了", "懂了", "好的", "好", "太好了", "很棒", "你真聪明", "收到", "有道理",
+        "tack", "tack så mycket", "jag förstår", "fattar", "bra", "toppen", "utmärkt", "det låter bra", "det är tydligt",
     )
     GENERAL_CHAT_MARKERS = (
         "你好",
@@ -190,6 +199,7 @@ class StochasticTutorAgent:
         "嗨",
         "hello",
         "hi",
+        "hej",
         "你叫什么",
         "你是谁",
         "介绍一下你自己",
@@ -214,6 +224,13 @@ class StochasticTutorAgent:
         "架构",
         "rag",
         "agent",
+        "what can you do",
+        "what is python",
+        "who are you",
+        "vem är du",
+        "vad kan du göra",
+        "how do you work",
+        "can you help me",
         "随机过程课程介绍",
         "教学agent",
         "教学 agent",
@@ -904,7 +921,8 @@ class StochasticTutorAgent:
         state.routing_confidence = None
         state.selected_routing_reason = ""
         state.detected_query_language = self.detect_query_language(state.question, state.ui_language)
-        if state.previous_turn and self._is_explicit_follow_up(state.question):
+        contextual_follow_up = self._is_contextual_follow_up(state.question)
+        if state.previous_turn and (self._is_explicit_follow_up(state.question) or contextual_follow_up):
             prior_question = str(state.previous_turn.get("question") or "")
             if prior_question and not re.search(r"[\u3400-\u9fff]", state.question) and not any(
                 marker in state.question.casefold() for marker in ("what", "why", "how", "explain", "compare", "show", "set", "give", "vad", "varför", "hur", "förklara", "jämför", "visa", "sätt", "ändra", "什么", "为什么", "解释", "比较", "显示", "设置")
@@ -914,6 +932,13 @@ class StochasticTutorAgent:
         state.retrieval_query_en, state.translation_applied = self._translate_retrieval_query(
             state.question, state.detected_query_language
         )
+        if (state.previous_turn or state.concept_id) and self._is_confirmation_follow_up(state.question):
+            # Short confirmations are meaningful only in the context of the
+            # previous turn. Keep them on the concept lane instead of treating
+            # them as an unrelated out-of-scope question.
+            state.follow_up_kind = "confirmation"
+        elif (state.previous_turn or state.concept_id) and contextual_follow_up:
+            state.follow_up_kind = "contextual"
         # Assessment handoffs already carry a validated module and intent. Do
         # not reinterpret the synthetic quiz question as a concept query.
         if state.intent in {"quiz", "practice"} and state.assessment_input:
@@ -930,6 +955,50 @@ class StochasticTutorAgent:
                 state.topic = state.module.topic
                 return NodeOutcome(f"course navigation: Module {state.module.number:02d}")
             return NodeOutcome("course overview navigation")
+
+        # Classify terminal conversational turns before any curriculum
+        # candidate scoring.  This is the hard boundary that keeps social and
+        # harmless general chat out of retrieval and evidence sufficiency.
+        if self._is_social_chat(state.question):
+            state.intent = "social_chat"
+            state.module = None
+            state.module_id = None
+            state.topic = None
+            state.concept_id = None
+            state.question_requirements = {}
+            return NodeOutcome("social conversation bypassed course pipeline")
+        policy_query = self._is_policy_out_of_scope(state.question)
+        course_signal = any(
+            term in state.question.casefold()
+            for term in (
+                "stochastic", "process", "poisson", "bernoulli", "brownian", "markov",
+                "random walk", "stationary", "distribution", "simulation", "queue",
+                "waiting time", "hitting time", "monte carlo", "self-avoiding", "coalescence",
+                "泊松", "随机", "布朗", "马尔可夫", "平稳",
+            )
+        )
+        if policy_query and not course_signal:
+            state.intent = "unsupported"
+            state.answerability_status = "OUT_OF_SCOPE"
+            state.module = None
+            state.module_id = None
+            state.topic = None
+            state.concept_id = None
+            state.question_requirements = {}
+            return NodeOutcome("policy scope response bypassed course pipeline")
+        if (
+            self._is_general_chat(state.question)
+            and not state.follow_up_kind
+            and not self._is_active_experiment_question(state)
+            and not self._is_active_simulation_handoff(state)
+        ):
+            state.intent = "general_chat"
+            state.module = None
+            state.module_id = None
+            state.topic = None
+            state.concept_id = None
+            state.question_requirements = {}
+            return NodeOutcome("general conversation bypassed course pipeline")
 
         routing_question = " ".join(
             item for item in (state.question, state.retrieval_query_en) if item
@@ -1080,7 +1149,28 @@ class StochasticTutorAgent:
             active_experiment = self.experiments.get(state.active_experiment_id)
             if active_experiment and active_experiment.get("module_id") == state.module_id:
                 state.requested_experiment_id = state.active_experiment_id
-        if self._unsupported_experiment_parameter(state.question):
+        if state.follow_up_kind in {"confirmation", "contextual"}:
+            previous_module_id = str(state.previous_turn.get("module_id") or "") if state.previous_turn else ""
+            saved_concept = self.memory.context(state.session_id).get("related_concept_id")
+            if saved_concept in self.curriculum_agent.concepts:
+                state.concept_id = str(saved_concept)
+            if previous_module_id not in MODULE_BY_ID and state.concept_id in self.curriculum_agent.concepts:
+                previous_module_id = str(self.curriculum_agent.concepts[state.concept_id]["module_id"])
+            if previous_module_id in MODULE_BY_ID:
+                state.module_id = previous_module_id
+                state.module = MODULE_BY_ID[previous_module_id]
+                state.topic = state.module.topic
+                state.module_from_context = True
+                if state.concept_id not in self.curriculum_agent.concepts:
+                    prior_question = str(state.previous_turn.get("question") or "") if state.previous_turn else ""
+                    state.concept_id = self._match_concept(prior_question, previous_module_id)
+            state.intent = "concept" if state.module else "unsupported"
+            state.concept_sub_intent = (
+                "confirmation"
+                if state.follow_up_kind == "confirmation"
+                else self._detect_concept_sub_intent(state.question)
+            )
+        elif self._unsupported_experiment_parameter(state.question):
             state.intent = "unsupported"
             state.module = None
             state.module_id = None
@@ -1089,8 +1179,16 @@ class StochasticTutorAgent:
             state.intent = "simulation" if state.module else "unsupported"
         elif self._is_simulation_request(state.question, explicit_follow_up) or self._is_active_simulation_handoff(state):
             state.intent = "simulation" if state.module else "unsupported"
+        elif self._is_active_experiment_question(state):
+            # A question about the latest verified result is contextual
+            # course dialogue, not harmless general chat.
+            state.intent = "concept" if state.module else "unsupported"
+        elif self._is_social_chat(state.question):
+            state.intent = "social_chat"
+        elif self._is_general_chat(state.question):
+            state.intent = "general_chat"
         elif self._is_general_conversation(state.question):
-            state.intent = "unsupported"
+            state.intent = "general_chat"
         else:
             state.intent = "concept"
         if (
@@ -1100,7 +1198,8 @@ class StochasticTutorAgent:
         ):
             state.intent = "unsupported"
         if state.intent == "concept":
-            state.concept_sub_intent = self._detect_concept_sub_intent(state.question)
+            if state.follow_up_kind != "confirmation":
+                state.concept_sub_intent = self._detect_concept_sub_intent(state.question)
             if state.concept_id:
                 personalization = self.curriculum_agent.decide(
                     current_module_id=state.module_id,
@@ -1131,6 +1230,31 @@ class StochasticTutorAgent:
             state.question_requirements["concepts"] = ["m01-poisson-process"]
             state.question_requirements["concept_titles"] = ["Poisson process"]
             state.concept_id = "m01-poisson-process"
+        if state.intent == "social_chat":
+            state.answer = self._social_chat_answer(state.question, state.response_language)
+            state.answerability_status = "NONE"
+            state.llm_applied = False
+            state.sources = []
+            state.response = self._non_simulation_response(
+                state,
+                module_id="general",
+                module_label="Social conversation",
+                topic="social_chat",
+                learning_note="This social turn did not use course evidence, tools, or mastery updates.",
+            )
+            return NodeOutcome("answered a social conversation turn without retrieval")
+        if state.intent == "general_chat":
+            state.answer = self._general_chat_answer(state)
+            state.answerability_status = "NONE"
+            state.sources = []
+            state.response = self._non_simulation_response(
+                state,
+                module_id="general",
+                module_label="General conversation",
+                topic="general_chat",
+                learning_note="This general turn did not use course evidence, tools, or mastery updates.",
+            )
+            return NodeOutcome("answered a general conversation turn without retrieval")
         if state.intent == "unsupported":
             state.answerability_status = "OUT_OF_SCOPE"
         elif state.intent == "course_navigation":
@@ -1656,6 +1780,35 @@ class StochasticTutorAgent:
         )
 
     def _node_respond(self, state: AgentState) -> NodeOutcome:
+        # These lanes are deliberately terminal responses.  They must not
+        # enter retrieval/evidence, tools, or memory, even when the caller
+        # reaches the shared respond node through LangGraph.
+        if state.intent == "social_chat":
+            state.answer = state.answer or self._social_chat_answer(state.question, state.response_language)
+            state.answerability_status = "NONE"
+            state.llm_applied = False
+            state.sources = []
+            state.response = self._non_simulation_response(
+                state,
+                module_id="general",
+                module_label="Social conversation",
+                topic="social_chat",
+                learning_note="This social turn did not use course evidence, tools, or mastery updates.",
+            )
+            return NodeOutcome("answered a social conversation turn without retrieval")
+        if state.intent == "general_chat":
+            if not state.answer:
+                state.answer = self._general_chat_answer(state)
+            state.answerability_status = "NONE"
+            state.sources = []
+            state.response = self._non_simulation_response(
+                state,
+                module_id="general",
+                module_label="General conversation",
+                topic="general_chat",
+                learning_note="This general turn did not use course evidence, tools, or mastery updates.",
+            )
+            return NodeOutcome("answered a general conversation turn without retrieval")
         if state.intent == "course_navigation":
             if state.module:
                 curriculum_module = next(
@@ -1711,6 +1864,29 @@ class StochasticTutorAgent:
                 state.answer = state.response["answer"]
             return NodeOutcome("scope response without simulation")
         if state.intent == "concept":
+            if state.follow_up_kind == "confirmation":
+                concept = self.curriculum_agent.concepts.get(state.concept_id or {}, {})
+                label = str(concept.get("title") or (state.module.label if state.module else "the previous concept"))
+                if state.response_language == "zh":
+                    state.answer = f"是的。上一条关于 **{label}** 的解释与课程材料一致。如果你愿意，我还可以给出定义、推导或一个简单例子。"
+                elif state.response_language == "sv":
+                    state.answer = f"Ja. Den tidigare förklaringen av **{label}** stämmer med kursmaterialet. Jag kan också ge en definition, en härledning eller ett enkelt exempel."
+                else:
+                    state.answer = f"Yes. The previous explanation of **{label}** is consistent with the course material. I can also give a definition, a derivation, or a simple example."
+                state.llm_applied = False
+                state.experiment_recommendations = []
+                state.response = self._non_simulation_response(
+                    state,
+                    module_id=state.module_id,
+                    module_label=state.module.label if state.module else "Course material",
+                    topic=state.topic or "concept_follow_up",
+                    learning_note="This confirmation continued the previous concept discussion without running a simulation.",
+                )
+                state.response["experiment_recommendations"] = []
+                state.response["teaching_mode"] = state.teaching_mode
+                state.response["current_concept_mastery"] = state.current_concept_mastery
+                state.response["prerequisite_mastery"] = state.prerequisite_mastery
+                return NodeOutcome("answered a contextual confirmation")
             state.experiment_recommendations = [
                 self._experiment_summary(item)
                 for item in self._find_experiments(state, limit=2)
@@ -1772,6 +1948,18 @@ class StochasticTutorAgent:
                         latest_result_reference=None,
                         related_concept_id=state.concept_id,
                     )
+            elif state.concept_id:
+                # Keep the last concept available for short confirmation
+                # follow-ups even when no experiment recommendation exists.
+                self.memory.save_context(
+                    session_id=state.session_id,
+                    active_experiment_id=state.active_experiment_id,
+                    active_visualization_id=state.active_visualization_id,
+                    active_parameters=state.active_parameters,
+                    latest_result_reference=state.latest_result_reference,
+                    latest_result_summary=state.latest_result_summary,
+                    related_concept_id=state.concept_id,
+                )
             return NodeOutcome("grounded concept response without simulation")
         if state.intent in {"quiz", "practice"}:
             state.answer = self.tutor_agent.assessment_feedback(
@@ -2122,6 +2310,20 @@ Use natural terminology in the requested language while retaining canonical Engl
                 return self._translate_fallback("Start by writing the balance condition that leaves the state probabilities unchanged after one transition. Then add the normalization condition and solve the resulting equations.", state.response_language)
             return self._translate_fallback("Begin by identifying the random quantity, its conditioning information, and the theoretical relation you want to verify. Write that relation before substituting numbers.", state.response_language)
 
+        # Keep the offline path useful for the preparatory Monte Carlo module.
+        # Without this branch, a provider outage fell through to a raw notebook
+        # excerpt (often beginning with a module heading) instead of answering
+        # the student's definition question.
+        if "monte carlo" in lowered or "monte-carlo" in lowered or state.concept_id == "m00-monte-carlo-estimation":
+            answer = (
+                "Monte Carlo estimation uses repeated random samples to estimate a probability, expected value, or another quantity. "
+                "The course workflow is to define the experiment, repeat it, record the outcomes, and average them. "
+                "For an event, the estimate after $n$ trials is "
+                "$$\\hat p_n=\\frac{1}{n}\\sum_{i=1}^{n}\\mathbf{1}\\{\\text{event occurs in trial }i\\}.$$ "
+                "With more trials, the estimate usually becomes more stable."
+            )
+            return self._translate_fallback(answer, state.response_language)
+
         if "strict stationarity" in lowered or ("strict" in lowered and "weak" in lowered and "station" in lowered):
             return (
                 "Strict stationarity preserves every finite-dimensional distribution under a time shift. Weak stationarity asks only for a constant mean and a covariance that depends on the lag.\n\n"
@@ -2173,8 +2375,14 @@ Use natural terminology in the requested language while retaining canonical Engl
         if sub_intent == "derivation":
             return "Start from the model definition, write the relevant probability or balance equation, simplify one step at a time, and check that the final expression satisfies the required normalization or boundary condition."
 
-        excerpt = self._relevant_excerpt(state.question, evidence_text)
-        return f"The key idea is stated by the model evidence: {excerpt[:360]}".strip()
+        # Do not expose retrieved prose when no specialised offline answer is
+        # available.  A short, honest scope response is safer than presenting
+        # a module overview as if it answered the student's question.
+        concept_label = state.concept_id or state.module.label if state.module else "this course concept"
+        return self._translate_fallback(
+            f"The tutor synthesis service is temporarily unavailable. I can still help with {concept_label}; ask for its definition, intuition, or a worked example.",
+            state.response_language,
+        )
 
     @staticmethod
     def _localized_result_follow_up(state: AgentState) -> str:
@@ -2399,6 +2607,63 @@ Use natural terminology in the requested language while retaining canonical Engl
         return message("GENERAL", language)
 
     @classmethod
+    def _social_chat_answer(cls, question: str, language: str) -> str:
+        """Return a short localized reply without invoking course systems."""
+
+        if language == "zh":
+            if any(marker in question for marker in ("谢谢", "多谢")):
+                return "不客气！如果你愿意，我们可以继续学习。"
+            return "很高兴有帮助！如果你愿意，我们可以继续。"
+        if language == "sv":
+            if "tack" in question.casefold():
+                return "Varsågod! Säg till om du vill fortsätta."
+            return "Vad roligt att det hjälpte! Vi kan fortsätta när du vill."
+        if any(marker in question.casefold() for marker in ("thanks", "thank you", "thx")):
+            return "You are welcome! We can continue whenever you are ready."
+        return "Glad that helped! We can continue whenever you are ready."
+
+    @classmethod
+    def _offline_general_chat_answer(cls, question: str, language: str) -> str:
+        """Answer harmless general questions without course evidence."""
+
+        lowered = question.casefold()
+        if "python" in lowered:
+            if language == "zh":
+                return "Python 是一种通用的高级编程语言，常用于数据分析、科学计算和人工智能。本项目也使用 Python 实现随机过程模拟。"
+            if language == "sv":
+                return "Python är ett allmänt programmeringsspråk som ofta används för dataanalys, vetenskapliga beräkningar och AI. Det används också för simuleringarna i detta projekt."
+            return "Python is a general-purpose programming language widely used for data analysis, scientific computing, and AI. This project also uses Python for its simulations."
+        return cls._localized_general_answer(question, language)
+
+    def _general_chat_answer(self, state: AgentState) -> str:
+        """Use the existing provider for harmless general questions only."""
+
+        language_name = {"zh": "Chinese", "sv": "Swedish"}.get(state.response_language, "English")
+        candidate = self.llm.complete(
+            (
+                "You are a concise, friendly general assistant inside StochLab. "
+                "Answer the user's harmless general question directly in "
+                f"{language_name}. This is not a course-grounded answer: do not "
+                "invent course citations, sources, simulations, or mastery claims. "
+                "Keep it under 120 words."
+            ),
+            json.dumps({"question": state.question}, ensure_ascii=False),
+        )
+        state.llm_metadata = self._llm_metadata()
+        if candidate:
+            candidate = candidate.strip()
+            word_count = len(re.findall(r"\b[\w]+(?:[-'][\w]+)?\b", candidate))
+            if (
+                word_count <= 160
+                and not re.search(r"retriev(?:ed|al)|embedding|chunk|tool_called|according to retrieved", candidate, re.I)
+                and not (state.response_language == "en" and re.search(r"[\u4e00-\u9fff]", candidate))
+            ):
+                state.llm_applied = True
+                return candidate
+        state.llm_applied = False
+        return self._offline_general_chat_answer(state.question, state.response_language)
+
+    @classmethod
     def _offline_general_answer(cls, question: str) -> str:
         """Give useful product answers when a hosted model is unavailable."""
 
@@ -2436,17 +2701,65 @@ Use natural terminology in the requested language while retaining canonical Engl
 
     @classmethod
     def _is_general_conversation(cls, question: str) -> bool:
-        """Allow a narrow chat lane without swallowing unknown tool requests."""
+        """Compatibility predicate for the combined social/general chat lane."""
 
-        lowered = question.lower().strip()
-        for marker in cls.GENERAL_CHAT_MARKERS:
-            # Short English markers such as ``hi`` must match a word, not a
-            # substring (otherwise ``finding`` is misclassified as a greeting).
-            if marker.isascii() and marker.isalpha() and len(marker) <= 3:
-                if re.search(rf"\b{re.escape(marker)}\b", lowered):
-                    return True
-            elif marker in lowered:
-                return True
+        return cls._is_social_chat(question) or cls._is_general_chat(question)
+
+    @classmethod
+    def _is_social_chat(cls, question: str) -> bool:
+        """Recognise short acknowledgements, thanks, greetings, and compliments."""
+
+        lowered = re.sub(r"[\s.!?,;:，。！？]+", " ", question.casefold()).strip()
+        if len(lowered) > 80:
+            return False
+        return lowered in {marker.casefold() for marker in cls.SOCIAL_CHAT_MARKERS}
+
+    @classmethod
+    def _is_policy_out_of_scope(cls, question: str) -> bool:
+        lowered = question.casefold()
+        return any(
+            marker in lowered
+            for marker in (
+                "external contractor", "travel expense", "taxi reimbursement", "claim travel",
+                "read /etc/passwd", "169.254.169.254", "reveal the api key", "print it",
+                "read files from my computer", "access my files",
+            )
+        )
+
+    @classmethod
+    def _is_general_chat(cls, question: str) -> bool:
+        """Allow harmless general questions without attaching course evidence."""
+
+        lowered = question.casefold().strip()
+        if cls._is_social_chat(question) or cls._is_policy_out_of_scope(question):
+            return False
+        def marker_matches(marker: str) -> bool:
+            # Short English markers such as ``hi`` must be whole words;
+            # substring matching would classify ``finding`` as a greeting.
+            if marker.isascii() and len(marker) <= 3:
+                return bool(re.search(rf"\b{re.escape(marker)}\b", lowered))
+            return marker in lowered
+
+        if any(marker_matches(marker.casefold()) for marker in cls.GENERAL_CHAT_MARKERS):
+            return True
+        if lowered in {"are you sure", "is that right", "is that correct", "really", "can you confirm"}:
+            return True
+        # A short, non-course question such as ``What is Python?`` belongs to
+        # the general-chat lane; stochastic-process vocabulary stays on RAG.
+        if (
+            re.match(r"^(what|who|how|can|could|tell me|vad|vem|hur|kan|berätta)\b", lowered)
+            or any(phrase in lowered for phrase in ("什么是", "你是谁", "你能做什么", "怎么做"))
+        ) and len(lowered) <= 160:
+            course_terms = (
+                "stochastic", "process", "poisson", "bernoulli", "brownian", "markov", "random walk",
+                "stationary", "distribution", "simulation", "module", "course", "probability",
+                "queue", "waiting time", "hitting time", "monte carlo", "self-avoiding", "self avoiding", "coalescence",
+                "generator", "survival", "hazard", "thinning", "brownsk", "rörelse", "stokastisk",
+                "poissonprocess", "väntetid", "stationär", "fördelning", "markovkedja", "självundvikande",
+                "随机", "泊松", "伯努利", "布朗", "马尔可夫", "平稳", "分布", "仿真", "模拟",
+                "模块", "课程", "概率", "队列", "等待", "击中", "蒙特卡洛", "自避免",
+            )
+            return not any(term in lowered for term in course_terms)
         return False
 
     @staticmethod
@@ -2461,7 +2774,12 @@ Use natural terminology in the requested language while retaining canonical Engl
                     "what is this course",
                     "what do we learn in this course",
                     "course overview",
+                    "what is the first module",
+                    "first module",
                     "这门课学什么",
+                    "这门课在学什么",
+                    "第一个module",
+                    "第一个 module",
                     "课程概览",
                 )
             )
@@ -2469,6 +2787,10 @@ Use natural terminology in the requested language while retaining canonical Engl
 
     @staticmethod
     def _navigation_module_id(question: str) -> str | None:
+        if any(phrase in question.casefold() for phrase in ("first module", "第一个module", "第一个 module", "第一个模块")):
+            # Module 00 is the preparatory notebook; the first main teaching
+            # module is Module 01, which is what this navigation phrase means.
+            return "module01"
         match = re.search(r"(?:module|模块)\s*0*(10|[0-9])(?:\b|$)", question.lower())
         return f"module{int(match.group(1)):02d}" if match else None
 
@@ -2866,6 +3188,58 @@ Use natural terminology in the requested language while retaining canonical Engl
                 lowered,
             )
         )
+
+    @staticmethod
+    def _is_confirmation_follow_up(question: str) -> bool:
+        """Recognise short confirmation checks such as ``Are you sure?``."""
+
+        lowered = question.lower().strip().rstrip(".!?").strip()
+        return lowered in {
+            "are you sure",
+            "is that right",
+            "is that correct",
+            "can you confirm",
+            "really",
+            "do you mean that",
+            "你确定",
+            "真的吗",
+            "这对吗",
+            "你说得对吗",
+            "确定吗",
+            "är du säker",
+            "stämmer det",
+            "är det korrekt",
+            "verkligen",
+        }
+
+    @staticmethod
+    def _is_contextual_follow_up(question: str) -> bool:
+        """Recognise an explanation request that needs the previous course turn.
+
+        This is intentionally a small deterministic set.  The previous turn
+        is required by the caller, so a standalone ``why`` is not allowed to
+        acquire a random course context.
+        """
+
+        lowered = re.sub(r"[\s.!?,;:，。！？]+", " ", str(question).casefold()).strip()
+        return lowered in {
+            "why",
+            "can you explain that more simply",
+            "explain that more simply",
+            "what do you mean",
+            "what does that mean",
+            "could you clarify",
+            "please explain",
+            "为什么",
+            "能简单解释吗",
+            "可以简单解释吗",
+            "这是什么意思",
+            "你什么意思",
+            "varför",
+            "kan du förklara det enklare",
+            "vad menar du",
+            "vad betyder det",
+        }
 
     def answer(
         self,
