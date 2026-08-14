@@ -148,3 +148,56 @@ def recommend_next(profile: dict[str, Any], language: str = "en") -> dict[str, s
         "suggested_question": localized_prompt,
         "review_interval_days": str(_review_interval_days(selected_module)),
     }
+
+
+def recommend_next_knowledge_point(curriculum_agent: Any, profile: dict[str, Any], language: str = "en", decision: Any | None = None) -> dict[str, Any]:
+    """Return a catalog-backed KP recommendation for Overview/Progress.
+
+    This is intentionally separate from the legacy module recommendation
+    contract.  Module mastery remains a display aggregate; this payload is
+    driven by assessed ``knowledge_points`` evidence.
+    """
+
+    decision = decision or curriculum_agent.recommend(profile)
+    target_id = decision.target_concept
+    point = curriculum_agent.concepts.get(target_id or "")
+    module = next((item for item in curriculum_agent.modules if item["module_id"] == decision.module_id), None)
+    if point is None and module:
+        point = next((item for item in module.get("knowledge_points", []) if item["id"] == target_id), None)
+    action_labels = {
+        "zh": {"LEARN": "学习", "PRACTICE": "练习", "REVIEW": "复习", "REVIEW_PREREQUISITE": "复习先修知识点", "QUIZ": "测验", "ADVANCE": "继续下一个知识点"},
+        "sv": {"LEARN": "Lär dig", "PRACTICE": "Öva", "REVIEW": "Repetera", "REVIEW_PREREQUISITE": "Repetera förkunskapen", "QUIZ": "Quiz", "ADVANCE": "Fortsätt till nästa kunskapspunkt"},
+    }
+    reason_labels = {
+        "zh": {
+            "LEARN": "这个知识点还没有经过评估的证据。",
+            "PRACTICE": "继续通过练习积累这个知识点的证据。",
+            "REVIEW": "最近的评估显示需要复习这个知识点。",
+            "REVIEW_PREREQUISITE": "一个已经评估过的先修知识点需要复习。",
+            "QUIZ": "用一次测验检验这个知识点的理解。",
+            "ADVANCE": "这个知识点已达到掌握状态，可以继续下一个知识点。",
+        },
+        "sv": {
+            "LEARN": "Den här kunskapspunkten har ännu inga bedömda bevis.",
+            "PRACTICE": "Bygg mer evidens för kunskapspunkten genom övning.",
+            "REVIEW": "Den senaste bedömningen visar att kunskapspunkten behöver repeteras.",
+            "REVIEW_PREREQUISITE": "En bedömd förkunskap behöver repeteras.",
+            "QUIZ": "Kontrollera förståelsen med ett quiz.",
+            "ADVANCE": "Kunskapspunkten är etablerad; fortsätt till nästa.",
+        },
+    }
+    action = action_labels.get(language, {}).get(decision.decision_type, decision.decision_type)
+    payload = decision.to_dict()
+    payload.update({
+        "concept_id": target_id,
+        "concept_title": (point or {}).get("title"),
+        "module_label": next((item.label for item in MODULES if item.module_id == decision.module_id), decision.module_id),
+        "action_label": action,
+        "suggested_question": ((point or {}).get("practice_prompt", "") if language == "en" else (
+            f"请练习：{(point or {}).get('title', target_id)}" if language == "zh" else
+            f"Öva på: {(point or {}).get('title', target_id)}"
+        )),
+        "decision_reason": reason_labels.get(language, {}).get(decision.decision_type, decision.reason),
+        "review_interval_days": "1" if decision.decision_type in {"LEARN", "REVIEW", "REVIEW_PREREQUISITE"} else "3",
+    })
+    return payload

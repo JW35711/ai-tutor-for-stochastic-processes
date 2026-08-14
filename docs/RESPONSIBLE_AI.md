@@ -32,7 +32,12 @@ describing one run as proof.
 The profile deliberately calls its score *practice evidence*. Successful tool
 runs, concept-check attempts and explicit misconception triggers are stored as
 different signals. The score is a transparent product heuristic and must not
-be used for grading, admission, hiring or diagnosis.
+be used for grading, admission, hiring or diagnosis. It is based on limited
+observed practice/quiz evidence, not a grade, probability of knowing,
+psychological measurement, learned student model or reinforcement learning.
+This project uses deterministic, evidence-driven learner-state adaptation.
+Concept chat, navigation, reading and simulation do not update mastery; only
+submitted practice and quiz answers do.
 Quiz exposure is counted by distinct question ID rather than raw submissions,
 so repeatedly submitting an already revealed answer does not create fake topic
 coverage. Attempts and accuracy remain visible separately.

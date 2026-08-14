@@ -108,6 +108,39 @@ class MultiAgentBoundaryTests(unittest.TestCase):
         self.assertIn("review", result["answer"].lower())
         memory.close()
 
+    def test_kp_policy_uses_assessed_concept_and_teaching_mode(self) -> None:
+        agent = CurriculumAgent(curriculum_catalog())
+        state = {"knowledge_points": [{"concept_id": "m05-markov-property", "status": "NEEDS_REVIEW", "attempt_count": 1, "mastery_score": 0.0, "recent_misconceptions": [{"summary": "memory confusion"}]}]}
+        decision = agent.decide(current_module_id="module05", current_concept_id="m05-markov-property", profile=state)
+        self.assertEqual(decision.decision_type, "REVIEW")
+        self.assertEqual(decision.teaching_mode, "REVIEW")
+
+    def test_unassessed_prerequisite_is_not_called_weak(self) -> None:
+        agent = CurriculumAgent(curriculum_catalog())
+        decision = agent.decide(current_module_id="module05", current_concept_id="m05-stationary-distribution", profile={"knowledge_points": []})
+        self.assertNotEqual(decision.decision_type, "REVIEW_PREREQUISITE")
+
+    def test_practice_updates_only_target_kp(self) -> None:
+        memory = LearnerMemory(":memory:")
+        agent = StochasticTutorAgent(memory=memory)
+        result = agent.handle_assessment({"question_id": "kp-m04-brownian-increments", "module_id": "module04", "concept_id": "m04-brownian-increments", "answer_index": 0, "correct": True, "explanation": "ok", "event_type": "PRACTICE_ANSWER"}, "target")
+        rows = {item["concept_id"]: item for item in result["memory"]["knowledge_points"]}
+        self.assertIn("m04-brownian-increments", rows)
+        self.assertEqual(rows["m04-brownian-increments"]["attempt_count"], 1)
+        self.assertNotIn("m04-terminal-distribution", rows)
+        self.assertEqual(result["grading_method"], "deterministic_keyword_or_relation_check")
+        memory.close()
+
+    def test_assessed_progression_moves_recommendation_to_next_kp(self) -> None:
+        memory = LearnerMemory(":memory:")
+        agent = StochasticTutorAgent(memory=memory)
+        for index in range(4):
+            result = agent.handle_assessment({"question_id": "q05", "module_id": "module05", "answer_index": 1, "correct": True, "explanation": "ok", "event_type": "PRACTICE_ANSWER", "attempt_number": index + 1}, "progression")
+        self.assertEqual(result["assessment"]["mastery"]["status"], "MASTERED")
+        self.assertEqual(result["recommendation"]["concept_id"], "m05-absorption-and-ruin")
+        self.assertEqual(result["curriculum_decision"]["decision_type"], "ADVANCE")
+        memory.close()
+
 
 if __name__ == "__main__":
     unittest.main()

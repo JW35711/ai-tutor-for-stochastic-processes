@@ -22,7 +22,7 @@ from .messages import message
 from .module_registry import MODULES, MODULE_BY_ID, classify_module
 from .pedagogy import adaptive_note, diagnose
 from .provenance import execution_sha256
-from .recommendation import recommend_next
+from .recommendation import recommend_next, recommend_next_knowledge_point
 from .teaching_team import build_team_trace
 from .validation import validate_question, validate_session_id
 from .workflow import AgentState, NodeOutcome
@@ -1101,6 +1101,27 @@ class StochasticTutorAgent:
             state.intent = "unsupported"
         if state.intent == "concept":
             state.concept_sub_intent = self._detect_concept_sub_intent(state.question)
+            if state.concept_id:
+                personalization = self.curriculum_agent.decide(
+                    current_module_id=state.module_id,
+                    current_concept_id=state.concept_id,
+                    profile=state.profile,
+                    learning_mode="concept",
+                )
+                state.curriculum_decision = personalization.to_dict()
+                state.teaching_mode = str(personalization.teaching_mode or "FOUNDATION")
+                state.current_concept_mastery = next(
+                    (item for item in state.profile.get("knowledge_points", []) if item.get("concept_id") == state.concept_id),
+                    {"concept_id": state.concept_id, "status": "NOT_STARTED", "mastery_score": 0.0, "attempt_count": 0, "hint_count": 0},
+                )
+                point = self.curriculum_agent.concepts.get(state.concept_id, {})
+                state.prerequisite_mastery = {
+                    prerequisite: self.curriculum_agent._mastery(state.profile, prerequisite)
+                    for prerequisite in point.get("prerequisites", [])
+                }
+                state.recommendation = recommend_next_knowledge_point(
+                    self.curriculum_agent, state.profile, state.response_language, decision=personalization
+                )
         if state.requested_experiment_id:
             requested = self.experiments.get(state.requested_experiment_id)
             if requested and requested.get("module_id") == state.module_id:
@@ -1627,7 +1648,9 @@ class StochasticTutorAgent:
         )
         state.profile = self.memory.profile(state.session_id)
         state.learning_note = adaptive_note(state.profile, state.module_id)
-        state.recommendation = recommend_next(state.profile, state.response_language)
+        state.recommendation = recommend_next_knowledge_point(
+            self.curriculum_agent, state.profile, state.response_language
+        )
         return NodeOutcome(
             f"persisted learner turn {state.profile['turns']} to SQLite"
         )
@@ -1705,6 +1728,9 @@ class StochasticTutorAgent:
                     sources=tuple(state.sources),
                     answerability_status=state.answerability_status,
                     sub_intent=state.concept_sub_intent,
+                    teaching_mode=state.teaching_mode,
+                    mastery_status=str(state.current_concept_mastery.get("status") or "NOT_STARTED"),
+                    misconception_focus=(state.current_concept_mastery.get("recent_misconceptions") or [{}])[0].get("summary") if state.current_concept_mastery.get("recent_misconceptions") else None,
                 ),
                 synthesise=lambda: self._synthesise_concept(state),
                 partial=lambda: self._partial_answer(state),
@@ -1720,6 +1746,9 @@ class StochasticTutorAgent:
                 learning_note="This explanation used course evidence and did not run a simulation.",
             )
             state.response["experiment_recommendations"] = state.experiment_recommendations if not self._is_active_experiment_question(state) else []
+            state.response["teaching_mode"] = state.teaching_mode
+            state.response["current_concept_mastery"] = state.current_concept_mastery
+            state.response["prerequisite_mastery"] = state.prerequisite_mastery
             if state.concept_sub_intent == "why/explanation" and state.experiment_recommendations and not self._is_active_experiment_question(state) and state.response_language == "en":
                 state.answer += (
                     "\n\nExplore with: **"
@@ -1748,6 +1777,7 @@ class StochasticTutorAgent:
             state.answer = self.tutor_agent.assessment_feedback(
                 state.assessment_input,
                 state.curriculum_decision,
+                language=state.response_language,
             )
             state.response = self._non_simulation_response(
                 state,
@@ -1759,6 +1789,10 @@ class StochasticTutorAgent:
             state.response["result"] = state.assessment_input
             state.response["assessment"] = state.assessment_result
             state.response["curriculum_decision"] = state.curriculum_decision
+            state.response["teaching_mode"] = state.teaching_mode
+            state.response["grading_method"] = state.assessment_result.get("grading_method", "deterministic_keyword_or_relation_check")
+            state.response["current_concept_mastery"] = state.current_concept_mastery
+            state.response["prerequisite_mastery"] = state.prerequisite_mastery
             state.response["memory"] = state.profile
             state.response["recommendation"] = state.recommendation
             return NodeOutcome("Tutor feedback after assessment handoff")
@@ -1929,6 +1963,9 @@ do not replace it with a module overview.
 
 STUDENT QUESTION: {state.question}
 CONCEPT SUB-INTENT: {sub_intent}
+TEACHING MODE: {state.teaching_mode}
+CURRENT CONCEPT STATUS: {state.current_concept_mastery.get('status', 'NOT_STARTED')}
+MISCONCEPTION FOCUS: {state.current_concept_mastery.get('recent_misconceptions', [])}
 QUESTION REQUIREMENTS: {json.dumps(state.question_requirements, ensure_ascii=False)}
 ANSWERABILITY STATUS: {state.answerability_status}
 COURSE CONTEXT: The module descriptions below are navigation metadata only.
@@ -2248,7 +2285,11 @@ Use natural terminology in the requested language while retaining canonical Engl
             "memory": self.memory.profile(state.session_id),
             "misconceptions": [],
             "learning_note": learning_note,
-            "recommendation": None,
+            "recommendation": state.recommendation,
+            "curriculum_decision": state.curriculum_decision,
+            "teaching_mode": state.teaching_mode,
+            "current_concept_mastery": state.current_concept_mastery,
+            "prerequisite_mastery": state.prerequisite_mastery,
             "context": {"module_inherited": state.module_from_context, "parameters_inherited": []},
             "llm_enabled": self.llm.enabled,
             "llm_applied": state.llm_applied,
@@ -2867,6 +2908,7 @@ Use natural terminology in the requested language while retaining canonical Engl
         self,
         result: dict[str, Any],
         session_id: str,
+        response_language: str = "en",
     ) -> dict[str, Any]:
         """Run Assessment → Curriculum → Tutor as an explicit graph handoff."""
 
@@ -2887,6 +2929,8 @@ Use natural terminology in the requested language while retaining canonical Engl
             profile=self.memory.profile(resolved_session),
             llm_metadata={**self._llm_metadata(), "status": "not_called", "latency_ms": 0.0, "retry_count": 0},
         )
+        state.ui_language = response_language if response_language in {"en", "zh", "sv"} else "en"
+        state.response_language = state.ui_language
         started = time.perf_counter()
         graph_result = self.workflow.invoke(
             {"runtime": state, "visited_nodes": [], "route_taken": "", "supplementary_query": ""}

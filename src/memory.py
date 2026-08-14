@@ -267,6 +267,24 @@ class LearnerMemory:
             )
             self._prune_session_events("learning_events", session_id)
 
+    def record_hint_used(
+        self,
+        *,
+        session_id: str,
+        concept_id: str,
+        question_id: str | None = None,
+        hint_level: int = 1,
+    ) -> None:
+        """Persist a hint event without changing mastery score or status."""
+
+        self.record_learning_event(
+            session_id=session_id,
+            event_type="HINT_USED",
+            concept_id=concept_id,
+            question_id=question_id,
+            payload={"hint_level": max(1, min(int(hint_level), 3))},
+        )
+
     def update_concept_mastery(self, *, session_id: str, state: dict[str, Any]) -> None:
         now = self._now()
         with self._lock, self._connection:
@@ -418,6 +436,14 @@ class LearnerMemory:
                 (session_id,),
             ).fetchall()
         concept_rows = self.concept_mastery(session_id)
+        with self._lock:
+            hint_rows = self._connection.execute(
+                "SELECT concept_id, COUNT(*) AS count FROM learning_events WHERE session_id=? AND event_type='HINT_USED' AND concept_id IS NOT NULL GROUP BY concept_id",
+                (session_id,),
+            ).fetchall()
+        hint_counts = {str(row["concept_id"]): int(row["count"]) for row in hint_rows}
+        for concept in concept_rows:
+            concept["hint_count"] = max(int(concept.get("hint_count", 0) or 0), hint_counts.get(str(concept["concept_id"]), 0))
 
         modules: dict[str, dict[str, Any]] = {}
         module_question_ids: dict[str, set[str]] = {}

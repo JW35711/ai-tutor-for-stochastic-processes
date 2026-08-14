@@ -838,6 +838,10 @@ h1 {
 
 .quiz-feedback.correct { color: var(--green); }
 .quiz-feedback.incorrect { color: var(--danger); }
+.practice-answer { width: 100%; box-sizing: border-box; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font: inherit; resize: vertical; }
+.practice-actions { display: flex; gap: 10px; align-items: center; }
+.practice-hint { min-height: 1.3em; color: var(--muted); }
+.kp-profile-item { align-items: center; }
 
 .conversation {
   height: 410px;

@@ -243,6 +243,31 @@ from the original question and retrieved evidence. It is never used to create
 or modify simulation numbers. If the provider is unavailable, the same
 question-aware answer path returns a concise grounded fallback.
 
+### KP-level personalization
+
+The adaptive loop is deterministic and evidence-driven:
+
+```text
+Practice / Quiz → Assessment Agent → KP mastery in SQLite
+→ prerequisite-aware Curriculum Agent → Tutor teaching mode → next action
+```
+
+Only submitted practice and quiz answers update a knowledge point. Reading,
+concept chat, navigation and simulations do not count as mastery evidence.
+The status is a product heuristic, not a grade, probability of knowing or
+psychological measurement. Decisions use `NOT_STARTED`, `LEARNING`,
+`NEEDS_REVIEW` and `MASTERED` KP records and return stable action IDs such as
+`LEARN`, `PRACTICE`, `REVIEW`, `REVIEW_PREREQUISITE`, `QUIZ` and `ADVANCE`.
+An unassessed prerequisite is never labelled weak. Explicit course questions
+remain answerable even when prerequisites have not been assessed.
+
+Practice uses deterministic keyword/relation checks and reports the
+`grading_method`; uncertain free-text answers go to review rather than being
+treated as semantic grading. Hints are three bounded course-backed levels and
+are persisted as learning events. Tutor modes are `FOUNDATION`, `DEVELOPING`,
+`REVIEW` and `ADVANCED`; they adapt explanation structure, not evidence or
+mathematical truth.
+
 ### Run the Agent
 
 The Agent core and web demo use the pinned dependencies in `requirements.txt`,

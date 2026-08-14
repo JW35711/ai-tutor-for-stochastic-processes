@@ -143,15 +143,40 @@ class AssessmentEngine:
             raise ValueError(f"no assessment for {concept_id}")
         return self._public(item)
 
-    def hint(self, *, concept_id: str, question_id: str | None = None, hint_level: int = 1) -> dict[str, Any]:
+    def hint(self, *, concept_id: str, question_id: str | None = None, hint_level: int = 1, language: str = "en") -> dict[str, Any]:
         item = self.questions.get(question_id or "") or self.by_concept.get(concept_id)
         if item is None or item.get("concept_id") != concept_id:
             raise ValueError("unknown concept assessment")
         levels = list(item.get("hint_levels", []))
         if not levels:
             raise ValueError("no hint is available for this assessment")
-        level = max(1, min(int(hint_level), len(levels)))
-        return {"question_id": item["id"], "concept_id": concept_id, "hint_level": level, "hint": levels[level - 1]}
+        # Keep hints deterministic and bounded. Reviewed bank hints are the
+        # first cue; the next two levels scaffold the same KP without exposing
+        # a hidden solution or invoking an LLM.
+        title = str(self.concepts.get(concept_id, {}).get("title") or concept_id)
+        scaffolds = [
+            f"Connect the definition of {title} to the quantity named in the question.",
+            f"State the defining relationship for {title} before substituting any values.",
+        ]
+        for scaffold in scaffolds:
+            if len(levels) < 3:
+                levels.append(scaffold)
+        level = max(1, min(int(hint_level), min(3, len(levels))))
+        if language == "zh":
+            localized = [
+                f"把 {title} 的定义和题目中要求的量联系起来。",
+                f"先写出 {title} 的定义关系，再代入任何数值。",
+                f"检查你的推理是否使用了 {title} 的关键性质，而不是只凭直觉猜测。",
+            ]
+        elif language == "sv":
+            localized = [
+                f"Koppla definitionen av {title} till den storhet som frågan ber om.",
+                f"Skriv först den definierande relationen för {title} innan du sätter in värden.",
+                f"Kontrollera att resonemanget använder den centrala egenskapen hos {title}, inte bara en gissning.",
+            ]
+        else:
+            localized = levels
+        return {"question_id": item["id"], "concept_id": concept_id, "hint_level": level, "hint": localized[level - 1]}
 
     def grade_free_text(self, question_id: str, student_answer: str) -> dict[str, Any]:
         item = self.questions.get(question_id)
@@ -160,8 +185,12 @@ class AssessmentEngine:
         answer = str(student_answer or "").strip().lower()
         expected = str(item.get("expected_answer") or item["choices"][item["correct_index"]]).strip().lower()
         tokens = [token for token in expected.replace(".", " ").split() if len(token) > 1]
-        correct = bool(answer) and (expected in answer or sum(token in answer for token in tokens) >= max(1, len(tokens) // 2))
-        return {"question_id": item["id"], "module_id": item["module_id"], "concept_id": item.get("concept_id"), "correct": correct, "student_answer": student_answer, "expected_answer": expected, "explanation": item["explanation"], "bank_sha256": self.bank_sha256}
+        overlap = sum(token in answer for token in tokens)
+        if not answer or not tokens or overlap == 0:
+            correct: bool | None = None
+        else:
+            correct = expected in answer or overlap >= max(1, len(tokens) // 2)
+        return {"question_id": item["id"], "module_id": item["module_id"], "concept_id": item.get("concept_id"), "correct": correct, "student_answer": student_answer, "expected_answer": expected, "explanation": item["explanation"], "bank_sha256": self.bank_sha256, "grading_method": "deterministic_keyword_or_relation_check"}
 
     def grade(self, question_id: str, answer_index: int) -> dict[str, Any]:
         if question_id not in self.questions:
@@ -179,4 +208,5 @@ class AssessmentEngine:
             "correct_index": item["correct_index"],
             "explanation": item["explanation"],
             "bank_sha256": self.bank_sha256,
+            "grading_method": "deterministic_keyword_or_relation_check",
         }

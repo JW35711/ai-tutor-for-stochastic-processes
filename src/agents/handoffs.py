@@ -15,19 +15,16 @@ if TYPE_CHECKING:
 def assess(agent: "StochasticTutorAgent", state: AgentState) -> NodeOutcome:
     """Assessment Agent evaluates and persists one validated attempt."""
 
-    module_profile = next(
-        (
-            item
-            for item in state.profile.get("modules", [])
-            if item.get("module_id") == state.module_id
-        ),
+    concept_id_hint = state.assessment_input.get("concept_id") or state.concept_id
+    concept_profile = next(
+        (item for item in state.profile.get("knowledge_points", []) if item.get("concept_id") == concept_id_hint),
         {},
     )
     result = agent.assessment_agent.evaluate(
         state.assessment_input,
         current_concept_id=state.concept_id,
-        existing_mastery=float(module_profile.get("mastery", 0.0)),
-        attempt_count=int(state.assessment_input.get("attempt_number", 0) or 0),
+        existing_mastery=float(concept_profile.get("mastery_score", 0.0)),
+        attempt_count=int(concept_profile.get("attempt_count", 0) or 0),
     )
     state.assessment_result = result.to_dict()
     attempt = state.assessment_input
@@ -58,7 +55,7 @@ def assess(agent: "StochasticTutorAgent", state: AgentState) -> NodeOutcome:
             event_type="QUIZ_RESULT" if attempt.get("event_type") != "PRACTICE_ANSWER" else "PRACTICE_ATTEMPT",
             concept_id=concept_id,
             question_id=attempt.get("question_id"),
-            payload={"correctness": result.correctness, "hints_used": result.hints_used, "status": updated.status},
+            payload={"correctness": result.correctness, "hints_used": result.hints_used, "status": updated.status, "grading_method": result.grading_method},
         )
     state.profile = agent.memory.profile(state.session_id)
     state.assessment_result["mastery"] = updated.to_dict() if concept_id else {}
@@ -80,13 +77,23 @@ def recommend(agent: "StochasticTutorAgent", state: AgentState) -> NodeOutcome:
         requested_topic=state.topic,
         profile=state.profile,
         recent_mistakes=recent_mistakes,
-        learning_mode="review" if recent_mistakes else state.intent,
+        learning_mode="review" if recent_mistakes else ("practice" if state.intent == "practice" else state.intent),
     )
     state.curriculum_decision = decision.to_dict()
-    state.recommendation = (
-        recommend_next(state.profile, state.response_language)
-        if state.profile
-        else decision.to_dict()
+    state.teaching_mode = str(state.curriculum_decision.get("teaching_mode") or "FOUNDATION")
+    target_id = state.curriculum_decision.get("target_concept")
+    state.current_concept_mastery = next(
+        (item for item in state.profile.get("knowledge_points", []) if item.get("concept_id") == target_id),
+        {"concept_id": target_id, "status": "NOT_STARTED", "mastery_score": 0.0, "attempt_count": 0, "hint_count": 0},
+    )
+    target_point = agent.curriculum_agent.concepts.get(target_id or "", {})
+    state.prerequisite_mastery = {
+        prerequisite: agent.curriculum_agent._mastery(state.profile, prerequisite)
+        for prerequisite in target_point.get("prerequisites", [])
+    }
+    from ..recommendation import recommend_next_knowledge_point
+    state.recommendation = recommend_next_knowledge_point(
+        agent.curriculum_agent, state.profile, state.response_language, decision=decision
     )
     return NodeOutcome(
         f"recommended_action={decision.recommended_action}; "

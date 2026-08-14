@@ -27,7 +27,7 @@ from src.module_registry import module_catalog
 from src.openapi import OPENAPI_SPEC
 from src.runtime import ServiceMetrics, SlidingWindowRateLimiter, structured_event
 from src.tool_catalog import build_tool_catalog
-from src.recommendation import recommend_next
+from src.recommendation import recommend_next, recommend_next_knowledge_point
 from src.version import API_VERSION, APP_VERSION
 from src.validation import (
     MAX_QUESTION_CHARS,
@@ -551,6 +551,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             })
         elif path == "/api/profile":
             session_id = parse_qs(parsed.query).get("session_id", [""])[0]
+            ui_language = parse_qs(parsed.query).get("ui_language", ["en"])[0]
             try:
                 session_id = validate_session_id(session_id, required=True)
             except ValueError as error:
@@ -563,15 +564,24 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "profile": profile,
                         "history": AGENT.memory.history(session_id),
                         "assessments": AGENT.memory.assessment_history(session_id),
-                        "recommendation": recommend_next(profile),
+                        "recommendation": recommend_next_knowledge_point(AGENT.curriculum_agent, profile, ui_language),
                     }
                 )
         elif path == "/api/quiz":
-            module_id = parse_qs(parsed.query).get("module_id", [""])[0]
+            query = parse_qs(parsed.query)
+            module_id = query.get("module_id", [""])[0]
+            concept_id = query.get("concept_id", [""])[0]
             try:
-                self._json({"quiz": ASSESSMENTS.question(module_id)})
+                self._json({"quiz": ASSESSMENTS.question_for_concept(concept_id) if concept_id else ASSESSMENTS.question(module_id)})
             except ValueError as error:
                 self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_module")
+        elif path == "/api/practice":
+            query = parse_qs(parsed.query)
+            concept_id = query.get("concept_id", [""])[0]
+            try:
+                self._json({"practice": ASSESSMENTS.question_for_concept(concept_id)})
+            except ValueError as error:
+                self._error(str(error), HTTPStatus.BAD_REQUEST, "invalid_concept")
         elif path.startswith("/api/sessions/") and path.endswith("/export"):
             try:
                 session_id = validate_session_path(path, suffix="/export")
@@ -589,7 +599,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                         "retention_days": MEMORY_RETENTION_DAYS or None,
                         "max_events_per_type": AGENT.memory.max_events_per_session,
                         "learner_data": AGENT.memory.snapshot(session_id),
-                        "recommendation": recommend_next(profile),
+                        "recommendation": recommend_next_knowledge_point(AGENT.curriculum_agent, profile),
                         "request_id": self.request_id,
                     }
                 )
@@ -633,7 +643,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
             elif path == "/api/hint":
                 validate_payload_fields(
                     payload,
-                    allowed={"concept_id", "question_id", "hint_level", "session_id"},
+                    allowed={"concept_id", "question_id", "hint_level", "session_id", "ui_language"},
                     required={"concept_id"},
                 )
                 session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
@@ -644,28 +654,21 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     concept_id=concept_id,
                     question_id=payload.get("question_id"),
                     hint_level=payload.get("hint_level", 1),
+                    language=str(payload.get("ui_language") or "en"),
                 )
                 AGENT.memory.record_learning_event(
-                    session_id=session_id,
-                    event_type="HINT_REQUEST",
-                    concept_id=concept_id,
-                    question_id=hint["question_id"],
+                    session_id=session_id, event_type="HINT_REQUEST",
+                    concept_id=concept_id, question_id=hint["question_id"],
                     payload={"hint_level": hint["hint_level"]},
                 )
-                AGENT.memory.record_learning_event(
-                    session_id=session_id,
-                    event_type="HINT_USED",
-                    concept_id=concept_id,
-                    question_id=hint["question_id"],
-                    payload={"hint_level": hint["hint_level"]},
-                )
+                AGENT.memory.record_hint_used(session_id=session_id, concept_id=concept_id, question_id=hint["question_id"], hint_level=hint["hint_level"])
                 hint["session_id"] = session_id
                 hint["event_type"] = "HINT_USED"
                 response = hint
             elif path == "/api/practice":
                 validate_payload_fields(
                     payload,
-                    allowed={"concept_id", "question_id", "student_answer", "hint_level", "attempt_number", "session_id"},
+                    allowed={"concept_id", "question_id", "student_answer", "hint_level", "attempt_number", "session_id", "ui_language"},
                     required={"concept_id", "student_answer"},
                 )
                 session_id = validate_session_id(payload.get("session_id")) or str(uuid.uuid4())
@@ -677,12 +680,12 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     question = ASSESSMENTS.question_for_concept(concept_id)
                     question_id = question["id"]
                 result = ASSESSMENTS.grade_free_text(question_id, payload.get("student_answer", ""))
-                result.update({"answer_index": 0, "hints_used": max(0, int(payload.get("hint_level", 0) or 0)), "attempt_number": payload.get("attempt_number", 1), "event_type": "PRACTICE_ANSWER"})
-                response = AGENT.handle_assessment(result, session_id)
+                result.update({"answer_index": 0, "hints_used": max(0, int(payload.get("hint_level", 0) or 0)), "attempt_number": payload.get("attempt_number", 1), "event_type": "PRACTICE_ANSWER", "grading_method": "deterministic_keyword_or_relation_check"})
+                response = AGENT.handle_assessment(result, session_id, str(payload.get("ui_language") or "en"))
             else:
                 validate_payload_fields(
                     payload,
-                    allowed={"question_id", "answer_index", "session_id"},
+                    allowed={"question_id", "answer_index", "session_id", "ui_language"},
                     required={"question_id", "answer_index"},
                 )
                 session_id = validate_session_id(payload.get("session_id"))
@@ -694,7 +697,7 @@ class TutorRequestHandler(BaseHTTPRequestHandler):
                     question_id,
                     payload.get("answer_index"),
                 )
-                response = AGENT.handle_assessment(result, session_id)
+                response = AGENT.handle_assessment(result, session_id, str(payload.get("ui_language") or "en"))
             response["request_id"] = self.request_id
             if isinstance(response.get("observability"), dict):
                 response["observability"]["request_id"] = self.request_id

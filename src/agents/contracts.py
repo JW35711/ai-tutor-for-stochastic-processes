@@ -16,6 +16,9 @@ class CurriculumDecision:
     reason: str = ""
     next_concept: str | None = None
     module_id: str | None = None
+    decision_type: str = "CONTINUE"
+    teaching_mode: str = "FOUNDATION"
+    decision_reason: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -40,6 +43,7 @@ class AssessmentResult:
     misconception_summary: str | None = None
     attempt_count: int = 1
     evidence: str | None = None
+    grading_method: str = "deterministic_keyword_or_relation_check"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -57,3 +61,6 @@ class TutorContext:
     answerability_status: str = "NONE"
     sub_intent: str = "definition"
     tool_result: dict[str, Any] = field(default_factory=dict)
+    teaching_mode: str = "FOUNDATION"
+    mastery_status: str = "NOT_STARTED"
+    misconception_focus: str | None = None

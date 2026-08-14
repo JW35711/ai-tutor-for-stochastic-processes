@@ -36,6 +36,7 @@ class OpenAPIContractTests(unittest.TestCase):
         delete = OPENAPI_SPEC["paths"]["/api/sessions/{session_id}"]["delete"]
         self.assertTrue(chat["requestBody"]["required"])
         self.assertTrue(quiz["requestBody"]["required"])
+        self.assertIn("get", OPENAPI_SPEC["paths"]["/api/practice"])
         self.assertEqual(delete["parameters"][0]["$ref"], "#/components/parameters/SessionPath")
 
     def test_error_schema_matches_traceable_runtime_envelope(self) -> None:

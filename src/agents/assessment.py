@@ -60,6 +60,7 @@ class AssessmentAgent:
                 hints_used=hints_used,
                 attempt_count=attempt_number,
                 evidence="deterministic answer key" if isinstance(correct, bool) else "free-text answer matched the expected concept",
+                grading_method="deterministic_keyword_or_relation_check",
             )
         misconception = "concept_check_incorrect" if correctness is False else "incomplete_attempt"
         summary = "The response does not yet state the defining relationship." if correctness is False else "No assessable answer was provided."
@@ -77,6 +78,7 @@ class AssessmentAgent:
             misconception_summary=summary,
             attempt_count=attempt_number,
             evidence="deterministic answer key" if isinstance(correct, bool) else "free-text response was incomplete or did not match the expected idea",
+            grading_method="deterministic_keyword_or_relation_check",
         )
 
     @staticmethod
@@ -86,4 +88,7 @@ class AssessmentAgent:
         if not answer or not expected:
             return None
         expected_terms = [term for term in expected.replace(",", " ").split() if len(term) > 2]
-        return bool(expected_terms) and sum(term in answer for term in expected_terms) >= max(1, len(expected_terms) // 2)
+        overlap = sum(term in answer for term in expected_terms)
+        if not answer or not expected_terms or overlap == 0:
+            return None
+        return overlap >= max(1, len(expected_terms) // 2)

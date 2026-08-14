@@ -37,11 +37,17 @@ class TutorAgent:
         self,
         result: dict[str, Any],
         decision: dict[str, Any],
+        *,
+        language: str = "en",
     ) -> str:
         """Turn an assessment result into concise feedback, without rescoring it."""
 
         if result.get("correct") is True:
             next_concept = decision.get("next_concept")
+            if language == "zh":
+                return f"回答正确。可以继续学习下一个知识点（{next_concept}）。" if next_concept else "回答正确。保持这个推理方式，并尝试一个相近的应用。"
+            if language == "sv":
+                return f"Rätt. Du kan nu gå vidare mot nästa kunskapspunkt ({next_concept})." if next_concept else "Rätt. Behåll samma resonemang och prova en närliggande tillämpning."
             if next_concept:
                 return (
                     "Correct. You can now move toward the next knowledge point "
@@ -49,11 +55,11 @@ class TutorAgent:
                 )
             return "Correct. Keep the same reasoning and try a nearby application."
         explanation = str(result.get("explanation") or "Review the worked concept and try again.")
-        return (
-            "This answer needs review. "
-            f"{explanation} "
-            "Start with the recommended prerequisite before attempting a harder question."
-        )
+        if language == "zh":
+            return f"这份答案需要复习。{explanation} 在尝试更难的问题前，先复习推荐的先修知识点。"
+        if language == "sv":
+            return f"Detta svar behöver repeteras. {explanation} Repetera den rekommenderade förkunskapen innan du försöker med en svårare fråga."
+        return f"This answer needs review. {explanation} Start with the recommended prerequisite before attempting a harder question."
 
     def simulation_feedback(
         self,

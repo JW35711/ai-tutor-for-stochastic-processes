@@ -192,6 +192,11 @@ OPENAPI_SPEC: dict[str, Any] = {
             }
         },
         "/api/practice": {
+            "get": {
+                "summary": "Get the assessable practice prompt for one knowledge point",
+                "parameters": [{"name": "concept_id", "in": "query", "required": True, "schema": {"type": "string"}}],
+                "responses": {"200": _json_response("Practice prompt", OBJECT), "400": ERROR_RESPONSE},
+            },
             "post": {
                 "summary": "Assess a free-text knowledge-point practice answer",
                 "requestBody": {"required": True, "content": {"application/json": {"schema": OBJECT}}},

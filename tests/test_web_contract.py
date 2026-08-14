@@ -103,6 +103,12 @@ class WebContractTests(unittest.TestCase):
         self.assertIn('role="group" aria-labelledby="quizQuestion"', self.javascript)
         self.assertIn('aria-current="${point.id === concept.id ? "true" : "false"}"', self.javascript)
         self.assertIn('aria-controls="curriculumContent"', self.javascript)
+        self.assertIn('id="practicePanel"', self.html)
+        self.assertIn('id="overviewContinue"', self.html)
+        self.assertIn('/api/practice?concept_id=', self.javascript)
+        self.assertIn('data-practice-submit', self.javascript)
+        self.assertIn('data-practice-hint', self.javascript)
+        self.assertIn('ui_language: language', self.javascript)
 
     def test_requests_are_bounded_and_reset_is_safe(self) -> None:
         self.assertIn("let mutationInFlight = false", self.javascript)

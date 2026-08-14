@@ -187,16 +187,24 @@ The learner profile distinguishes three forms of evidence:
 2. concept-check accuracy;
 3. repeated misconception triggers.
 
+KP-level personalization is the final adaptive loop: the Assessment Agent
+updates one `concept_mastery` row, the Curriculum Agent checks that KP and its
+prerequisites, and the Tutor receives a compact teaching mode. Module mastery
+is only an aggregate display. An unassessed prerequisite remains
+`NOT_STARTED`; only assessed evidence can make it weak or mastered. Stable
+`concept_id`, `module_id` and decision IDs are returned to the UI so the
+frontend never invents a next activity.
+
 The displayed score is labelled *practice evidence*. It is not presented as a
 psychometrically validated estimate of ability. That distinction is important
 in an education product.
 
-The recommendation policy first revisits a practiced module with weak or
-missing evidence, then expands to the next uncovered course module, and finally
-suggests boundary cases when all modules are covered. Every recommendation
-includes a reason code, learner-facing reason, editable suggested question and
-a conservative review interval. The interval is inspired by spaced-repetition
-systems but remains a transparent heuristic over local practice evidence.
+The recommendation policy selects the first actionable knowledge point in
+course order. It returns `LEARN` for `NOT_STARTED`, `PRACTICE` or `QUIZ` for
+`LEARNING`, `REVIEW` for assessed misconceptions, `REVIEW_PREREQUISITE` only
+when a prerequisite has assessed weak evidence, and `ADVANCE` after mastery.
+Every recommendation includes stable module/KP IDs and a learner-facing
+reason. Module mastery remains an aggregate display heuristic only.
 
 ## Multi-turn state
 

@@ -59,6 +59,9 @@ class AgentState:
     profile: dict[str, Any] = field(default_factory=dict)
     learning_note: str = ""
     recommendation: dict[str, str] = field(default_factory=dict)
+    teaching_mode: str = "FOUNDATION"
+    current_concept_mastery: dict[str, Any] = field(default_factory=dict)
+    prerequisite_mastery: dict[str, dict[str, Any]] = field(default_factory=dict)
     answer: str = ""
     llm_applied: bool = False
     llm_metadata: dict[str, Any] = field(default_factory=dict)

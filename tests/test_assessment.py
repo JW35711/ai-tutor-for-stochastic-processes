@@ -31,6 +31,12 @@ class AssessmentTests(unittest.TestCase):
         )
         self.assertTrue(result["correct"])
         self.assertEqual(result["concept_id"], "m05-markov-property")
+        self.assertEqual(result["grading_method"], "deterministic_keyword_or_relation_check")
+
+    def test_uncertain_free_text_is_needs_review_not_false_certainty(self) -> None:
+        result = self.engine.grade_free_text("kp-m05-markov-property", "I do not know yet.")
+        self.assertIsNone(result["correct"])
+        self.assertEqual(result["grading_method"], "deterministic_keyword_or_relation_check")
 
     def test_public_question_does_not_leak_answer(self) -> None:
         question = self.engine.question("module04")
