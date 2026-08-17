@@ -7,9 +7,9 @@ tests and `e2e/` contains real-browser tests.
 
 | Suite | Current value | Reproduce |
 | --- | ---: | --- |
-| Runtime unittest | 319 passed, 1 warning | `python -m unittest discover -s tests -v` |
+| Runtime unittest | 323 passed, 1 warning | `python -m unittest discover -s tests -v` |
 | Browser acceptance | 11 passed (desktop + 390×844 mobile) | `python -m pytest e2e -q` |
-| Full pytest discovery | 341 passed, 1 warning | `python -m pytest -q` |
+| Full pytest discovery (offline/CI contract) | 345 passed, 1 warning | `LLM_API_KEY= LLM_MODEL= python -m pytest -q` |
 | Core single/multi-turn | 30/30 + 5/5 | `python evals/run_evaluation.py` |
 | Retrieval | Hit@3 1.0, MRR 0.9394 | `python evals/run_retrieval_evaluation.py` |
 | Answerability/bad path | 7/7; tracked bad-path cases pass | `python evals/run_answerability_evaluation.py` |
@@ -33,9 +33,10 @@ bca3e9cc6ae22642d42434f60e8243d53baee7175c799d00534fc932ab28f942
 ```
 
 The hard set and holdout are intentionally difficult natural-question
-diagnostics. Their scores are not presented as RAG accuracy. The current
-offline rerun is the release baseline; older artifacts that report 119/129 or
-other totals are historical and must not be read as the current result.
+diagnostics. Their scores are not presented as a general retrieval-quality
+score. The current
+offline rerun is the release baseline; older artifacts with different totals
+are historical and must not be read as the current result.
 
 The current generated manifest is **447/488**. Its informational holdout suite
 uses the routing-pass view, while the standalone holdout command reports the

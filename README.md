@@ -9,93 +9,124 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-248a62.svg)](LICENSE)
 [![Languages EN · 中文 · SV](https://img.shields.io/badge/Languages-EN%20%C2%B7%20%E4%B8%AD%E6%96%87%20%C2%B7%20SV-6f42c1)](web/index.html)
 
-StochLab turns a collection of stochastic-process notebooks into a grounded,
-multilingual learning product. It combines a curriculum-aware tutor, bounded
-LangGraph orchestration, hybrid course retrieval, learner memory and verified
-Python simulations. The system was developed from the teaching material for an
-engineering-mathematics course at Uppsala University.
+StochLab turns structured stochastic-process teaching material, Jupyter
+notebooks and Python experiments into a guided learning product. It uses a
+bounded three-agent teaching architecture coordinated by LangGraph: RAG
+supplies course evidence, an answerability gate checks whether that evidence
+supports the requested claim, Python tools own numerical truth, and assessed
+knowledge-point evidence drives the next learning action.
 
 ![StochLab overview](docs/assets/stochlab-overview.png)
 
+![StochLab Tutor](docs/assets/stochlab-tutor.png)
+
 ## Why I built this
 
-The original degree project made stochastic mechanisms visible through Python
-and Jupyter notebooks. The next engineering problem was to make the material
-usable as a guided learning experience: a student should be able to ask a
-question, receive an evidence-grounded explanation, try a verified experiment,
-and see a next step based on their own learning history.
+The starting point was a real stochastic-process teaching-material project.
+The mathematical content was already there; the missing piece was a guided
+learning experience. A learner still needs to know where to start, which
+concept a question refers to, whether the available material is sufficient,
+when a simulation will help, what its parameters mean, and what to study next.
 
-The result is intentionally a bounded educational system, not an open-ended
-autonomous swarm. It keeps mathematical computation deterministic and
-traceable while using an OpenAI-compatible LLM only for grounded teaching
-synthesis.
+StochLab therefore asks a concrete engineering question: how can an LLM help
+teach mathematics without owning mathematical truth or learner-state
+decisions? The separation is explicit: LLM for language and pedagogical
+synthesis, RAG for course evidence, Python for numerical results, Assessment
+for learning evidence, SQLite for persistent state, Curriculum for next
+actions, and LangGraph for sequencing.
+
+The repository describes a technical prototype and does not claim official
+deployment or institutional endorsement.
+It is not a free-form multi-agent platform.
 
 ## Try these flows
 
-- **Learn:** “What is the Markov property?” → a concise explanation with
-  course sources and a quick check.
-- **Explore:** “Simulate Brownian motion with 100 steps.” → a Python-owned
-  experiment, chart, parameters and teaching note.
-- **Follow up:** “Show me.” or “Set lambda to 4.” → the active experiment is
-  retained and parameters are updated without inventing numbers.
-- **Practice:** answer a knowledge-point question, inspect the diagnosis,
-  request a hint, retry, and see mastery evidence update.
+- **Learn:** `What is the Markov property?` → a concise course-grounded
+  explanation and a quick check.
+- **Explore:** `Simulate Brownian motion with 100 steps.` → a registered Python
+  experiment, verified values and a visualization.
+- **Follow up:** `Show me.` or `Set lambda to 4.` → the active experiment and
+  only the relevant parameters are inherited.
+- **Practice:** answer a knowledge-point question, request a hint, retry, and
+  inspect assessed feedback and the next recommendation.
 
-## What the project demonstrates
+## What makes this different
 
-- **Responsibility-bounded agents:** Curriculum Agent, Assessment Agent and
-  Tutor Agent are coordinated by an explicit LangGraph `StateGraph`.
-- **Grounded RAG:** 421 indexed entries combine notebooks, lecture notes,
-  textbook pages and curated concept cards. An evidence-sufficiency gate
-  distinguishes supported, partial, conflict and out-of-scope requests.
-- **Verified computation:** 15 Python tools power 74 visualization targets.
-  Simulation parameters and numerical results belong to Python tools; the LLM
-  explains the verified output.
-- **Adaptive learning:** 11 modules and 40 knowledge points have prerequisites,
-  practice/quiz events, misconception notes and SQLite-backed recommendations.
-- **Product engineering:** a lightweight Vanilla JS application, KaTeX math
-  rendering, English/Chinese/Swedish UI and query-language handling, health and
-  readiness probes, Docker hardening and CI evaluation.
+- **Relevance is not answerability.** Retrieval can supplement, clarify,
+  abstain or surface explicit conflict instead of forcing a conclusion.
+- **The LLM is not a calculator.** Registered Python tools own parameters and
+  numerical output.
+- **Conversation is not mastery.** Only submitted practice and quiz evidence
+  changes KP practice evidence.
+- **Three bounded Agents, explicit handoffs.** Curriculum, Assessment and
+  Tutor are coordinated by LangGraph; RAG, memory, tools and auth are services.
+  SQLite and Python tools are services, not Agents.
+- **Personalization is not prompt history.** Persistent KP evidence and
+  prerequisite-aware decisions select the next action.
+- **Browser behavior is tested.** Deterministic suites are complemented by
+  real Chromium acceptance tests.
 
 ## At a glance
 
 | Curriculum | Knowledge points | Python tools | RAG entries | Visualization targets | Browser E2E |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 11 modules | 40 | 15 | 421 | 74/74 | 11/11 |
+| 11 modules | 40 | 15 | 421 | 74 | 11 real cases |
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-    U[Student] --> W[Vanilla JS web app]
-    W --> A[API validation and identity]
-    A --> G[LangGraph conditional workflow]
-    G --> C[Curriculum Agent]
-    G --> T[Tutor Agent]
-    G --> Q[Assessment Agent]
-    C --> S[(SQLite learner memory)]
-    Q --> S
-    T --> R[Hybrid RAG + evidence gate]
-    T --> P[Python simulation tools]
-    T --> L[DeepSeek / OpenAI-compatible LLM]
-    R --> K[(421 course entries)]
+flowchart TD
+    STUDENT[Student / Browser] --> UI[Vanilla JS UI]
+    UI --> API[API validation + identity]
+    API --> GRAPH[LangGraph conditional workflow]
+    GRAPH --> CURRICULUM[Curriculum Agent]
+    GRAPH --> ASSESSMENT[Assessment Agent]
+    GRAPH --> TUTOR[Tutor Agent]
+    GRAPH --> SERVICES[Shared services]
+    SERVICES --> RAG[Hybrid RAG + evidence sufficiency]
+    SERVICES --> PYTHON[15 Python tools]
+    SERVICES --> SQLITE[(SQLite learner memory)]
+    SERVICES --> LLM[Optional OpenAI-compatible LLM]
 ```
 
-The three agents have narrow responsibilities and share services. RAG,
-evidence sufficiency, SQLite and Python tools are services—not additional
-agents. The graph has explicit branches:
+The request branches are conditional rather than a single `RAG → LLM` call:
 
 ```text
-navigation → curriculum
-concept / why / comparison → retrieve → Tutor
-simulation → retrieve → plan → Python tool → Tutor
-practice / quiz → Assessment → memory → Tutor
+concept → retrieve → evidence → (bounded supplement) → Tutor
+simulation → retrieve → evidence → plan → Python → diagnose → Tutor
+practice / quiz → Assessment → assessed KP evidence → Curriculum → Tutor
+navigation → Curriculum → catalogue response
+social / general → conversational response (no sources or mastery mutation)
 ```
 
-This is a single AI Tutor application with bounded three-agent teaching
-orchestration. It is not a free-form multi-agent platform.
+The full code trace and a second technical Mermaid flow are in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## Tech stack
+## From notebooks to an adaptive tutor
+
+1. Course material and Python simulations made stochastic mechanisms visible.
+2. A structured curriculum and experiment registry added stable module, KP,
+   experiment and visualization IDs.
+3. Hybrid RAG and answerability separated relevant evidence from sufficient
+   evidence.
+4. LangGraph made the three bounded Agent handoffs explicit.
+5. Assessment evidence, KP recommendations, auth, multilingual UI, Docker/CI
+   and Chromium tests turned the material into a usable learning product.
+
+## Key engineering decisions
+
+- Course answers use the original question plus bounded evidence; module
+  summaries are navigation context, not substitutes for an answer.
+- Evidence status can be `SUPPORTED`, `PARTIAL`, `CONFLICT`, `NONE` or
+  `OUT_OF_SCOPE`. Explicit conflict is reported rather than silently resolved.
+- Simulation numbers never go through an LLM rewrite. The Tutor explains the
+  immutable Python result and its provenance.
+- Mastery is labelled *practice evidence*. Reading, navigation, normal chat,
+  hints alone and simulation runs do not update it.
+- Accounts are portfolio-scale: register/login/logout, an HttpOnly session and
+  per-user state isolation, without OAuth, password recovery or teacher admin.
+
+## Technology
 
 **Python · LangGraph · DeepSeek/OpenAI-compatible provider · hybrid sparse/dense
 RAG · SQLite · NumPy · SciPy · Matplotlib · structured renderers · Vanilla
@@ -104,28 +135,23 @@ Actions**
 
 ## Evaluation
 
-The repository keeps deterministic evaluation suites separate from the real
-browser gate. The current corpus fingerprint is recorded in
-[`docs/VERIFIED_METRICS.md`](docs/VERIFIED_METRICS.md).
+The current corpus fingerprint and reproduction commands are recorded in
+[`docs/VERIFIED_METRICS.md`](docs/VERIFIED_METRICS.md). The current snapshot
+contains:
 
-Selected current results:
+- core single-turn **30/30** and multi-turn **5/5**;
+- structured 40-KP coverage **120/120**;
+- answerability/bad-path **7/7**;
+- experiment routing **17/17** and visualization targets **74/74**;
+- multilingual offline **43/43** and personalization **33/33**;
+- real Chromium browser acceptance **11/11**;
+- credibility hard-set diagnostic **99/129** and independent holdout
+  **15/32** end-to-end (**21/32** routing-pass in the manifest).
 
-- core single-turn: **30/30**; multi-turn: **5/5**;
-- structured 40-KP coverage: **120/120**;
-- answerability/bad-path suite: **7/7**;
-- experiment routing: **17/17**; visualization targets: **74/74**;
-- multilingual offline suite: **43/43**; personalization: **33/33**;
-- full pytest discovery: **341 passed**, with runtime and browser suites also
-  runnable independently;
-- browser acceptance: **11/11** real Chromium tests;
-- credibility hard set: **99/129** in the current offline rerun. This is a
-  deliberately difficult diagnostic, not a claim of general RAG accuracy;
-- independent holdout: **15/32** end-to-end passes in the current standalone
-  rerun (the manifest also records its separate 21/32 routing-pass view).
-
-The generated current manifest is **447/488**. It keeps the hard set and
-holdout visible as diagnostics rather than silently presenting the historical
-477/488 artifact as current.
+The current generated manifest is **447/488**. Hard-set and holdout values are
+deliberately difficult diagnostics, not a general retrieval-quality score. The
+corpus SHA and the current runtime test count are maintained in
+`docs/VERIFIED_METRICS.md`.
 
 ## Quick start
 
@@ -140,10 +166,10 @@ python server.py --host 127.0.0.1 --port 8000
 ```
 
 Open <http://127.0.0.1:8000>. `LLM_API_KEY` is optional for a local demo; the
-grounded fallback remains concise when no provider is configured. Never commit
-`.env` or real credentials.
+bounded English/Chinese/Swedish fallback remains available without a provider.
+Never commit `.env` or real credentials.
 
-For the browser gate:
+Browser gate:
 
 ```bash
 python -m pip install -r requirements-e2e.txt
@@ -151,30 +177,32 @@ python -m playwright install chromium
 python -m pytest e2e -q
 ```
 
-For the runtime gate:
+Runtime gate:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-## Project links
+## For recruiters and interviewers
 
-- [Live repository](https://github.com/JW35711/ai-tutor-for-stochastic-processes)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Verified metrics](docs/VERIFIED_METRICS.md)
-- [Responsible AI notes](docs/RESPONSIBLE_AI.md)
-- [Thesis-only simulation repository](https://github.com/JW35711/simulation-visualization-stochastic-processes)
+- **1 minute:** read the motivation and system diagram above.
+- **5 minutes:** follow the request branches in
+  [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+- **Technical deep dive:** inspect [`docs/API.md`](docs/API.md),
+  [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and the exact values in
+  [`docs/VERIFIED_METRICS.md`](docs/VERIFIED_METRICS.md).
+- **Responsible deployment:** see [`docs/RESPONSIBLE_AI.md`](docs/RESPONSIBLE_AI.md).
 
 ## Current limitations
 
-The corpus is course-specific and the current application is designed as a
-single-node educational demo. Mastery is a transparent heuristic based on
-practice and quiz evidence, not a psychometric assessment. SQLite is suitable
-for a local or small deployment; OAuth, email recovery, multi-tenant
-administration and distributed session storage are not included. Conflict
-detection is deterministic for explicit contradictions; ambiguous semantic
-entailment remains future work. KaTeX is loaded by the web client and provider
-quality depends on the configured OpenAI-compatible endpoint.
+The corpus is specific to one introductory stochastic-process course, and
+difficult unseen wording can still expose routing gaps. Free-text grading uses
+deterministic keyword/relation checks; mastery is a transparent heuristic, not
+a psychometric model. Explicit contradiction detection is stronger than
+implicit semantic conflict detection. SQLite and the minimal auth layer are
+single-node portfolio scope. Classroom learning effectiveness has not been
+experimentally validated, and KaTeX/provider quality depends on browser and
+endpoint configuration.
 
 ## License
 

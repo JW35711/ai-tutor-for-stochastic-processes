@@ -1,7 +1,7 @@
 # Reproducibility guide
 
-This document describes how to reproduce the computational material associated
-with the degree project.
+This document describes how to reproduce the stochastic-process teaching
+material and the StochLab prototype.
 
 ## 1. Environment
 
@@ -98,11 +98,11 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 
 - [ ] The final notebooks are present under `notebooks/`.
 - [ ] Every notebook runs from a clean kernel.
-- [ ] Selected thesis figures can be traced to their generating notebook.
+- [ ] Selected figures can be traced to their generating notebook.
 - [ ] `requirements.txt` matches the imports used by the notebooks.
 - [ ] README and module names agree.
 - [ ] No API keys, local environments, caches or `.DS_Store` files are tracked.
 - [ ] Third-party material under `reference/` is not published.
 - [ ] The Agent unit tests pass.
-- [ ] The final thesis PDF and editable source are packaged separately when
-      required by the examiner or university submission system.
+- [ ] Any separate course-report PDF and editable source are packaged outside
+      this application repository when a submission process requires them.

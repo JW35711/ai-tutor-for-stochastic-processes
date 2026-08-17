@@ -1,299 +1,268 @@
 # Architecture
 
-The project separates probabilistic computation from language generation. The
-Python tools own all numerical results; the optional DeepSeek/OpenAI-compatible
-model synthesizes a grounded explanation from the original student question
-and retrieved evidence. This release is a responsibility-bounded three-agent
-educational system (`Curriculum Agent`, `Assessment Agent` and `Tutor Agent`)
-orchestrated by LangGraph. RAG, Python tools and SQLite remain shared services,
-not agents.
+StochLab is one AI Tutor application with a responsibility-bounded, three-agent
+teaching architecture coordinated by LangGraph. The three Agents are
+`Curriculum Agent`, `Assessment Agent` and `Tutor Agent`. Retrieval, evidence
+sufficiency, embeddings, Python simulations, SQLite and authentication are
+services or infrastructure; they are not additional Agents.
 
-The answer boundary is enforced after generation: every number in a verified
-tool-result summary and every exact Notebook source locator must remain
-present. Numbers that merely occur inside a retrieved teaching excerpt are not
-confused with numerical outputs. A candidate that drops or changes a required
-anchor is discarded, and the offline draft is returned. Prompt instructions
-are therefore not the only grounding control.
+The central design boundary is:
+
+| Concern | Owner |
+| --- | --- |
+| Language and pedagogical phrasing | Optional OpenAI-compatible LLM |
+| Course facts and provenance | Hybrid course RAG |
+| Whether the evidence supports the requested claim | Deterministic evidence-sufficiency layer |
+| Numerical parameters, simulation results and validation | Registered Python tools |
+| What the learner has demonstrated | Assessment and deterministic mastery policy |
+| Next learning action | Curriculum Agent |
+| Request sequencing and handoffs | LangGraph `StateGraph` |
+
+The result is deliberately not an autonomous agent swarm and not a simple
+`RAG → LLM` pipeline.
+
+## System architecture
+
+This first diagram is the recruiter-level view. It distinguishes the three
+bounded responsibility Agents from shared services.
+
+```mermaid
+flowchart TD
+    STUDENT[Student / Browser] --> UI[Vanilla JS application]
+    UI --> API[HTTP API validation + learner identity]
+    API --> GRAPH[LangGraph conditional workflow]
+    GRAPH --> CURRICULUM[Curriculum Agent]
+    GRAPH --> ASSESSMENT[Assessment Agent]
+    GRAPH --> TUTOR[Tutor Agent]
+    GRAPH --> RAG[Hybrid RAG + evidence sufficiency]
+    GRAPH --> TOOLS[15 registered Python tools]
+    GRAPH --> MEMORY[(SQLite learner memory)]
+    GRAPH --> LLM[Optional OpenAI-compatible LLM]
+    RAG --> CORPUS[(Course corpus)]
+    TOOLS --> VIZ[Structured visualization payloads]
+    MEMORY --> UI
+    VIZ --> UI
+```
+
+The graph coordinates the Agents and services. A normal concept request uses
+the Tutor Agent after retrieval; a simulation request additionally uses the
+Python tool path; an assessment request invokes Assessment and Curriculum
+handoffs. The LLM is a presentation service: it can synthesize a course answer
+from bounded evidence or answer harmless general chat, but it cannot own
+simulation numbers or learner-state decisions.
+
+## Request execution flow
+
+The second diagram follows the compiled graph in `src/graph/workflow.py` and
+the domain handlers in `src/agent.py`.
+
+```mermaid
+flowchart TD
+    REQUEST[Student request] --> VALIDATE[API validation + identity]
+    VALIDATE --> ROUTE[Intent, language and curriculum routing]
+
+    ROUTE -->|course navigation| NAV[Curriculum Agent → navigation response]
+    NAV --> END1[Response]
+
+    ROUTE -->|concept / why / comparison| RETRIEVE[Hybrid retrieval]
+    RETRIEVE --> EVIDENCE[Evidence sufficiency]
+    EVIDENCE -->|PARTIAL and recoverable| SUPPLEMENT[Bounded supplementary retrieval]
+    SUPPLEMENT --> EVIDENCE
+    EVIDENCE -->|SUPPORTED / PARTIAL / CONFLICT / NONE| TUTOR1[Tutor Agent response policy]
+    TUTOR1 --> VERIFY1[Output checks or grounded fallback]
+    VERIFY1 --> END2[Response]
+
+    ROUTE -->|simulation| SRETRIEVE[Retrieve course context]
+    SRETRIEVE --> SEVIDENCE[Evidence sufficiency]
+    SEVIDENCE --> PLAN[Plan + validate registered experiment]
+    PLAN --> TOOL[Python simulation tool]
+    TOOL --> DIAGNOSE[Explicit misconception diagnosis]
+    DIAGNOSE --> MEMORY1[Persist verified turn + context]
+    MEMORY1 --> TUTOR2[Tutor Agent deterministic simulation feedback]
+    TUTOR2 --> END3[Response + visualization]
+
+    ROUTE -->|practice / quiz| ASSESS[Assessment Agent]
+    ASSESS --> MASTERY[Persist assessed KP evidence]
+    MASTERY --> CURRICULUM2[Curriculum Agent]
+    CURRICULUM2 --> TUTOR3[Tutor Agent feedback]
+    TUTOR3 --> END4[Response]
+
+    ROUTE -->|social / harmless general| CHAT[Deterministic or optional LLM chat]
+    CHAT --> END5[Response without sources or mastery mutation]
+    ROUTE -->|unsupported| SCOPE[Localized scope response]
+    SCOPE --> END6[Response]
+```
+
+### Concept and comparison requests
+
+`POST /api/chat` becomes an `AgentState` and enters `route → retrieve →
+evidence`. Retrieval is scoped to the matched knowledge point/module when
+possible, with a global fallback for supported course questions. The evidence
+layer checks the requested claim rather than treating non-empty sources as
+proof. A `PARTIAL` result may trigger at most two supplementary retrieval
+rounds. Explicit contradictions are surfaced instead of silently selecting a
+side. The Tutor Agent then chooses synthesis, clarification, abstention or
+conflict wording. A hosted synthesis receives the original question,
+question requirements, answerability status and bounded evidence; it never
+receives raw simulation arrays or learner history.
+
+### Simulation requests
+
+The simulation branch still retrieves course context first, but only an
+explicit simulation request reaches `plan → tool`. `ExperimentRegistry` and
+`tool_catalog.py` select one of the registered experiments and the Python
+function validates parameters and resource limits. The result is the sole
+numerical authority. Diagnosis looks only for explicit misconception triggers;
+then SQLite stores compact context and the Tutor Agent explains the verified
+result without asking the LLM to recalculate it. Visualization data is returned
+through the existing renderer contract and can be followed up with stable
+experiment IDs and parameter updates.
+
+### Practice and quiz requests
+
+Practice and quiz routes send a reviewed assessment payload through
+`Assessment Agent`. The handoff records the attempt, updates only the target
+knowledge point's deterministic practice evidence, reloads the learner profile,
+and calls `Curriculum Agent` to inspect prerequisites and recent mistakes. The
+Tutor Agent turns that typed decision into feedback. Reading, navigation,
+concept chat, hints alone and simulation runs do not increase mastery.
+
+### Navigation, social and general chat
+
+Navigation is read-only catalog access: `Curriculum Agent` reads
+`data/curriculum.json` and the UI displays a module or knowledge-point view.
+Social acknowledgements bypass RAG, evidence sufficiency, tools and memory.
+Harmless general questions may use the optional LLM, but receive no fabricated
+course sources and do not alter mastery. Unsupported or policy-sensitive
+questions receive a short localized scope response.
+
+## Adaptive learning loop
+
+This is the smallest useful view of personalization. It is an assessed-evidence
+loop, not a claim that ordinary chat measures learning.
 
 ```mermaid
 flowchart LR
-    Q[Student question] --> I{Intent}
-    I -->|navigation| C[Curriculum Agent]
-    I -->|concept / why / comparison| R[Hybrid RAG]
-    I -->|simulation| R
-    R -->|concept| E[Evidence gate]
-    E -->|bounded supplement| R
-    E -->|answerability decision| A[Tutor Agent]
-    R -->|simulation| P[Plan and validate]
-    P --> T[One of 15 Python tools]
-    T --> A
-    I -->|practice / quiz| X[Assessment Agent]
-    X --> C
-    A --> M[(SQLite memory)]
-    X --> M
-    C --> A
-    C --> UI[Web UI]
-    M --> UI
+    PRACTICE[Practice / Quiz] --> ASSESS2[Assessment Agent]
+    ASSESS2 --> EVIDENCE2[Assessed KP evidence]
+    EVIDENCE2 --> MASTERY2[KP mastery in SQLite]
+    MASTERY2 --> CURRICULUM3[Prerequisite-aware Curriculum Agent]
+    CURRICULUM3 --> ACTION[LEARN / REVIEW / PRACTICE / QUIZ / ADVANCE]
+    ACTION --> TUTOR4[Tutor teaching mode]
+    TUTOR4 --> NEXT[Next student action]
 ```
 
-## Components
+`src/mastery.py` applies the bounded update policy. `src/recommendation.py`
+selects the next actionable knowledge point, while `src/agents/curriculum.py`
+returns stable IDs and a reason. Module aggregates are display heuristics; an
+unassessed prerequisite remains `NOT_STARTED`.
 
-| Component | Responsibility | Why it is separate |
-| --- | --- | --- |
-| `graph/workflow.py` | Compiles the official LangGraph `StateGraph` and conditional edges | One explicit graph preserves navigation, tutoring, bounded evidence retrieval and simulation branches |
-| `graph/state.py` | Defines the typed `TutorState` carried by LangGraph | Graph observability is separated from domain services and API state |
-| `agents/curriculum.py` | Decides what the learner should study next from curriculum, prerequisites and mastery | Course progression cannot be invented by a model |
-| `agents/assessment.py` | Scores quiz/practice evidence and flags review needs | Learning evaluation is separate from teaching explanation |
-| `agents/tutor.py` | Applies answerability and chooses the teaching response policy | The Tutor explains; it does not rescore or compute simulations |
-| `agents/contracts.py` | Defines `CurriculumDecision`, `AssessmentResult` and `TutorContext` | Agent handoffs are structured and independently testable |
-| `workflow.py` | Keeps the backwards-compatible `AgentState` and node contracts | Existing integrations can inspect domain state without depending on LangGraph internals |
-| `module_registry.py` | Routes Chinese and English questions to Modules 00–10 | Routing can be evaluated independently |
-| `knowledge.py` | Indexes curated cards, Markdown cells, reviewed lecture-note chunks and textbook chunks, then hybrid-ranks evidence | Retrieval remains traceable and replaceable |
-| `embeddings.py` | Provides local hash and optional OpenAI-compatible vectors | Neural retrieval is optional, while offline behavior remains deterministic |
-| `processes/` | Runs 15 validated stochastic simulations | The LLM cannot invent or modify numerical output |
-| `pedagogy.py` | Detects explicitly stated misconceptions | Diagnoses are transparent rather than hidden in a prompt |
-| `assessment.py` | Serves and grades module concept checks | Quiz results provide evidence beyond tool execution |
-| `memory.py` | Persists turns, tool parameters, quizzes, KP mastery and learning events in SQLite | Learner state and follow-up context survive server restarts |
-| `mastery.py` | Applies the bounded deterministic KP mastery policy | Only assessed learner evidence changes mastery; Tutor explanations and retrieval do not |
-| `data/notebook_experiments.json` | Registry generated from notebook order, Markdown context, code cells and saved outputs | Keeps notebook experiments and visualization targets traceable to reusable tools and renderers |
-| `scripts/audit_notebook_visualizations.py` | Detects notebook visualization cells and compares them with the registry | Future unregistered figures become a deterministic coverage failure |
-| `runtime.py` | Implements rate limiting, request metrics and structured events | HTTP protection remains independent of tutoring logic |
-| `openapi.py` | Publishes the versioned machine-readable HTTP contract | Clients can inspect routes without coupling to handler code |
-| `version.py` | Defines application and API versions once | UI, health, headers and OpenAPI cannot silently disagree |
-| `validation.py` | Shares session contracts across core and HTTP layers | Direct Agent calls cannot bypass lifecycle-safe identifiers |
-| `provenance.py` | Canonically hashes module, tool, parameters, result and corpus | Equivalent execution evidence has a stable portable fingerprint |
-| `evaluation_manifest.py` | Validates the evaluation summary shown in health and UI | Dashboard counts cannot silently drift from case files |
-| `tool_catalog.py` | Exposes function descriptions, module ownership and parameter contracts | Tool use is inspectable without reading orchestrator code |
-| `recommendation.py` | Selects one next practice from coverage and evidence | Personalization remains inspectable and avoids diagnostic claims |
-| `teaching_team.py` | Provides a backwards-compatible role-level trace projection for interview observability | It is not an agent registry; actual handoffs come from `observability.agents_invoked` |
-| `agent.py` | Orchestrates retrieval, tools, verification and response | Provides a single API boundary |
-| `evals/` | Measures routing, tool, citation and trace accuracy | Agent changes have a repeatable acceptance gate |
+## Code trace
 
-## Retrieval
+| Stage | Representative implementation |
+| --- | --- |
+| HTTP entry, validation and auth resolution | `server.py` |
+| Graph state and conditional edges | `src/graph/state.py`, `src/graph/workflow.py` |
+| Compatibility domain state | `src/workflow.py` |
+| Curriculum decisions | `src/agents/curriculum.py`, `src/agents/handoffs.py` |
+| Assessment grading | `src/agents/assessment.py`, `src/assessment.py` |
+| Tutor policy and feedback | `src/agents/tutor.py`, `src/agent.py` |
+| Retrieval and answerability | `src/knowledge.py`, `src/embeddings.py`, `src/agent.py` |
+| Registered experiments and tools | `src/experiments.py`, `src/tool_catalog.py`, `src/processes/` |
+| Diagnosis and pedagogy | `src/pedagogy.py` |
+| Learner state and context | `src/memory.py`, `src/mastery.py`, `src/recommendation.py` |
+| Authentication primitives | `src/auth.py` |
+| Safe output and provenance | `src/llm.py`, `src/provenance.py`, `src/graph/response.py` |
+| Curriculum and experiment catalogues | `data/curriculum.json`, `data/notebook_experiments.json` |
+| Browser client and KaTeX | `web/app.js`, `web/index.html` |
 
-At startup, the retriever loads 11 curated knowledge cards, extracts Markdown
-teaching cells from all 11 notebooks, merges reviewed lecture-note chunks from
-`data/reference_chunks.json`, and loads generated textbook chunks from
-`artifacts/textbook_chunks.json` when present. The current release corpus has
-421 entries across 11 modules and 40 knowledge points. It combines IDF-weighted sparse terms,
-Chinese character bigrams and trigrams, and cosine similarity over a vector
-index. Results are restricted to the routed module and expose sparse, title,
-vector and bonus score components, the backend name, source type and exact
-source locator. Notebook sources use `#cell-N`; lecture-note sources use page
-locators such as `reference/lectnotes_technmath.pdf#page-69`.
+## Retrieval and evidence boundary
 
-For Chinese course questions, a small reviewed concept map appends transparent
-English retrieval hints for terms such as holding time, memorylessness, hazard
-rate and absorption time. Every returned source includes the applied expansion
-list. Title overlap receives a fixed, separately reported boost, so a specific
-Notebook section can outrank a broad module summary without a hidden reranker.
+The `KnowledgeBase` indexes curated concept cards, Markdown notebook cells,
+reviewed lecture-note chunks and generated textbook chunks when the local index
+exists. The current snapshot contains 421 entries across 11 modules and 40
+knowledge points. Sparse term scoring, character n-grams and deterministic
+384-dimensional local-hash vectors are combined; an optional hosted embedding
+backend can be enabled without replacing the offline path. Every result keeps
+its source locator and corpus fingerprint.
 
-The default 384-dimensional hash vectorizer is deterministic and offline. It
-helps with wording variation but is not described as a neural semantic model.
-An OpenAI-compatible embedding backend can batch-index the same entries when
-explicitly configured. A failed hosted configuration falls back to the local
-backend and reports the reason through `/health`.
-If a hosted index succeeds but a later query-vector call fails, retrieval uses
-the compatible sparse score only and labels every result
-`retrieval_mode=sparse_fallback`; it never compares incompatible local and
-hosted vector spaces. A bounded cooldown circuit prevents every concurrent
-question from waiting on the same failed provider. The health payload exposes
-its state, failure and skip counters, and next retry delay. Sparse emergency
-results are not cached, so a recovered provider can restore hybrid retrieval.
+Answerability is deliberately deterministic: requirement coverage rules,
+explicit contradiction checks and at most two supplementary retrieval rounds.
+Relevance is not treated as sufficiency. The current conflict detector handles
+explicit contradictory claims; implicit semantic contradiction and full
+entailment are future work. A future hybrid design could keep this deterministic
+gate first and reserve a semantic/LLM entailment judge for ambiguous low-
+confidence cases.
 
-A bounded LRU cache avoids repeated embedding calls for equivalent normalized
-queries. Cached results are deep-copied on both insertion and return so one
-request cannot mutate another request's evidence. Cache counters are exposed
-for operational tuning without logging the query text.
+## Learner state, identity and multi-turn context
 
-At index time, the ordered module IDs, source locators and normalized entry
-text are hashed into `corpus_sha256`. The fingerprint travels with every result
-and the health response, making content changes observable without publishing
-the local reference PDFs.
+SQLite schema version 6 stores turns, validated parameters, assessment attempts,
+KP mastery, learning events, compact tutor context and local account identity.
+`hashlib.scrypt` password hashes and server-side token hashes back a minimal
+register/login/logout layer. A registered browser receives an HttpOnly,
+SameSite cookie; authenticated routes resolve the server-side learner session
+and ignore arbitrary frontend session IDs. This is a portfolio-scale identity
+boundary, not a production OAuth or multi-tenant identity platform.
 
-Retrieval is regression-tested separately from end-to-end routing. The
-44-case suite spans all eleven modules, English and Chinese queries, and reports
-Hit@3 and mean reciprocal rank. Keeping this suite separate makes a future
-neural embedding change measurable instead of relying on a subjective UI
-demonstration. Each report includes per-case ranks and matched relevance text.
+Multi-turn simulation context retains stable experiment/visualization IDs,
+validated parameters, a result reference/summary and a related concept. It does
+not persist raw arrays. Follow-up routing can inherit a module or parameter
+only when the active experiment and the new request make that inheritance
+explicit.
 
-Teaching behavior has a second independent gate: ten cases cover all six
-explicit misconception rules plus neutral controls. The evaluator requires
-every correction to appear in the answer and every successful tool response
-to include experiment, interpretation, guiding question and source sections.
-A third twenty-case safety gate covers registry confinement, data-exfiltration
-and HTML-injection prompts, invalid numeric inputs, non-stationary queue claims
-and multiplicative simulation budgets across tool families.
+## Deterministic versus generative behavior
 
-The committed evaluation manifest includes the corpus fingerprint used by its
-reports. At startup the service compares that value with the live index and
-exposes `corpus_match`; the UI refuses to present a stale pass count.
-Manifest version 2 also stores the SHA-256 of each exact case file, so changing
-case wording without changing the case count cannot preserve an old pass claim.
-The assessment bank has its own SHA-256 fingerprint. Each graded attempt stores
-that fingerprint, so a future question edit does not make historical evidence
-look as though it came from the new bank.
+Deterministic behavior includes validation, routing rules, catalogue decisions,
+assessment grading, mastery updates, evidence coverage, explicit conflict
+detection, tool selection and all numerical computation. The optional LLM
+provides pedagogical synthesis for course questions and concise harmless general
+conversation. It cannot select arbitrary code, overwrite Python numbers, mutate
+mastery or overrule an evidence sufficiency decision. Provider failure or a
+rejected answer returns a concise offline fallback.
 
-### RAG credibility boundary
+## Engineering evolution
 
-The current answerability layer is deliberately deterministic: evidence
-coverage rules plus at most two supplementary retrieval rounds. Relevance is
-not treated as proof of sufficiency. The evaluation separates ORACLE ROUTING
-from REAL ROUTING, uses stable gold locators and phrases, and assigns one
-primary failure stage (corpus, chunking, routing, recall, ranking,
-answerability or generation). Conflict detection currently handles explicit
-contradictory claims; implicit contradiction and full entailment are future
-work. If needed later, a deterministic gate can remain first and an optional
-semantic or LLM entailment judge can be limited to ambiguous low-confidence
-cases.
+The current system evolved through a small number of design stages:
 
-## Conditional workflow
+1. course material and Python simulations made stochastic mechanisms visible;
+2. a structured curriculum and notebook experiment registry gave the material
+   stable module, knowledge-point, experiment and visualization IDs;
+3. hybrid RAG and answerability separated relevant evidence from sufficient
+   evidence;
+4. LangGraph made the Curriculum, Assessment and Tutor handoffs explicit;
+5. assessment evidence, KP-level recommendations, authentication, multilingual
+   UI, Docker/CI and real Chromium tests turned the material into a usable
+   learning product.
 
-The official LangGraph `StateGraph` carries a typed `TutorState` and executes
-only the branch required by the request:
+## Why this is not another chatbot
 
-```text
-START → route
-route → Curriculum Agent → navigation → Tutor Agent → END
-route → concept → retrieve → evidence → (bounded supplement → evidence)* → Tutor Agent → END
-route → simulation → retrieve → evidence → plan → Python tool → diagnose → Tutor Agent → END
-route → Assessment Agent → SQLite memory → Curriculum Agent → Tutor Agent → END
-route → out_of_scope → Tutor Agent safe response → END
-```
+- **Relevance is not answerability.** The evidence layer can supplement,
+  clarify, abstain or surface explicit conflict instead of forcing a guess.
+- **The LLM is not a calculator.** Python owns simulation parameters and
+  numerical truth.
+- **Conversation is not mastery.** Only assessed practice/quiz evidence changes
+  KP practice evidence.
+- **An Agent is not every service.** Three bounded Agents are coordinated by
+  LangGraph; retrieval, memory, tools and auth remain inspectable services.
+- **Evaluation is not only unit assertions.** Runtime suites are complemented
+  by deterministic evaluations and real Chromium browser acceptance.
+- **Personalization is not prompt history.** Persistent KP evidence and
+  prerequisite-aware decisions drive explicit next actions.
 
-Each handler owns a small set of state fields and returns a trace description.
-The evidence gate preserves the statuses `SUPPORTED`, `PARTIAL`, `CONFLICT`,
-`NONE` and `OUT_OF_SCOPE`; supplementary retrieval is bounded by two follow-up
-rounds. A normal concept question invokes only the Tutor Agent after retrieval;
-assessment invokes all three agents because it needs a learning-state handoff.
-The three agents have no hidden calls to one another: LangGraph makes each
-transition explicit.
+## Current limitations
 
-Every trace entry also records `status` and `duration_ms`. If a node raises,
-the failed node and exception type are appended before the error propagates.
-This gives the UI node-level latency and failure evidence without exposing
-private reasoning text.
+The corpus is specific to one introductory stochastic-process course. Natural-
+language routing remains imperfect on difficult unseen wording. Free-text
+assessment uses deterministic keyword/relation checks, and mastery is a
+transparent heuristic rather than a psychometric model. Explicit contradiction
+detection is stronger than implicit semantic conflict detection. SQLite and the
+minimal account layer are single-node portfolio scope: there is no OAuth,
+password recovery, teacher administration or distributed session store.
+Classroom learning effectiveness has not been experimentally validated. KaTeX
+is loaded by the browser as an external client dependency, and provider quality
+depends on the configured OpenAI-compatible endpoint.
 
-The response may expose `teaching_team`, a backwards-compatible role-level
-projection of the same trace for debugging and interviews. It does not change
-execution semantics or create extra agents; use `observability.agents_invoked`
-and `handoffs` for the actual three-agent path.
-
-## Learner model
-
-The learner profile distinguishes three forms of evidence:
-
-1. successful validated simulation runs;
-2. concept-check accuracy;
-3. repeated misconception triggers.
-
-KP-level personalization is the final adaptive loop: the Assessment Agent
-updates one `concept_mastery` row, the Curriculum Agent checks that KP and its
-prerequisites, and the Tutor receives a compact teaching mode. Module mastery
-is only an aggregate display. An unassessed prerequisite remains
-`NOT_STARTED`; only assessed evidence can make it weak or mastered. Stable
-`concept_id`, `module_id` and decision IDs are returned to the UI so the
-frontend never invents a next activity.
-
-The displayed score is labelled *practice evidence*. It is not presented as a
-psychometrically validated estimate of ability. That distinction is important
-in an education product.
-
-The recommendation policy selects the first actionable knowledge point in
-course order. It returns `LEARN` for `NOT_STARTED`, `PRACTICE` or `QUIZ` for
-`LEARNING`, `REVIEW` for assessed misconceptions, `REVIEW_PREREQUISITE` only
-when a prerequisite has assessed weak evidence, and `ADVANCE` after mastery.
-Every recommendation includes stable module/KP IDs and a learner-facing
-reason. Module mastery remains an aggregate display heuristic only.
-
-## Multi-turn state
-
-Each successful turn stores the routed module, selected tool and validated
-parameters. If the next turn omits the model, the Agent inherits the previous
-module and tool. It carries forward only parameters that the learner did not
-explicitly replace. The `classify` and `plan` trace entries state whether the
-module or individual parameters came from context. SQLite schema migration adds
-the parameter column to existing local profiles without deleting earlier turns.
-File-backed memory uses WAL mode, enforced foreign keys and a bounded busy
-timeout; application-level locking keeps the shared standard-library connection
-consistent across request threads.
-Schema version 6 is stored in SQLite `user_version`. Older local databases are
-migrated in place, while a database created by a newer application is rejected
-instead of being silently downgraded. Simulation turns and quiz attempts are
-independently capped per session, and the learner can export all retained rows
-with corpus and quiz-bank provenance before deleting the session.
-
-## Reliability and safety
-
-- Invalid model parameters fail before a chart is generated.
-- Tools bound multiplicative work, not just individual parameters. Event-driven
-  models aggregate online and retain at most 500 raw transitions per displayed
-  path, with explicit truncation flags.
-- Signed and scientific-notation inputs are parsed rather than silently
-  replaced by defaults; fractional counts fail integer validation.
-- M/M/1 stability is checked before a stationary distribution is discussed.
-- Numerical functions receive explicit seeds for reproducible tests.
-- Normal notebook use remains unseeded, matching the thesis teaching design.
-- LLM use is optional; offline mode supports every simulation and assessment.
-- Hosted concept synthesis receives only the original question, bounded course
-  context and retrieved evidence. Simulation numbers never enter that path;
-  Python tools remain their sole owner.
-- The provider payload excludes session IDs, histories, learner profiles and
-  raw simulation arrays. A failed or malformed provider response falls back to
-  the concise grounded offline answer.
-- Hosted LLM and embedding calls use bounded timeouts, response-body limits
-  and independent cooldown circuits. Concurrent or repeated provider failures
-  degrade immediately to a verified offline answer or sparse retrieval path;
-  health reports recovery state without prompts or credentials.
-- Third-party reference PDFs are excluded from version control.
-- Each API response carries a request ID and browser security headers.
-- All API requests use a per-client sliding-window rate limit. POST requests
-  are additionally bounded by body size and question length.
-- The rate limiter also bounds active client-key cardinality. Runtime latency
-  exposes an all-time average and bounded recent p95.
-- `/live` reports process liveness; `/ready` checks memory, catalogs, knowledge,
-  assessment and evaluation versions before the service receives traffic.
-- Browser-side chat, assessment and reset writes are mutually exclusive. All
-  fetches have explicit abort deadlines, surface the server request ID on API
-  errors, and refresh the provider fallback state after an Agent run.
-- `/openapi.json` describes the human-documented API as OpenAPI 3.1.
-- Logs contain route, status and latency, but not the learner's question text.
-
-Runtime counters are deliberately process-local, matching the current
-single-instance deployment. A multi-instance version should place rate limits
-in Redis and export metrics to an OpenTelemetry-compatible collector.
-The hardened Compose profile runs the non-root image with a read-only root
-filesystem, no Linux capabilities, bounded resources and a dedicated SQLite
-volume. CI starts this profile, verifies readiness and OpenAPI, then removes its
-temporary volume.
-
-## Browser and learner identity boundary
-
-The browser is a vanilla JavaScript client with five independent views. A
-guest keeps a browser-local learner session. A registered learner receives a
-random, HttpOnly, SameSite=Lax cookie; only its server-side hash is stored in
-SQLite. The `users`, `auth_sessions` and `learner_identities` tables map that
-cookie to the existing learner session tables. Every authenticated read or
-write resolves the server-side identity and ignores an arbitrary frontend
-`session_id`, which provides the two-user isolation boundary used by the
-browser acceptance tests.
-
-```mermaid
-flowchart LR
-    B[Browser / KaTeX UI] --> API[HTTP API]
-    API --> AUTH[Auth and learner identity]
-    AUTH --> L[(SQLite users and learner state)]
-    API --> G[LangGraph conditional workflow]
-    G --> R[Curriculum / Assessment / Tutor agents]
-    R --> K[Knowledge and evidence gate]
-    R --> P[15 Python tools]
-    P --> V[Structured visualization]
-    V --> B
-```
-
-The current system is intentionally one AI Tutor application with three
-bounded responsibility agents. It is not an OAuth provider, teacher admin
-system, distributed session service or Multi-Agent platform. Playwright tests
-start a real isolated `server.py`, exercise the browser and collect console,
-page-error and local 5xx failures. CI runs this browser job separately from
-the fast runtime/evaluation job.
+See [`docs/VERIFIED_METRICS.md`](VERIFIED_METRICS.md) for the current corpus
+fingerprint and evaluation values. `README.md` is the short project overview;
+`docs/API.md` and `docs/DEPLOYMENT.md` describe the public API and local/container
+operations.
