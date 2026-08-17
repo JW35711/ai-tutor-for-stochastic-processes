@@ -18,6 +18,8 @@ Assessment Agent 和 Tutor Agent；RAG 提供课程证据，证据充分性层�
 
 ![StochLab Tutor](docs/assets/stochlab-tutor.png)
 
+![StochLab Simulation Lab](docs/assets/stochlab-simulation.png)
+
 ## 为什么做这个项目
 
 项目起点是真实的随机过程教学材料项目。数学内容本身并不缺，缺少的是引导式
@@ -82,8 +84,10 @@ navigation → Curriculum → 课程目录响应
 social / general → 对话响应（无课程来源、无掌握度变更）
 ```
 
-完整代码追踪和第二张技术流程图见
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
+更细的运行时状态契约、节点条件、三个 Agent 的 handoff、answerability
+循环、响应 envelope 和可观测字段见
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。上面的截图来自当前本地版本：
+独立应用视图、聊天优先的 Tutor，以及全宽的验证实验目录页。
 
 ## 从 Notebook 到自适应 Tutor
 

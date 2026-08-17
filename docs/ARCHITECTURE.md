@@ -93,6 +93,113 @@ flowchart TD
     SCOPE --> END6[Response]
 ```
 
+## Runtime state, node contracts and handoffs
+
+The graph is stateful at the request level. Each node reads a small, typed
+slice of `TutorState`, adds evidence or a decision, and leaves the rest of the
+state unchanged. This is the detail that is hidden by a simple box-and-arrow
+architecture diagram.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as server.py
+    participant G as StateGraph
+    participant R as route
+    participant K as KnowledgeBase
+    participant E as Evidence gate
+    participant P as Python tool
+    participant M as SQLite
+    participant T as Tutor Agent
+
+    B->>S: POST /api/chat (question, session, UI language)
+    S->>G: validated AgentState + request_id
+    G->>R: classify intent, sub-intent, language, follow-up
+    alt concept / comparison
+        R->>K: scoped query (module/concept/global)
+        K-->>G: sources + locators + retrieval timing
+        G->>E: requirements + evidence
+        alt PARTIAL and recoverable
+            E->>K: at most two supplementary queries
+            K-->>E: merged, deduplicated evidence
+        end
+        E-->>G: answerability + missing/conflict locators
+        G->>T: question + requirements + status + bounded evidence
+        T-->>S: grounded answer + sources + debug metadata
+    else simulation
+        R->>K: course context retrieval
+        K-->>G: evidence
+        G->>P: validated experiment + parameters
+        P-->>G: verified numbers + visualization payload
+        G->>M: compact turn + active experiment context
+        G->>T: explain immutable tool result
+        T-->>S: teaching answer + artifact + provenance
+    else practice / quiz
+        G->>M: Assessment Agent writes assessed KP evidence
+        G->>T: feedback from typed assessment result
+        T-->>S: feedback + next recommendation
+    end
+    S-->>B: response envelope (answer, sources, timings, optional debug)
+```
+
+### State contract
+
+`src/workflow.py` remains the compatibility domain state; `src/graph/state.py`
+wraps it for the compiled graph. The important fields are grouped below so a
+reviewer can see what is carried between nodes without reading every handler.
+
+| State group | Representative fields | Written by | Read by |
+| --- | --- | --- | --- |
+| Request and identity | `question`, `session_id`, `request_id`, `ui_language` | HTTP layer | route, memory, response |
+| Routing | `intent`, `sub_intent`, `follow_up`, `module_id`, `concept_id`, `related_*_ids` | `route` | graph edges, retrieval, Tutor |
+| Evidence | `retrieval_query`, `sources`, `question_requirements`, `answerability_status`, `missing_requirements`, `conflicting_source_locators`, `retrieval_rounds` | `retrieve`, `evidence`, `supplement` | Tutor, response |
+| Experiment | `tool_key`, `tool_parameters`, `tool_result`, `tool_verified`, `active_experiment` | `plan`, `tool`, `memory` | diagnosis, Tutor, UI |
+| Learning state | `assessment`, `misconceptions`, `mastery`, `curriculum_decision`, `teaching_mode` | Assessment handoff, Curriculum Agent | Tutor, profile UI |
+| Delivery and observability | `answer`, `sources`, `visited_nodes`, `route`, `agents_invoked`, `handoffs`, `stage_timings`, `llm_*`, `tool_called` | `respond` | API client, debug view, evaluation |
+
+### Node and handoff boundaries
+
+| Graph node | Conditional entry | Contract / side effect |
+| --- | --- | --- |
+| `route` | Every request | Classifies intent and language; it never retrieves or calls a tool. |
+| `curriculum` / `navigation` | Navigation, or after assessment | Reads the catalogue and prerequisites; returns stable IDs and a next action. |
+| `retrieve` → `evidence` | Concept, comparison, simulation | Retrieves bounded course evidence and classifies `SUPPORTED`, `PARTIAL`, `CONFLICT`, `NONE` or `OUT_OF_SCOPE`. |
+| `supplement` | Recoverable `PARTIAL` | Rewrites the missing requirement and performs a bounded additional retrieval; no unbounded loop. |
+| `plan` → `tool` | Explicit simulation only | Validates the registered experiment and parameters; Python owns all numerical output. |
+| `diagnose` → `memory` | Successful simulation | Adds a compact misconception/result summary and active experiment context to SQLite. |
+| `assessment` | Practice or quiz | Grades the attempt deterministically and writes assessed knowledge-point evidence. |
+| `respond` | Answer-producing branches | Applies the Tutor Agent policy, output checks, provenance and timing envelope. |
+
+The three Agents have intentionally narrow handoff contracts:
+
+| Agent | Receives | Returns | Must not do |
+| --- | --- | --- | --- |
+| Curriculum Agent | Curriculum catalogue, prerequisites, assessed KP evidence | `LEARN` / `REVIEW` / `PRACTICE` / `QUIZ` / `ADVANCE` decision | Invent course content, grade answers or call tools |
+| Assessment Agent | Question, student answer, target KP and rubric | Deterministic correctness, misconception and mastery evidence | Generate the final lesson or modify unrelated KPs |
+| Tutor Agent | Original question, evidence status, bounded evidence, tool/assessment result | Concise teaching response and follow-up | Retrieve, calculate, overrule answerability or mutate mastery |
+
+### Response envelope and observability
+
+The browser normally receives the student-facing answer plus source locators and
+experiment artifacts. Technical diagnostics stay behind `?debug=1` and in
+server metrics. `src/graph/response.py` finalizes one envelope for every branch:
+
+```text
+{
+  "request_id", "intent", "sub_intent", "module_id", "concept_id",
+  "answer", "sources", "answerability_status", "tool_called", "tool_key",
+  "llm_enabled", "llm_applied", "provider", "model", "retry_count",
+  "stage_timings": {"routing", "retrieval", "answerability", "llm",
+                    "simulation", "total"},
+  "visited_nodes", "agents_invoked", "handoffs"
+}
+```
+
+This makes a simulation auditable from the browser response back to a stable
+experiment ID and Python renderer, while a concept answer can be audited from
+its claim to source locators and the evidence decision. It also explains why
+social/general chat has no course sources and why navigation has no RAG round.
+
 ### Concept and comparison requests
 
 `POST /api/chat` becomes an `AgentState` and enters `route → retrieve →
@@ -251,18 +358,3 @@ The current system evolved through a small number of design stages:
 
 ## Current limitations
 
-The corpus is specific to one introductory stochastic-process course. Natural-
-language routing remains imperfect on difficult unseen wording. Free-text
-assessment uses deterministic keyword/relation checks, and mastery is a
-transparent heuristic rather than a psychometric model. Explicit contradiction
-detection is stronger than implicit semantic conflict detection. SQLite and the
-minimal account layer are single-node portfolio scope: there is no OAuth,
-password recovery, teacher administration or distributed session store.
-Classroom learning effectiveness has not been experimentally validated. KaTeX
-is loaded by the browser as an external client dependency, and provider quality
-depends on the configured OpenAI-compatible endpoint.
-
-See [`docs/VERIFIED_METRICS.md`](VERIFIED_METRICS.md) for the current corpus
-fingerprint and evaluation values. `README.md` is the short project overview;
-`docs/API.md` and `docs/DEPLOYMENT.md` describe the public API and local/container
-operations.

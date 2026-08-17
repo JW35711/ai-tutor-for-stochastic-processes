@@ -20,6 +20,8 @@ kunskapspunktsnivå driver nästa lärsteg.
 
 ![StochLab Tutor](docs/assets/stochlab-tutor.png)
 
+![StochLab Simulation Lab](docs/assets/stochlab-simulation.png)
+
 ## Varför jag byggde det
 
 Utgångspunkten var ett verkligt projekt med undervisningsmaterial om stokastiska
@@ -97,8 +99,11 @@ navigation → Curriculum → katalogsvar
 social / general → samtalssvar (inga källor eller mastery-ändringar)
 ```
 
-Den fullständiga kodspårningen och ett andra tekniskt Mermaid-flöde finns i
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Det detaljerade runtime-state-kontraktet, nodvillkoren, de tre Agenternas
+handoffs, answerability-loopen, response envelope och observability-fälten finns
+i [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Bilderna ovan är tagna från
+den aktuella lokala versionen: separata appvyer, en chattfokuserad Tutor och en
+fullbredds vy för den verifierade experimentkatalogen.
 
 ## Från notebooks till adaptiv Tutor
 

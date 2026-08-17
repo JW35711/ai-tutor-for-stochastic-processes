@@ -20,6 +20,8 @@ knowledge-point evidence drives the next learning action.
 
 ![StochLab Tutor](docs/assets/stochlab-tutor.png)
 
+![StochLab Simulation Lab](docs/assets/stochlab-simulation.png)
+
 ## Why I built this
 
 The starting point was a real stochastic-process teaching-material project.
@@ -99,8 +101,11 @@ navigation → Curriculum → catalogue response
 social / general → conversational response (no sources or mastery mutation)
 ```
 
-The full code trace and a second technical Mermaid flow are in
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The detailed runtime state contract, node conditions, three Agent handoffs,
+answerability loop, response envelope and observability fields are in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The screenshots above are from
+the current local build: independent application views, a chat-first Tutor,
+and a full-width verified experiment catalogue.
 
 ## From notebooks to an adaptive tutor
 
