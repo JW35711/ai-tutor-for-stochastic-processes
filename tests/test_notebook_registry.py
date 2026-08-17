@@ -90,6 +90,14 @@ class NotebookRegistryTests(unittest.TestCase):
         exposed = {item["id"] for payload in payloads.values() for item in payload.get("visualizations", [])}
         self.assertTrue(former_partial.issubset(exposed))
 
+    def test_counting_comparison_panels_keep_parameter_labels(self) -> None:
+        result = simulate_bernoulli_process(slots=20, paths=20)
+        visualizations = {item["id"]: item for item in result["visualizations"]}
+        for visualization_id in ("module01-viz-04", "module01-viz-07"):
+            panels = visualizations[visualization_id]["panels"]
+            self.assertEqual([panel["parameter"]["probability"] for panel in panels], [0.1, 0.3, 0.6])
+            self.assertTrue(all(len(panel["x"]) == len(panel["empirical"]) == len(panel["theoretical"]) for panel in panels))
+
     def test_all_registry_renderers_are_supported(self) -> None:
         self.assertTrue(
             all(item.get("renderer") in SUPPORTED_RENDERERS for item in self.registry["visualizations"])

@@ -65,8 +65,8 @@ class WebContractTests(unittest.TestCase):
         self.assertNotIn('module-tab-title">${escapeHtml(item.label)}', self.javascript)
 
     def test_static_assets_and_math_renderer_are_linked(self) -> None:
-        self.assertIn('href="/styles.css"', self.html)
-        self.assertIn('src="/app.js?v=student-ux"', self.html)
+        self.assertIn('href="/styles.css?v=viz-polish"', self.html)
+        self.assertIn('src="/app.js?v=viz-polish"', self.html)
         self.assertIn("katex", self.html.lower())
         self.assertIn("renderTutorMarkdown", self.javascript)
         self.assertIn(r"\\\(", self.javascript)

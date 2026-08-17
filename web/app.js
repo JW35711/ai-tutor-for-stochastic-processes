@@ -63,7 +63,7 @@ const translations = {
     "overview.title": "Continue your stochastic-process journey", "overview.intro": "Learn concepts, practice problems, and explore stochastic models through verified simulations.", "overview.next": "NEXT UP", "overview.nextTitle": "Start with Module 00", "overview.nextText": "Build a reliable Monte Carlo foundation before exploring stochastic models.", "overview.openCourse": "Open course", "overview.recommended": "recommended", "overview.snapshot": "YOUR SNAPSHOT", "overview.modules": "modules", "overview.points": "knowledge points", "overview.tools": "verified tools", "overview.activity": "Your learning activity will appear here after your first practice or quiz.", "overview.quick": "QUICK ACCESS", "overview.choose": "Choose how to learn", "overview.askTutor": "Ask the Tutor", "overview.askTutorDesc": "Get a grounded explanation from the course material.", "overview.explore": "Explore a simulation", "overview.exploreDesc": "Run an approved experiment and inspect its chart.", "overview.review": "Review progress", "overview.reviewDesc": "See mastery, review items, and the next recommendation.", "overview.recent": "RECENT ACTIVITY", "overview.momentum": "Keep your momentum", "overview.openTutor": "Open tutor", "overview.noRecent": "No recent activity yet. Ask a concept question or try the first module.",
     "course.intro": "Browse the eleven modules and move from a knowledge point to a verified experiment.", "course.modules": "COURSE MODULES", "course.choose": "Choose a module", "course.loading": "Loading course modules…",
     "tutor.title": "Ask, understand, and follow up", "tutor.intro": "Chat with the course tutor. Explanations are grounded in the notebooks and lecture notes.", "tutor.chat": "TUTOR CHAT", "tutor.ask": "Ask a question", "tutor.quiz": "Check your understanding", "tutor.empty": "Ask me about a concept, a module, or a simulation.", "tutor.askLabel": "Ask the tutor", "tutor.placeholder": "For example: What is Brownian motion?", "tutor.askButton": "Ask Tutor", "tutor.composer": "Press Enter to ask · Shift+Enter for a new line", "tutor.support": "LEARNING SUPPORT", "tutor.results": "Results", "tutor.ready": "Ready when you are", "tutor.resultHint": "Sources and simulation details will appear here after a Tutor response.",
-    "simulation.label": "SIMULATION", "simulation.title": "Explore verified experiments", "simulation.intro": "Choose a knowledge point in Course or ask the Tutor for an explicit simulation.", "simulation.catalogue": "EXPERIMENT CATALOGUE", "simulation.emptyTitle": "Simulation results appear here", "simulation.emptyText": "Start from a course knowledge point with a Simulation action, or ask the Tutor: “Simulate Brownian motion with 100 steps.”", "simulation.browse": "Browse course experiments", "simulation.verified": "VERIFIED EXPERIMENT", "simulation.result": "Simulation result", "simulation.verifiedOutput": "Verified output from the selected stochastic-process model.", "simulation.backTutor": "Back to tutor", "simulation.sources": "Sources and parameters", "simulation.search": "Search title, module, or knowledge point", "simulation.allModules": "All modules", "simulation.goal": "Learning goal", "simulation.type": "Experiment type", "simulation.parameters": "Parameters", "simulation.visualization": "Visualization", "simulation.open": "Open experiment", "simulation.run": "Run experiment", "simulation.ask": "Ask Tutor about this", "simulation.backCatalogue": "Back to catalogue", "simulation.noMatches": "No experiments match this search.", "simulation.verifiedCard": "Verified notebook experiment",
+    "simulation.label": "SIMULATION", "simulation.title": "Explore verified experiments", "simulation.intro": "Choose a knowledge point in Course or ask the Tutor for an explicit simulation.", "simulation.catalogue": "EXPERIMENT CATALOGUE", "simulation.emptyTitle": "Simulation results appear here", "simulation.emptyText": "Start from a course knowledge point with a Simulation action, or ask the Tutor: “Simulate Brownian motion with 100 steps.”", "simulation.browse": "Browse course experiments", "simulation.verified": "VERIFIED EXPERIMENT", "simulation.result": "Simulation result", "simulation.verifiedOutput": "Verified output from the selected stochastic-process model.", "simulation.backTutor": "Back to tutor", "simulation.backCourse": "Back to course", "simulation.sources": "Sources and parameters", "simulation.search": "Search title, module, or knowledge point", "simulation.allModules": "All modules", "simulation.goal": "Learning goal", "simulation.type": "Experiment type", "simulation.parameters": "Parameters", "simulation.visualization": "Visualization", "simulation.open": "Open experiment", "simulation.run": "Run experiment", "simulation.ask": "Ask Tutor about this", "simulation.backCatalogue": "Back to catalogue", "simulation.noMatches": "No experiments match this search.", "simulation.verifiedCard": "Verified notebook experiment",
     "progress.title": "Your learning record", "progress.intro": "Practice and quiz activity are saved to your local learner profile.", "progress.record": "LEARNING RECORD", "progress.mastery": "Mastery by module", "progress.local": "Local memory", "progress.emptyNote": "Your practice and quiz activity will appear here.", "progress.noRecord": "No learning record yet.",
     "auth.signIn": "Sign in", "auth.register": "Create account", "auth.continueGuest": "Continue as Guest", "auth.username": "Username", "auth.password": "Password", "auth.submit": "Continue", "auth.logout": "Log out", "auth.signedIn": "Signed in as", "auth.switch": "Use another account", "auth.invalid": "Please check your username and password.",
   },
@@ -74,7 +74,7 @@ const translations = {
     "overview.title": "继续你的随机过程学习", "overview.intro": "学习概念、练习问题，并通过经过验证的模拟探索随机模型。", "overview.next": "下一步", "overview.nextTitle": "从 Module 00 开始", "overview.nextText": "先建立可靠的蒙特卡洛基础，再学习随机模型。", "overview.openCourse": "打开课程", "overview.recommended": "推荐", "overview.snapshot": "学习概览", "overview.modules": "个模块", "overview.points": "个知识点", "overview.tools": "个验证工具", "overview.activity": "完成第一次练习或测验后，你的学习记录会显示在这里。", "overview.quick": "快捷入口", "overview.choose": "选择学习方式", "overview.askTutor": "询问导师", "overview.askTutorDesc": "从课程材料中获得有依据的解释。", "overview.explore": "探索模拟", "overview.exploreDesc": "运行一个经过批准的实验并查看图表。", "overview.review": "查看进度", "overview.reviewDesc": "查看掌握度、待复习内容和下一步推荐。", "overview.recent": "最近活动", "overview.momentum": "保持学习节奏", "overview.openTutor": "打开导师", "overview.noRecent": "还没有最近活动。可以提问一个概念，或从第一个模块开始。",
     "course.intro": "浏览 11 个模块，从知识点进入经过验证的实验。", "course.modules": "课程模块", "course.choose": "选择一个模块", "course.loading": "正在加载课程模块…",
     "tutor.title": "提问、理解并继续追问", "tutor.intro": "与课程导师对话。回答基于 notebook 和课程讲义。", "tutor.chat": "导师对话", "tutor.ask": "提出问题", "tutor.quiz": "检查理解", "tutor.empty": "你可以问我概念、模块或模拟实验。", "tutor.askLabel": "询问导师", "tutor.placeholder": "例如：什么是布朗运动？", "tutor.askButton": "询问导师", "tutor.composer": "按 Enter 提问 · Shift+Enter 换行", "tutor.support": "学习支持", "tutor.results": "结果", "tutor.ready": "准备好了", "tutor.resultHint": "导师回答后，来源和模拟详情会显示在这里。",
-    "simulation.label": "模拟", "simulation.title": "探索经过验证的实验", "simulation.intro": "在课程中选择知识点，或向导师明确提出模拟请求。", "simulation.catalogue": "实验目录", "simulation.emptyTitle": "模拟结果会显示在这里", "simulation.emptyText": "从课程知识点点击知识点中的 Simulation，或向导师提问：“模拟 100 步布朗运动。”", "simulation.browse": "浏览课程实验", "simulation.verified": "经过验证的实验", "simulation.result": "模拟结果", "simulation.verifiedOutput": "所选随机过程模型的验证输出。", "simulation.backTutor": "返回导师", "simulation.sources": "来源和参数", "simulation.search": "搜索实验标题、模块或知识点", "simulation.allModules": "全部模块", "simulation.goal": "学习目标", "simulation.type": "实验类型", "simulation.parameters": "参数", "simulation.visualization": "可视化", "simulation.open": "打开实验", "simulation.run": "运行实验", "simulation.ask": "询问导师", "simulation.backCatalogue": "返回实验目录", "simulation.noMatches": "没有匹配的实验。", "simulation.verifiedCard": "已验证的 notebook 实验",
+    "simulation.label": "模拟", "simulation.title": "探索经过验证的实验", "simulation.intro": "在课程中选择知识点，或向导师明确提出模拟请求。", "simulation.catalogue": "实验目录", "simulation.emptyTitle": "模拟结果会显示在这里", "simulation.emptyText": "从课程知识点点击知识点中的 Simulation，或向导师提问：“模拟 100 步布朗运动。”", "simulation.browse": "浏览课程实验", "simulation.verified": "经过验证的实验", "simulation.result": "模拟结果", "simulation.verifiedOutput": "所选随机过程模型的验证输出。", "simulation.backTutor": "返回导师", "simulation.backCourse": "返回课程", "simulation.sources": "来源和参数", "simulation.search": "搜索实验标题、模块或知识点", "simulation.allModules": "全部模块", "simulation.goal": "学习目标", "simulation.type": "实验类型", "simulation.parameters": "参数", "simulation.visualization": "可视化", "simulation.open": "打开实验", "simulation.run": "运行实验", "simulation.ask": "询问导师", "simulation.backCatalogue": "返回实验目录", "simulation.noMatches": "没有匹配的实验。", "simulation.verifiedCard": "已验证的 notebook 实验",
     "progress.title": "你的学习记录", "progress.intro": "练习和测验活动会保存到本地学习者档案。", "progress.record": "学习记录", "progress.mastery": "按模块查看掌握度", "progress.local": "本地记忆", "progress.emptyNote": "你的练习和测验活动会显示在这里。", "progress.noRecord": "还没有学习记录。",
     "auth.signIn": "登录", "auth.register": "创建账户", "auth.continueGuest": "以访客继续", "auth.username": "用户名", "auth.password": "密码", "auth.submit": "继续", "auth.logout": "退出登录", "auth.signedIn": "已登录：", "auth.switch": "切换账户", "auth.invalid": "请检查用户名和密码。",
   },
@@ -85,7 +85,7 @@ const translations = {
     "overview.title": "Fortsätt din resa i stokastiska processer", "overview.intro": "Lär dig begrepp, öva på problem och utforska stokastiska modeller genom verifierade simuleringar.", "overview.next": "NÄSTA STEG", "overview.nextTitle": "Börja med Module 00", "overview.nextText": "Bygg en stabil grund i Monte Carlo innan du utforskar stokastiska modeller.", "overview.openCourse": "Öppna kursen", "overview.recommended": "rekommenderas", "overview.snapshot": "DIN ÖVERSIKT", "overview.modules": "moduler", "overview.points": "kunskapspunkter", "overview.tools": "verifierade verktyg", "overview.activity": "Din studieaktivitet visas här efter din första övning eller ditt första quiz.", "overview.quick": "SNABBÅTKOMST", "overview.choose": "Välj hur du vill lära dig", "overview.askTutor": "Fråga handledaren", "overview.askTutorDesc": "Få en förankrad förklaring från kursmaterialet.", "overview.explore": "Utforska en simulering", "overview.exploreDesc": "Kör ett godkänt experiment och granska diagrammet.", "overview.review": "Granska framsteg", "overview.reviewDesc": "Se behärskning, repetitionspunkter och nästa rekommendation.", "overview.recent": "SENASTE AKTIVITET", "overview.momentum": "Fortsätt hålla takten", "overview.openTutor": "Öppna handledaren", "overview.noRecent": "Ingen aktivitet ännu. Ställ en begreppsfråga eller prova den första modulen.",
     "course.intro": "Bläddra bland de elva modulerna och gå från en kunskapspunkt till ett verifierat experiment.", "course.modules": "KURSMODULER", "course.choose": "Välj en modul", "course.loading": "Laddar kursmoduler…",
     "tutor.title": "Fråga, förstå och följ upp", "tutor.intro": "Chatta med kursens handledare. Förklaringarna bygger på notebook-filerna och föreläsningsanteckningarna.", "tutor.chat": "HANDLEDARCHATT", "tutor.ask": "Ställ en fråga", "tutor.quiz": "Kontrollera din förståelse", "tutor.empty": "Fråga mig om ett begrepp, en modul eller en simulering.", "tutor.askLabel": "Fråga handledaren", "tutor.placeholder": "Till exempel: Vad är Browns rörelse?", "tutor.askButton": "Fråga handledaren", "tutor.composer": "Tryck Enter för att fråga · Shift+Enter för ny rad", "tutor.support": "LÄRANDESTÖD", "tutor.results": "Resultat", "tutor.ready": "Redo när du är", "tutor.resultHint": "Källor och simuleringsdetaljer visas här efter ett svar från handledaren.",
-    "simulation.label": "SIMULERING", "simulation.title": "Utforska verifierade experiment", "simulation.intro": "Välj en kunskapspunkt i Kurs eller be handledaren om en uttrycklig simulering.", "simulation.catalogue": "EXPERIMENTKATALOG", "simulation.emptyTitle": "Simuleringsresultat visas här", "simulation.emptyText": "Börja från en kunskapspunkt med åtgärden Simulation, eller fråga handledaren: ”Simulate Brownian motion with 100 steps.”", "simulation.browse": "Bläddra bland kursexperiment", "simulation.verified": "VERIFIERAT EXPERIMENT", "simulation.result": "Simuleringsresultat", "simulation.verifiedOutput": "Verifierat resultat från den valda stokastiska modellen.", "simulation.backTutor": "Tillbaka till handledaren", "simulation.sources": "Källor och parametrar", "simulation.search": "Sök efter titel, modul eller kunskapspunkt", "simulation.allModules": "Alla moduler", "simulation.goal": "Lärandemål", "simulation.type": "Experimenttyp", "simulation.parameters": "Parametrar", "simulation.visualization": "Visualisering", "simulation.open": "Öppna experiment", "simulation.run": "Kör experiment", "simulation.ask": "Fråga handledaren", "simulation.backCatalogue": "Tillbaka till katalogen", "simulation.noMatches": "Inga experiment matchar sökningen.", "simulation.verifiedCard": "Verifierat notebook-experiment",
+    "simulation.label": "SIMULERING", "simulation.title": "Utforska verifierade experiment", "simulation.intro": "Välj en kunskapspunkt i Kurs eller be handledaren om en uttrycklig simulering.", "simulation.catalogue": "EXPERIMENTKATALOG", "simulation.emptyTitle": "Simuleringsresultat visas här", "simulation.emptyText": "Börja från en kunskapspunkt med åtgärden Simulation, eller fråga handledaren: ”Simulate Brownian motion with 100 steps.”", "simulation.browse": "Bläddra bland kursexperiment", "simulation.verified": "VERIFIERAT EXPERIMENT", "simulation.result": "Simuleringsresultat", "simulation.verifiedOutput": "Verifierat resultat från den valda stokastiska modellen.", "simulation.backTutor": "Tillbaka till handledaren", "simulation.backCourse": "Tillbaka till kursen", "simulation.sources": "Källor och parametrar", "simulation.search": "Sök efter titel, modul eller kunskapspunkt", "simulation.allModules": "Alla moduler", "simulation.goal": "Lärandemål", "simulation.type": "Experimenttyp", "simulation.parameters": "Parametrar", "simulation.visualization": "Visualisering", "simulation.open": "Öppna experiment", "simulation.run": "Kör experiment", "simulation.ask": "Fråga handledaren", "simulation.backCatalogue": "Tillbaka till katalogen", "simulation.noMatches": "Inga experiment matchar sökningen.", "simulation.verifiedCard": "Verifierat notebook-experiment",
     "progress.title": "Din studiehistorik", "progress.intro": "Övnings- och quizaktivitet sparas i din lokala lärarprofil.", "progress.record": "STUDIEHISTORIK", "progress.mastery": "Behärskning per modul", "progress.local": "Lokalt minne", "progress.emptyNote": "Din övnings- och quizaktivitet visas här.", "progress.noRecord": "Ingen studiehistorik ännu.",
     "auth.signIn": "Logga in", "auth.register": "Skapa konto", "auth.continueGuest": "Fortsätt som gäst", "auth.username": "Användarnamn", "auth.password": "Lösenord", "auth.submit": "Fortsätt", "auth.logout": "Logga ut", "auth.signedIn": "Inloggad som", "auth.switch": "Byt konto", "auth.invalid": "Kontrollera användarnamn och lösenord.",
   },
@@ -105,6 +105,9 @@ let pendingTutorAction = {};
 let experimentRegistry = [];
 let toolCatalogue = {};
 let activeExperimentId = null;
+// The full-screen result remembers where the learner launched the experiment.
+// This keeps Course -> Simulation -> Back to course a predictable flow.
+let simulationReturnRoute = "tutor";
 let currentUser = null;
 const debugMode = new URLSearchParams(window.location.search).get("debug") === "1";
 if (debugMode) debugPanel.classList.remove("hidden");
@@ -534,6 +537,34 @@ function experimentParameterRows(experiment) {
   return params.filter((item) => item?.name && item.name !== "seed").slice(0, 12);
 }
 
+function simulationPromptName(experiment) {
+  const labels = {
+    monte_carlo: "Monte Carlo estimation",
+    bernoulli: "Bernoulli process",
+    poisson: "Poisson process",
+    random_walk: "Random walk",
+    continuous_random_walk: "Continuous-time random walk",
+    brownian_motion: "Brownian motion",
+    markov_chain: "Markov chain",
+    ctmc: "Continuous-time Markov chain",
+    birth_death: "Birth-and-death process",
+    reliability: "Reliability model",
+    buffer: "Buffer model",
+    mm1_queue: "M/M/1 queue",
+    nhpp: "Non-homogeneous Poisson process",
+    self_avoiding_walk: "Self-avoiding walk",
+    coalescing_particles: "Coalescing-particle model",
+  };
+  return labels[experiment?.simulation_engine] || experiment?.title || "the selected course experiment";
+}
+
+function displayExperimentTitle(experiment) {
+  const title = String(experiment?.title || "").trim();
+  return !title || /^(?:example|task|solution)\s+solution$/i.test(title)
+    ? simulationPromptName(experiment)
+    : title;
+}
+
 function renderExperimentCatalogue() {
   if (!simulationCatalogueGrid) return;
   const query = (simulationSearch?.value || "").trim().toLowerCase();
@@ -548,7 +579,7 @@ function renderExperimentCatalogue() {
   simulationCatalogueGrid.innerHTML = matches.length ? matches.map((experiment) => {
     const { module, concept } = experimentContext(experiment);
     const params = experimentParameterRows(experiment);
-    return `<article class="experiment-card"><div class="experiment-card-top"><span class="experiment-module">${escapeHtml(moduleDisplayLabel(experiment.module_id))}</span><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><h3>${escapeHtml(experiment.title)}</h3><p>${escapeHtml(cleanExperimentText(experiment.teaching_purpose || concept?.summary || ""))}</p><div class="experiment-card-meta"><span>${escapeHtml(concept?.title || "Course experiment")}</span>${params.length ? `<span>${params.length} ${language === "zh" ? "个参数" : language === "sv" ? "parametrar" : "parameters"}</span>` : ""}<span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div><button type="button" class="ghost-button" data-open-experiment="${escapeHtml(experiment.experiment_id)}">${t("simulation.open")} <span aria-hidden="true">→</span></button></article>`;
+    return `<article class="experiment-card"><div class="experiment-card-top"><span class="experiment-module">${escapeHtml(moduleDisplayLabel(experiment.module_id))}</span><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><h3>${escapeHtml(displayExperimentTitle(experiment))}</h3><p>${escapeHtml(cleanExperimentText(experiment.teaching_purpose || concept?.summary || ""))}</p><div class="experiment-card-meta"><span>${escapeHtml(concept?.title || "Course experiment")}</span>${params.length ? `<span>${params.length} ${language === "zh" ? "个参数" : language === "sv" ? "parametrar" : "parameters"}</span>` : ""}<span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div><button type="button" class="ghost-button" data-open-experiment="${escapeHtml(experiment.experiment_id)}">${t("simulation.open")} <span aria-hidden="true">→</span></button></article>`;
   }).join("") : `<div class="catalogue-empty"><strong>${escapeHtml(t("simulation.noMatches"))}</strong></div>`;
   simulationCatalogueGrid.querySelectorAll("[data-open-experiment]").forEach((button) => button.addEventListener("click", () => setRoute(`simulations/${button.dataset.openExperiment}`)));
 }
@@ -574,11 +605,11 @@ function showExperimentDetail(experimentId, { navigate = true } = {}) {
   locationBreadcrumb.textContent = `${t("nav.simulation")} / ${module?.label || experiment.module_id} / ${experiment.title}`;
   const teachingPurpose = cleanExperimentText(experiment.teaching_purpose || "");
   const theoryConnection = cleanExperimentText(experiment.theory_connection || "");
-  simulationDetail.innerHTML = `<div class="simulation-detail-header"><div><button type="button" class="breadcrumb-button" data-back-catalogue>${t("simulation.backCatalogue")}</button><p class="kicker">${escapeHtml(t("simulation.verified"))}</p><h2>${escapeHtml(experiment.title)}</h2><p class="simulation-subtitle">${escapeHtml(teachingPurpose)}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><div class="detail-summary-grid"><div><span class="detail-label">${escapeHtml(t("simulation.goal"))}</span><strong>${escapeHtml(teachingPurpose || cleanExperimentText(concept?.summary || ""))}</strong></div><div><span class="detail-label">${escapeHtml(t("common.theoryConnection"))}</span><strong>${escapeHtml(theoryConnection)}</strong></div><div><span class="detail-label">${escapeHtml(language === "zh" ? "知识点" : language === "sv" ? "Kunskapspunkt" : "Knowledge point")}</span><strong>${escapeHtml(concept?.title || "")}</strong></div></div><section class="parameter-editor"><div class="panel-heading compact"><div><p class="kicker">${escapeHtml(t("simulation.parameters"))}</p><h3>${escapeHtml(experiment.simulation_engine || "Python tool")}</h3></div></div>${params.length ? `<div class="parameter-grid">${params.map((parameter) => `<label><span>${escapeHtml(parameter.name)}</span><input type="number" step="any" data-experiment-param="${escapeHtml(parameter.name)}" value="${escapeHtml(parameter.default ?? "")}" ${parameter.required ? "required" : ""} /></label>`).join("")}</div>` : `<p class="muted-copy">${escapeHtml(language === "zh" ? "此 notebook 目标没有可编辑的工具参数；运行将使用工具默认值。" : language === "sv" ? "Detta notebookmål har inga redigerbara verktygsparametrar; standardvärden används." : "This notebook target has no editable tool parameters; the tool defaults will be used.")}</p>`}<div class="detail-actions"><button type="button" class="primary-action" data-run-experiment>${t("simulation.run")} <span aria-hidden="true">→</span></button><button type="button" class="ghost-button" data-ask-experiment>${t("simulation.ask")}</button></div><p id="experimentDetailStatus" class="concept-activity" role="status" aria-live="polite"></p></section><div class="detail-provenance"><span>${escapeHtml(module?.label || experiment.module_id)}</span><span>${escapeHtml(experiment.source_notebook || "notebook")}</span><span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div>`;
+  simulationDetail.innerHTML = `<div class="simulation-detail-header"><div><button type="button" class="breadcrumb-button" data-back-catalogue>${t("simulation.backCatalogue")}</button><p class="kicker">${escapeHtml(t("simulation.verified"))}</p><h2>${escapeHtml(displayExperimentTitle(experiment))}</h2><p class="simulation-subtitle">${escapeHtml(teachingPurpose)}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || "verified")}</span></div><div class="detail-summary-grid"><div><span class="detail-label">${escapeHtml(t("simulation.goal"))}</span><strong>${escapeHtml(teachingPurpose || cleanExperimentText(concept?.summary || ""))}</strong></div><div><span class="detail-label">${escapeHtml(t("common.theoryConnection"))}</span><strong>${escapeHtml(theoryConnection)}</strong></div><div><span class="detail-label">${escapeHtml(language === "zh" ? "知识点" : language === "sv" ? "Kunskapspunkt" : "Knowledge point")}</span><strong>${escapeHtml(concept?.title || "")}</strong></div></div><section class="parameter-editor"><div class="panel-heading compact"><div><p class="kicker">${escapeHtml(t("simulation.parameters"))}</p><h3>${escapeHtml(experiment.simulation_engine || "Python tool")}</h3></div></div>${params.length ? `<div class="parameter-grid">${params.map((parameter) => `<label><span>${escapeHtml(parameter.name)}</span><input type="number" step="any" data-experiment-param="${escapeHtml(parameter.name)}" value="${escapeHtml(parameter.default ?? "")}" ${parameter.required ? "required" : ""} /></label>`).join("")}</div>` : `<p class="muted-copy">${escapeHtml(language === "zh" ? "此 notebook 目标没有可编辑的工具参数；运行将使用工具默认值。" : language === "sv" ? "Detta notebookmål har inga redigerbara verktygsparametrar; standardvärden används." : "This notebook target has no editable tool parameters; the tool defaults will be used.")}</p>`}<div class="detail-actions"><button type="button" class="primary-action" data-run-experiment>${t("simulation.run")} <span aria-hidden="true">→</span></button><button type="button" class="ghost-button" data-ask-experiment>${t("simulation.ask")}</button></div><p id="experimentDetailStatus" class="concept-activity" role="status" aria-live="polite"></p></section><div class="detail-provenance"><span>${escapeHtml(module?.label || experiment.module_id)}</span><span>${escapeHtml(experiment.source_notebook || "notebook")}</span><span>${escapeHtml(experiment.visualization_id || "visualization")}</span></div>`;
   simulationDetail.querySelector("[data-back-catalogue]")?.addEventListener("click", () => setRoute("simulations"));
   simulationDetail.querySelector("[data-run-experiment]")?.addEventListener("click", () => {
     const values = [...simulationDetail.querySelectorAll("[data-experiment-param]")].filter((field) => field.value !== "").map((field) => `${field.dataset.experimentParam} ${field.value}`).join(", ");
-    const prompt = `Simulate ${experiment.title}${values ? ` with ${values}` : ""}.`;
+    const prompt = `Simulate ${simulationPromptName(experiment)}${values ? ` with ${values}` : ""}.`;
     pendingTutorAction = { action_type: "simulation", concept_id: experiment.concept_id || undefined, experiment_id: experiment.experiment_id };
     askAgent(prompt, pendingTutorAction);
   });
@@ -661,50 +692,90 @@ function renderStructuredVisualizations(result, target) {
   const colors = ["#635bdb", "#199aa4", "#d58a28", "#8f84ef", "#248a62"];
   const esc = (value) => escapeHtml(String(value ?? ""));
   const lineSvg = (items, labels = {}) => {
-    const width = 520, height = 260, pad = 38;
-    const values = items.flatMap((item) => item.values || item.y || []);
-    if (!values.length) return `<p>${t("common.noData")}</p>`;
+    const width = 720, height = 380;
+    const pad = { left: 62, right: 22, top: 24, bottom: 56 };
+    const normalized = (items || []).map((item, index) => {
+      const ys = Array.isArray(item.values || item.y) ? (item.values || item.y) : [];
+      const rawX = Array.isArray(item.x) && item.x.length === ys.length ? item.x : ys.map((_, i) => i);
+      const pairs = ys.map((y, i) => ({ x: Number(rawX[i]), y: Number(y) }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+      return { name: item.name || item.label || `Series ${index + 1}`, pairs };
+    }).filter((item) => item.pairs.length);
+    if (!normalized.length) return `<p>${t("common.noData")}</p>`;
+    const values = normalized.flatMap((item) => item.pairs.map((point) => point.y));
+    const xValues = normalized.flatMap((item) => item.pairs.map((point) => point.x));
     const min = Math.min(...values), max = Math.max(...values), spread = max - min || 1;
-    const xValues = items.flatMap((item) => item.x || (item.values || item.y || []).map((_, i) => i));
     const minX = Math.min(...xValues), maxX = Math.max(...xValues), xSpread = maxX - minX || 1;
-    const xp = (x) => pad + ((x - minX) / xSpread) * (width - 2 * pad);
-    const yp = (y) => height - pad - ((y - min) / spread) * (height - 2 * pad);
-    const paths = items.map((item, index) => {
-      const ys = item.values || item.y || [], xs = item.x?.length === ys.length ? item.x : ys.map((_, i) => i);
-      const points = ys.map((y, i) => `${xp(xs[i]).toFixed(1)},${yp(y).toFixed(1)}`).join(" ");
-      return `<polyline points="${points}" fill="none" stroke="${colors[index % colors.length]}" stroke-width="2" />`;
+    const plotWidth = width - pad.left - pad.right, plotHeight = height - pad.top - pad.bottom;
+    const xp = (x) => pad.left + ((x - minX) / xSpread) * plotWidth;
+    const yp = (y) => height - pad.bottom - ((y - min) / spread) * plotHeight;
+    const formatTick = (value) => {
+      if (Math.abs(value) >= 1000) return value.toFixed(0);
+      if (Number.isInteger(value)) return String(value);
+      return value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    };
+    const ticks = Array.from({ length: 5 }, (_, index) => index / 4);
+    const grid = ticks.map((fraction) => {
+      const y = pad.top + plotHeight * fraction;
+      const value = max - spread * fraction;
+      return `<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}" class="chart-grid-line" /><text x="${pad.left - 9}" y="${(y + 5).toFixed(1)}" text-anchor="end" class="chart-tick-label">${esc(formatTick(value))}</text>`;
     }).join("");
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(labels.title || "Visualization")}"><line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" class="chart-axis-line" /><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" class="chart-axis-line" />${paths}<text x="${width/2}" y="${height-6}" text-anchor="middle" class="chart-axis-label">${esc(labels.x_label || "x")}</text><text x="14" y="${height/2}" text-anchor="middle" class="chart-axis-label" transform="rotate(-90 14 ${height/2})">${esc(labels.y_label || "value")}</text></svg>`;
+    const xTicks = ticks.map((fraction) => {
+      const x = pad.left + plotWidth * fraction;
+      const value = minX + xSpread * fraction;
+      return `<line x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${height - pad.bottom}" class="chart-grid-line" /><text x="${x.toFixed(1)}" y="${height - pad.bottom + 22}" text-anchor="middle" class="chart-tick-label">${esc(formatTick(value))}</text>`;
+    }).join("");
+    const paths = normalized.map((item, index) => {
+      const points = item.pairs.map((point) => `${xp(point.x).toFixed(1)},${yp(point.y).toFixed(1)}`).join(" ");
+      const lower = String(item.name).toLowerCase();
+      const dash = /theoretical|poisson|exact|reference/.test(lower) ? ` stroke-dasharray="8 5"` : "";
+      return `<polyline points="${points}" fill="none" stroke="${colors[index % colors.length]}" stroke-width="${normalized.length > 1 ? 2.8 : 3.2}" stroke-linecap="round" stroke-linejoin="round" opacity=".92"${dash} />`;
+    }).join("");
+    const legend = `<div class="visualization-inline-legend">${normalized.map((item, index) => `<span class="legend-item"><i style="--legend-color:${colors[index % colors.length]}" aria-hidden="true"></i><span>${esc(item.name)}</span></span>`).join("")}</div>`;
+    return `<div class="visualization-figure"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(labels.title || "Visualization")}"><rect x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" class="chart-plot-background" />${grid}${xTicks}<line x1="${pad.left}" y1="${height-pad.bottom}" x2="${width-pad.right}" y2="${height-pad.bottom}" class="chart-axis-line" /><line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height-pad.bottom}" class="chart-axis-line" />${paths}<text x="${width/2}" y="${height-10}" text-anchor="middle" class="chart-axis-label">${esc(labels.x_label || "x")}</text><text x="16" y="${height/2}" text-anchor="middle" class="chart-axis-label" transform="rotate(-90 16 ${height/2})">${esc(labels.y_label || "value")}</text></svg>${legend}</div>`;
+  };
+  const lineItems = (viz) => {
+    // Some notebook exports carry several curves under `series` or `lines`.
+    // Keep the common x-axis and preserve every finite curve for the legend.
+    const rows = Array.isArray(viz?.series) ? viz.series : Array.isArray(viz?.lines) ? viz.lines : [];
+    if (rows.length) return rows.map((row, index) => ({
+      x: row?.x || viz.x,
+      values: row?.values || row?.y || [],
+      name: row?.name || row?.label || viz.labels?.[index] || `Series ${index + 1}`,
+    }));
+    return [{ x: viz?.x, values: viz?.values || viz?.y, name: viz?.labels?.[0] || viz?.id }];
   };
   const panelSvg = (panel, index) => {
     const items = [];
     if (panel.empirical && panel.theoretical) {
-      items.push({ x: panel.x, values: panel.empirical }, { x: panel.x, values: panel.theoretical });
+      items.push({ x: panel.x, values: panel.empirical, name: "Empirical" }, { x: panel.x, values: panel.theoretical, name: "Theoretical" });
     } else if (panel.binomial && panel.poisson) {
-      items.push({ x: panel.x, values: panel.binomial }, { x: panel.x, values: panel.poisson });
+      items.push({ x: panel.x, values: panel.binomial, name: "Binomial" }, { x: panel.x, values: panel.poisson, name: "Poisson" });
     }
-    return `<article class="visualization-panel"><h4>${esc(panel.parameter ? Object.entries(panel.parameter).map(([k,v]) => `${k}=${v}`).join(", ") : `Panel ${index+1}`)}</h4>${lineSvg(items, { x_label: "value", y_label: "probability" })}</article>`;
+    const title = panel.parameter ? Object.entries(panel.parameter).map(([k,v]) => `${k}=${v}`).join(", ") : `Panel ${index+1}`;
+    return `<article class="visualization-panel"><h4><span>${esc(title)}</span><small>${esc(items.length ? `${items.length} curves` : "No curves")}</small></h4>${lineSvg(items, { title, x_label: "value", y_label: "probability" })}</article>`;
   };
   const circleSvg = (states, circleSize, title) => {
     const width = 520, height = 300, cx = 260, cy = 145, radius = 105;
     const positions = (states || []).map((site) => { const a = (2 * Math.PI * site / circleSize) - Math.PI / 2; return [cx + radius * Math.cos(a), cy + radius * Math.sin(a)]; });
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(title)}"><circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="#b8b2d0" stroke-width="2" />${positions.map(([x,y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="#635bdb" />`).join("")}<text x="${cx}" y="${height-12}" text-anchor="middle" class="chart-axis-label">${esc(title)}</text></svg>`;
   };
-  const cards = visualizations.map((viz, index) => {
+    const cards = visualizations.map((viz, index) => {
+    const title = esc(viz.title || viz.label || viz.id || `Visualization ${index + 1}`);
     if (viz.renderer === "line" || viz.renderer === "step_process") {
-      const items = [{ x: viz.x, values: viz.values, name: viz.labels?.[0] || viz.id }];
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(items, { x_label: viz.x_label || "x", y_label: viz.y_label || "value" })}</section>`;
+      const items = lineItems(viz);
+      return `<section class="visualization-card"><h3>${title}</h3>${lineSvg(items, { title: viz.title || viz.id, x_label: viz.x_label || "x", y_label: viz.y_label || "value" })}</section>`;
     }
     if (viz.renderer === "empirical_vs_theoretical") {
-      const items = [{ x: viz.x, values: viz.empirical, name: "empirical" }, { x: viz.x, values: viz.theoretical, name: "theoretical" }];
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(items, { x_label: viz.labels?.x || "x", y_label: viz.labels?.y || "value" })}<p class="visualization-note">Empirical and theoretical curves are shown together.</p></section>`;
+      const items = [{ x: viz.x, values: viz.empirical, name: "Empirical" }, { x: viz.x, values: viz.theoretical, name: "Theoretical" }];
+      return `<section class="visualization-card"><h3>${title}</h3>${lineSvg(items, { title: viz.title || viz.id, x_label: viz.labels?.x || "x", y_label: viz.labels?.y || "value" })}<p class="visualization-note">Empirical and theoretical curves are shown together.</p></section>`;
     }
     if (viz.renderer === "multi_panel") {
       if (viz.paths) {
         const pathItems = Object.entries(viz.paths).map(([name, path]) => ({ name, x: (path || []).map((point, i) => point?.[0] ?? i), values: (path || []).map((point) => point?.[1] ?? 0) }));
-        return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(pathItems, { x_label: "step", y_label: "position" })}</section>`;
+        return `<section class="visualization-card"><h3>${title}</h3>${lineSvg(pathItems, { title: viz.title || viz.id, x_label: "step", y_label: "position" })}</section>`;
       }
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="visualization-panels">${(viz.panels || []).map(panelSvg).join("")}</div></section>`;
+      return `<section class="visualization-card"><h3>${title}</h3><div class="visualization-panels">${(viz.panels || []).map(panelSvg).join("")}</div></section>`;
     }
     if (viz.renderer === "state_graph") {
       const nodes = viz.graph?.nodes || result.graph?.nodes || [], edges = viz.graph?.edges || result.graph?.edges || [];
@@ -712,28 +783,28 @@ function renderStructuredVisualizations(result, target) {
       const point = (i) => { const a = 2 * Math.PI * i / Math.max(nodes.length, 1) - Math.PI / 2; return [cx + radius * Math.cos(a), cy + radius * Math.sin(a)]; };
       const lines = edges.map((edge) => { const [x1,y1] = point(edge.source), [x2,y2] = point(edge.target); return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#9b95b4" marker-end="url(#arrow)" /><text x="${((x1+x2)/2).toFixed(1)}" y="${((y1+y2)/2).toFixed(1)}" class="graph-edge-label">${Number(edge.weight).toFixed(2)}</text>`; }).join("");
       const circles = nodes.map((node, i) => { const [x,y] = point(i); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="22" fill="#635bdb" /><text x="${x.toFixed(1)}" y="${(y+5).toFixed(1)}" text-anchor="middle" fill="white">${esc(node.label || node.id)}</text>`; }).join("");
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><svg viewBox="0 0 ${width} ${height}" class="state-graph" role="img" aria-label="State transition graph"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#9b95b4" /></marker></defs>${lines}${circles}</svg></section>`;
+      return `<section class="visualization-card"><h3>${title}</h3><svg viewBox="0 0 ${width} ${height}" class="state-graph" role="img" aria-label="State transition graph"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#9b95b4" /></marker></defs>${lines}${circles}</svg></section>`;
     }
     if (viz.renderer === "absorption") {
       const data = viz.data || result.absorption || {};
       const items = (data.distribution || []).map((item) => ({ x: [item.state], values: [item.probability] }));
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(items, { x_label: "absorbing state", y_label: "probability" })}<p class="visualization-note">Empirical success probability: ${esc(data.success_probability)}; theoretical value: ${esc(data.theoretical_success_probability)}.</p></section>`;
+      return `<section class="visualization-card"><h3>${title}</h3>${lineSvg(items, { title: viz.title || viz.id, x_label: "absorbing state", y_label: "probability" })}<p class="visualization-note">Empirical success probability: ${esc(data.success_probability)}; theoretical value: ${esc(data.theoretical_success_probability)}.</p></section>`;
     }
     if (viz.renderer === "scatter" || viz.renderer === "scatter_path") {
       const rawPoints = viz.data?.points || viz.path || [];
       const points = viz.x && viz.y ? [{ x: viz.x, values: viz.y }] : [{ x: rawPoints.map((p) => p[0]), values: rawPoints.map((p) => p[1]) }];
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3>${lineSvg(points, { x_label: "x", y_label: "y" })}</section>`;
+      return `<section class="visualization-card"><h3>${title}</h3>${lineSvg(points, { title: viz.title || viz.id, x_label: "x", y_label: "y" })}</section>`;
     }
     if (viz.renderer === "thinning") {
       const accepted = viz.accepted_events || [], rejected = viz.rejected_events || [], candidates = viz.candidate_events || [];
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="event-raster thinning-raster"><div class="event-row"><span class="event-row-label">Candidates</span>${candidates.map((time) => `<i class="candidate-event" style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div><div class="event-row"><span class="event-row-label">Accepted</span>${accepted.map((time) => `<i class="accepted-event" style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div><div class="event-row"><span class="event-row-label">Rejected</span>${rejected.map((time) => `<i class="rejected-event" style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div></div></section>`;
+      return `<section class="visualization-card"><h3>${title}</h3><div class="event-raster thinning-raster"><div class="event-row"><span class="event-row-label">Candidates</span>${candidates.map((time) => `<i class="candidate-event" style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div><div class="event-row"><span class="event-row-label">Accepted</span>${accepted.map((time) => `<i class="accepted-event" style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div><div class="event-row"><span class="event-row-label">Rejected</span>${rejected.map((time) => `<i class="rejected-event" style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div></div></section>`;
     }
     if (viz.renderer === "configuration" || viz.renderer === "interactive") {
       const states = viz.snapshots || viz.states || [];
-      return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="configuration-grid">${states.slice(0, 4).map((state) => circleSvg(Array.isArray(state) ? state : state.positions, result.parameters?.circle_size || viz.circle_size || 12, "Particle configuration")).join("")}</div></section>`;
+      return `<section class="visualization-card"><h3>${title}</h3><div class="configuration-grid">${states.slice(0, 4).map((state) => circleSvg(Array.isArray(state) ? state : state.positions, result.parameters?.circle_size || viz.circle_size || 12, "Particle configuration")).join("")}</div></section>`;
     }
-    if (viz.renderer === "event_raster") return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><div class="event-raster">${(viz.event_times || result.raster_event_times || []).map((events, row) => `<div class="event-row" style="--row:${row}">${events.map((time) => `<i style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div>`).join("")}</div></section>`;
-    return `<section class="visualization-card"><h3>${esc(viz.id)}</h3><p>Visualization data are ready.</p></section>`;
+    if (viz.renderer === "event_raster") return `<section class="visualization-card"><h3>${title}</h3><div class="event-raster">${(viz.event_times || result.raster_event_times || []).map((events, row) => `<div class="event-row" style="--row:${row}">${events.map((time) => `<i style="left:${(100 * time / (result.parameters?.horizon || 1)).toFixed(2)}%"></i>`).join("")}</div>`).join("")}</div></section>`;
+    return `<section class="visualization-card"><h3>${title}</h3><p>Visualization data are ready.</p></section>`;
   }).join("");
   target.innerHTML = `<div class="structured-visualizations">${cards}</div>`;
   return true;
@@ -752,7 +823,7 @@ function showSimulationView(payload) {
   if (!simulationView) return;
   const series = payload.result?.series || [];
   const experiment = payload.experiment;
-  simulationTitle.textContent = experiment?.title || payload.module_label || payload.module_id || "Simulation result";
+  simulationTitle.textContent = displayExperimentTitle(experiment) || payload.module_label || payload.module_id || "Simulation result";
   simulationSubtitle.textContent = payload.verified ? (language === "zh" ? "来自 Python 模拟工具的验证输出。" : "Verified output from the Python simulation tool.") : (language === "zh" ? "模拟输出已准备好查看。" : "Simulation output is ready for review.");
   if (experimentPurpose) experimentPurpose.textContent = experiment?.teaching_purpose || "";
   if (!renderStructuredVisualizations(payload.result, simulationChart)) renderChart(series, payload.result?.chart, simulationChart);
@@ -764,6 +835,13 @@ function showSimulationView(payload) {
       : "";
   }
   renderSourceList(payload.sources || [], simulationSources);
+  if (closeSimulationView) {
+    closeSimulationView.textContent = simulationReturnRoute.startsWith("course")
+      ? t("simulation.backCourse")
+      : simulationReturnRoute === "simulations"
+        ? t("simulation.backCatalogue")
+        : t("simulation.backTutor");
+  }
   tutorLab?.classList.add("simulation-active");
   dashboard?.classList.add("simulation-mode");
   const catalogue = document.querySelector("#simulationCatalogue");
@@ -778,7 +856,7 @@ function addSimulationCard(payload) {
   const card = document.createElement("article");
   card.className = "message simulation-message-card";
   const cardId = `inline-simulation-${Date.now()}`;
-  card.innerHTML = `<span class="message-label">${escapeHtml(t("simulation.verified"))}</span><div class="simulation-card-heading"><div><h3>${escapeHtml(experiment.title || payload.module_label || t("simulation.result"))}</h3><p>${renderTutorMarkdown(cleanExperimentText(experiment.teaching_purpose || t("simulation.verifiedOutput")))}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || payload.tool || "verified")}</span></div><div id="${cardId}" class="inline-simulation-visual"></div><div class="inline-simulation-meta">${Object.entries(payload.parameters || {}).slice(0, 5).map(([key, value]) => `<span><strong>${escapeHtml(key)}</strong> ${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</span>`).join("")}</div><p class="inline-simulation-summary">${renderTutorMarkdown(cleanExperimentText(payload.result_summary || experiment.expected_observation || "Verified output from the Python simulation tool."))}</p><div class="inline-simulation-actions"><button type="button" class="ghost-button" data-open-lab>${escapeHtml(t("simulation.open"))} →</button></div>`;
+  card.innerHTML = `<span class="message-label">${escapeHtml(t("simulation.verified"))}</span><div class="simulation-card-heading"><div><h3>${escapeHtml(displayExperimentTitle(experiment) || payload.module_label || t("simulation.result"))}</h3><p>${renderTutorMarkdown(cleanExperimentText(experiment.teaching_purpose || t("simulation.verifiedOutput")))}</p></div><span class="experiment-type">${escapeHtml(experiment.simulation_engine || payload.tool || "verified")}</span></div><div id="${cardId}" class="inline-simulation-visual"></div><div class="inline-simulation-meta">${Object.entries(payload.parameters || {}).slice(0, 5).map(([key, value]) => `<span><strong>${escapeHtml(key)}</strong> ${escapeHtml(Array.isArray(value) ? JSON.stringify(value) : value)}</span>`).join("")}</div><p class="inline-simulation-summary">${renderTutorMarkdown(cleanExperimentText(payload.result_summary || experiment.expected_observation || "Verified output from the Python simulation tool."))}</p><div class="inline-simulation-actions"><button type="button" class="ghost-button" data-open-lab>${escapeHtml(t("simulation.open"))} →</button></div>`;
   conversation.append(card);
   const visual = card.querySelector(`#${cardId}`);
   if (!renderStructuredVisualizations(payload.result, visual)) renderChart(payload.result?.series, payload.result?.chart, visual);
@@ -871,7 +949,12 @@ function renderResponse(payload) {
 async function askAgent(question, action = {}) {
   const cleanQuestion = String(question || "").trim();
   if (mutationInFlight || !cleanQuestion) return;
+  const fromCourse = activeViewId === "courseView" && action.action_type === "simulation";
   const fromSimulationLab = activeViewId === "simulationLabView" && action.action_type === "simulation";
+  const showDedicatedSimulation = fromCourse || fromSimulationLab;
+  if (fromCourse) simulationReturnRoute = `course/${activeModuleId}${currentConceptId ? `/${currentConceptId}` : ""}`;
+  else if (fromSimulationLab) simulationReturnRoute = "simulations";
+  else simulationReturnRoute = "tutor";
   setComposerLoading(true);
   addMessage("user", cleanQuestion);
   try {
@@ -889,7 +972,7 @@ async function askAgent(question, action = {}) {
       }
     }
     addMessage("agent", payload.answer); renderResponse(payload); if (payload.tool_called) addSimulationCard(payload); renderOverview(payload.memory, payload.recommendation);
-    if (fromSimulationLab && payload.tool_called) showSimulationView(payload);
+    if (showDedicatedSimulation && payload.tool_called) showSimulationView(payload);
     else showView("tutorView");
   } catch (error) { addMessage("agent", language === "zh" ? `这次请求未能完成：${error.message}` : `I could not complete that request: ${error.message}`); }
   finally { setComposerLoading(false); input.focus(); autoGrowInput(); }
@@ -1042,7 +1125,13 @@ input.addEventListener("keydown", (event) => {
 form.addEventListener("submit", (event) => { event.preventDefault(); if (mutationInFlight) return; const question = input.value.trim(); if (question) { input.value = ""; autoGrowInput(); askAgent(question); } });
 quizButton.addEventListener("click", () => openQuiz());
 resetButton.addEventListener("click", () => { sessionId = null; latestSimulationPayload = null; window.localStorage.removeItem("stochasticTutorSession"); hideSimulationView(); conversation.innerHTML = `<article class="message agent-message"><span class="message-label">${t("common.tutor")}</span><div class="message-body"><p>${escapeHtml(t("tutor.empty"))}</p></div></article>`; quizPanel.classList.add("hidden"); input.value = ""; autoGrowInput(); input.focus(); composerStatus.textContent = t("tutor.composer"); });
-closeSimulationView?.addEventListener("click", () => { hideSimulationView(); showView("tutorView", { focus: true }); });
+closeSimulationView?.addEventListener("click", () => {
+  const returnRoute = simulationReturnRoute;
+  hideSimulationView();
+  if (returnRoute.startsWith("course")) setRoute(returnRoute);
+  else if (returnRoute === "simulations") setRoute("simulations");
+  else setRoute("tutor");
+});
 function routeForView(view) {
   return view === "courseView" ? "course" : view === "tutorView" ? "tutor" : view === "simulationLabView" ? "simulations" : view === "progressView" ? "progress" : "overview";
 }

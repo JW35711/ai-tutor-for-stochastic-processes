@@ -133,7 +133,7 @@ def simulate_self_avoiding_walk(
             "obstacle_path": obstacle_path,
         },
         "visualizations": [
-            {"id": "module09-viz-02", "renderer": "multi_panel", "paths": {"ordinary": ordinary_path[:500], "self_avoiding": sample_path}},
+            {"id": "module09-viz-02", "title": "Ordinary and self-avoiding paths", "renderer": "multi_panel", "paths": {"ordinary": ordinary_path[:500], "self_avoiding": sample_path}},
             {"id": "module09-viz-04", "renderer": "scatter", "x": trapped_lengths[:500], "y": trapped_distances[:500]},
             {"id": "module09-viz-05", "renderer": "scatter_path", "obstacles": sorted(blocked_sites), "path": obstacle_path},
         ],

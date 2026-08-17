@@ -55,12 +55,26 @@ class StudentUxRegressionTests(unittest.TestCase):
         self.assertIn('data-view="overviewView"', self.html)
         self.assertEqual(len(re.findall(r'class="nav-item', self.html)), 5)
         self.assertIn("@media (max-width: 900px)", self.styles)
-        self.assertIn('/app.js?v=student-ux', self.html)
+        self.assertIn('/app.js?v=viz-polish', self.html)
 
     def test_experiment_metadata_is_cleaned_before_catalogue_render(self) -> None:
         self.assertIn("function cleanExperimentText", self.javascript)
         self.assertIn("cleanExperimentText(experiment.teaching_purpose", self.javascript)
         self.assertIn("cleanExperimentText(experiment.theory_connection", self.javascript)
+
+    def test_experiment_run_prompt_uses_engine_when_notebook_title_is_generic(self) -> None:
+        self.assertIn("function simulationPromptName", self.javascript)
+        self.assertIn("Simulate ${simulationPromptName(experiment)}", self.javascript)
+
+    def test_quiz_control_uses_student_action_style(self) -> None:
+        self.assertIn('id="quizButton" class="primary-action compact-action"', self.html)
+
+    def test_course_simulation_opens_full_view_and_remembers_return_route(self) -> None:
+        self.assertIn('const fromCourse = activeViewId === "courseView"', self.javascript)
+        self.assertIn("const showDedicatedSimulation = fromCourse || fromSimulationLab", self.javascript)
+        self.assertIn('simulationReturnRoute = `course/${activeModuleId}', self.javascript)
+        self.assertIn('t("simulation.backCourse")', self.javascript)
+        self.assertIn('if (returnRoute.startsWith("course")) setRoute(returnRoute)', self.javascript)
 
 
 if __name__ == "__main__":

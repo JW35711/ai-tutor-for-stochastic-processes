@@ -171,7 +171,12 @@ def simulate_poisson_process(
         ],
         "panels": convergence_panels,
         "visualizations": [
-            {"id": "module01-viz-08", "renderer": "multi_panel", "panels": convergence_panels}
+            {
+                "id": "module01-viz-08",
+                "title": "Bernoulli-to-Poisson convergence",
+                "renderer": "multi_panel",
+                "panels": convergence_panels,
+            }
         ],
         "chart": {"x_label": "time", "y_label": "N(t)"},
     }

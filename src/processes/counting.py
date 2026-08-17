@@ -97,8 +97,24 @@ def simulate_bernoulli_process(
         "series": sample_series,
         "panels": comparison_panels,
         "visualizations": [
-            {"id": "module01-viz-04", "renderer": "multi_panel", "panels": [p["count_distribution"] for p in comparison_panels]},
-            {"id": "module01-viz-07", "renderer": "multi_panel", "panels": [p["waiting_time_distribution"] for p in comparison_panels]},
+            {
+                "id": "module01-viz-04",
+                "title": "Count distributions for different probabilities",
+                "renderer": "multi_panel",
+                "panels": [
+                    {**p["count_distribution"], "parameter": p["parameter"]}
+                    for p in comparison_panels
+                ],
+            },
+            {
+                "id": "module01-viz-07",
+                "title": "Waiting-time distributions for different probabilities",
+                "renderer": "multi_panel",
+                "panels": [
+                    {**p["waiting_time_distribution"], "parameter": p["parameter"]}
+                    for p in comparison_panels
+                ],
+            },
         ],
         "chart": {"x_label": "slot", "y_label": "number of events", "step": "post"},
     }
