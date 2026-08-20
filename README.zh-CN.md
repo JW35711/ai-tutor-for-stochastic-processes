@@ -176,3 +176,37 @@ python -m unittest discover -s tests -v
 ## License
 
 MIT，详见 [LICENSE](LICENSE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## 轻量领域 Agent Harness
+
+当前运行时在既有 LangGraph 图外增加了一个 StochLab 专用的轻量 Harness。
+它是执行策略边界，不是通用自主 Agent 框架：系统仍然只有 Curriculum、
+Assessment、Tutor 三个有界 Agent；RAG、可回答性、Python 工具、SQLite 和
+LLM provider 仍是可检查的独立服务。
+
+```text
+HTTP 请求
+  │
+  ▼
+Harness：request id → 有界上下文快照（不含数组/密钥）
+  │
+  ▼
+LangGraph：条件路由与 handoff
+  ├─ 导航 ───────────────► Curriculum → 课程目录回答
+  ├─ 概念/解释/比较 ─────► RAG → 证据门控 → Tutor
+  ├─ 仿真 ───────────────► RAG → plan → 白名单 Python 工具
+  │                              → 校验 → Tutor
+  └─ practice/quiz ─────► Assessment → Curriculum → Tutor
+  │
+  ▼
+Harness：复用来源/数值校验 + 安全 fallback + debug telemetry
+```
+
+上下文压缩完全由确定性规则完成，优先级为：**当前实验和已验证参数 →
+模块/知识点 → 已评估学习状态 → 最近相关轮次 → 更旧的来源定位**。不使用
+tokenizer 或 LLM 摘要，也不保存完整 prompt、完整聊天记录、仿真数组或密钥。
+仿真只能调用已注册工具，不提供 shell 或任意代码执行器。
+
+引入 Harness 的原因，是为每次执行统一提供 request id、有界上下文策略、保守的
+执行后校验、失败分类和安全观测，而不把路由、检索、计算、评分或推荐复制到
+另一套框架。Provider 的重试和 circuit breaker 仍由 `src/llm.py` 负责。

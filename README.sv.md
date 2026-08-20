@@ -207,3 +207,42 @@ endpoint.
 ## Licens
 
 MIT. Se [LICENSE](LICENSE) och [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Ett lätt, domänspecifikt Agent Harness
+
+Den aktuella körningen har ett litet StochLab-specifikt Harness runt den
+befintliga LangGraph-grafen. Det är en policygräns för exekvering, inte ett
+generellt autonomt agentramverk: produkten har fortfarande exakt tre
+avgränsade agenter (Curriculum, Assessment och Tutor), medan RAG,
+answerability, Python-verktyg, SQLite och LLM-providern är separata,
+inspekterbara tjänster.
+
+```text
+HTTP-begäran
+  │
+  ▼
+Harness: request id → begränsad kontext (inga arrayer/hemligheter)
+  │
+  ▼
+LangGraph: villkorad routing och handoffs
+  ├─ navigation ─────────────► Curriculum → kurskatalog
+  ├─ concept/why/comparison ─► RAG → evidensgrind → Tutor
+  ├─ simulation ─────────────► RAG → plan → tillåtna Python-verktyg
+  │                                 → verifiering → Tutor
+  └─ practice/quiz ──────────► Assessment → Curriculum → Tutor
+  │
+  ▼
+Harness: befintlig proveniens/numerisk kontroll + fallback + telemetry
+```
+
+Kontext komprimeras deterministiskt i ordningen **aktivt experiment och
+validerade parametrar → modul/kunskapspunkt → bedömd lärarstatus → senaste
+relevanta turer → äldre källreferenser**. Ingen tokenizer eller LLM används för
+sammanfattning, och fullständiga prompts, chatthistorik, simuleringsarrayer och
+hemligheter sparas inte. Endast registrerade simuleringsverktyg får köras; ingen
+shell- eller godtycklig kodexekverare finns.
+
+Harness ger ett request-id, en begränsad kontextpolicy, konservativ kontroll
+efter körning, felkategorier och säker observability utan att duplicera routing,
+retrieval, beräkning, bedömning eller rekommendation. Provider-retries och
+circuit breaker ligger kvar i `src/llm.py`.

@@ -28,7 +28,7 @@ from .validation import validate_question, validate_session_id
 from .workflow import AgentState, NodeOutcome
 from .visualization_contracts import project_and_validate, validate_native_visualization
 from .graph.workflow import build_graph
-from .graph.response import finalize as finalize_graph_response
+from .harness.execution import TutorHarness
 from .processes import (
     analyze_markov_chain,
     analyze_reliability_system,
@@ -292,6 +292,9 @@ class StochasticTutorAgent:
         # The graph is the orchestration boundary. Domain node methods remain
         # here so retrieval, memory, tools and response contracts stay stable.
         self.workflow = build_graph(self)
+        # Harness is a thin policy/observability boundary around that graph;
+        # it does not replace graph routing or any domain service.
+        self.harness = TutorHarness(self)
 
     @classmethod
     def detect_query_language(cls, question: str, ui_language: str = "en") -> str:
@@ -2638,6 +2641,13 @@ Use natural terminology in the requested language while retaining canonical Engl
     def _general_chat_answer(self, state: AgentState) -> str:
         """Use the existing provider for harmless general questions only."""
 
+        # Product-stack questions have a stable, local answer.  Keeping this
+        # small deterministic lane avoids provider-specific claims about the
+        # implementation and keeps the general-chat contract reproducible.
+        if any(marker in state.question.casefold() for marker in ("技术栈", "架构", "tech stack", "architecture")):
+            state.llm_metadata = self._llm_metadata()
+            state.llm_applied = False
+            return self._localized_general_answer(state.question, state.response_language)
         language_name = {"zh": "Chinese", "sv": "Swedish"}.get(state.response_language, "English")
         candidate = self.llm.complete(
             (
@@ -3273,10 +3283,7 @@ Use natural terminology in the requested language while retaining canonical Engl
         state.action_type = action_type if action_type in {"learn", "practice", "simulation", "quiz"} else None
         state.requested_concept_id = concept_id if concept_id in self.curriculum_agent.concepts else None
         state.requested_experiment_id = experiment_id if self.experiments.get(experiment_id) else None
-        graph_result = self.workflow.invoke(
-            {"runtime": state, "visited_nodes": [], "route_taken": "", "supplementary_query": ""}
-        )
-        return finalize_graph_response(self, graph_result, started)
+        return self.harness.execute(state, started=started)
 
     def handle_assessment(
         self,
@@ -3306,7 +3313,4 @@ Use natural terminology in the requested language while retaining canonical Engl
         state.ui_language = response_language if response_language in {"en", "zh", "sv"} else "en"
         state.response_language = state.ui_language
         started = time.perf_counter()
-        graph_result = self.workflow.invoke(
-            {"runtime": state, "visited_nodes": [], "route_taken": "", "supplementary_query": ""}
-        )
-        return finalize_graph_response(self, graph_result, started)
+        return self.harness.execute(state, started=started)

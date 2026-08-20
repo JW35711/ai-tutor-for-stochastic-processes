@@ -90,6 +90,11 @@ class AgentState:
     selected_routing_reason: str = ""
     stage_timings: dict[str, float] = field(default_factory=dict)
 
+    # Safe Harness telemetry is populated only after the compiled graph run.
+    # It contains identifiers, bounded counts and failure categories; it never
+    # carries prompts, credentials, raw arrays or full learner history.
+    harness_metadata: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass(frozen=True)
 class NodeOutcome:

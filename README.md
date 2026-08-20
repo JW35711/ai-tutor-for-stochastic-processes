@@ -212,3 +212,42 @@ endpoint configuration.
 ## License
 
 MIT. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Lightweight domain-specific Agent Harness
+
+The current runtime includes a small StochLab-specific Harness around the
+existing LangGraph graph. It is an execution-policy boundary, not a generic
+autonomous-agent framework: the product still has exactly three bounded
+Agents (Curriculum, Assessment and Tutor), while RAG, answerability, Python
+tools, SQLite and the LLM provider remain inspectable services.
+
+```text
+HTTP request
+   │
+   ▼
+Harness: request id → bounded context snapshot (no raw arrays/secrets)
+   │
+   ▼
+LangGraph: conditional route and handoffs
+   ├─ navigation ───────────────► Curriculum → catalogue response
+   ├─ concept/why/comparison ───► RAG → evidence gate → Tutor
+   ├─ simulation ───────────────► RAG → plan → allow-listed Python tool
+   │                                  → verification → Tutor
+   └─ practice/quiz ────────────► Assessment → Curriculum → Tutor
+   │
+   ▼
+Harness: existing provenance/numeric checks + safe fallback + debug telemetry
+```
+
+The Harness compacts context deterministically with the priority
+**active experiment and validated parameters → module/concept → assessed
+learner state → recent relevant turns → older evidence references**. It never
+uses a tokenizer or an LLM to summarize, and it does not store full prompts,
+raw chat history, simulation arrays or secrets. Registered simulation tools are
+the only executable tools; there is no shell or arbitrary code executor.
+
+Why a Harness? It gives every execution one request identifier, bounded context
+policy, conservative post-run verification, failure categories and latency-safe
+observability without moving routing, retrieval, calculation, grading or
+recommendation into another abstraction. Provider retries and the existing
+circuit breaker remain in `src/llm.py`.

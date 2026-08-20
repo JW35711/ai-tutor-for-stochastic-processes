@@ -280,6 +280,7 @@ unassessed prerequisite remains `NOT_STARTED`.
 | Learner state and context | `src/memory.py`, `src/mastery.py`, `src/recommendation.py` |
 | Authentication primitives | `src/auth.py` |
 | Safe output and provenance | `src/llm.py`, `src/provenance.py`, `src/graph/response.py` |
+| Execution policy and bounded context | `src/harness/context.py`, `src/harness/execution.py`, `src/harness/verification.py`, `src/harness/observability.py` |
 | Curriculum and experiment catalogues | `data/curriculum.json`, `data/notebook_experiments.json` |
 | Browser client and KaTeX | `web/app.js`, `web/index.html` |
 
@@ -358,3 +359,69 @@ The current system evolved through a small number of design stages:
 
 ## Current limitations
 
+The corpus is specific to one introductory stochastic-process course. Natural-
+language routing remains imperfect on difficult unseen wording. Free-text
+assessment uses deterministic keyword/relation checks, and mastery is a
+transparent heuristic rather than a psychometric model. Explicit contradiction
+detection is stronger than implicit semantic conflict detection. SQLite and the
+minimal account layer are single-node portfolio scope: there is no OAuth,
+password recovery, teacher administration or distributed session store.
+Classroom learning effectiveness has not been experimentally validated. KaTeX
+is loaded by the browser as an external client dependency, and provider quality
+depends on the configured OpenAI-compatible endpoint.
+
+See [`docs/VERIFIED_METRICS.md`](VERIFIED_METRICS.md) for the current corpus
+fingerprint and evaluation values. `README.md` is the short project overview;
+`docs/API.md` and `docs/DEPLOYMENT.md` describe the public API and local/container
+operations.
+
+## Lightweight domain-specific Agent Harness
+
+`src/harness/` is the execution-policy boundary for the current StochLab
+runtime. It is intentionally small and domain-specific. It does not add an
+Agent, a generic planner, a shell/code executor, a second retrieval system, or
+a second provider. Its responsibilities are:
+
+1. create a deterministic, bounded `ContextSnapshot` from the existing
+   `AgentState`;
+2. invoke the already compiled `src/graph/workflow.py` graph exactly once;
+3. classify post-run outcomes conservatively while reusing existing LLM,
+   visualization and provenance checks; and
+4. attach safe request, route, handoff, timing, tool, fallback and context
+   accounting to the existing observability object.
+
+```text
+TutorAgent.answer / handle_assessment
+              │
+              ▼
+      TutorHarness.execute
+       ├─ compact_context (bounded, deterministic)
+       ├─ existing LangGraph StateGraph
+       │    ├─ navigation → Curriculum
+       │    ├─ concept → retrieve → evidence → Tutor
+       │    ├─ simulation → retrieve → plan → Python tool → diagnose → memory → Tutor
+       │    └─ practice/quiz → Assessment → Curriculum → Tutor
+       └─ verify_runtime + safe telemetry
+              │
+              ▼
+      existing API response/fallback contract
+```
+
+Context policy preserves identifiers and validated parameters for the active
+experiment first, then module/concept, assessed learner state, recent relevant
+turn summaries and finally source locators. It has explicit character/item
+limits, drops raw arrays and secrets, and is idempotent. The Harness never
+summarizes with an LLM. The registered Python functions remain an allow-listed,
+bounded numerical boundary; no arbitrary code execution is exposed.
+
+### Why a Harness?
+
+The graph already owns sequencing and the domain services already own their
+truth. A narrow Harness makes the production boundary explicit: every call can
+be correlated, context growth is bounded, existing verification/fallback rules
+are visible, and operational failures can be grouped as
+`RETRIEVAL_INSUFFICIENT`, `TOOL_VALIDATION_FAILED`, `TOOL_EXECUTION_FAILED`,
+`LLM_DISABLED`, `LLM_PROVIDER_FAILED`, `LLM_OUTPUT_REJECTED`,
+`CONTEXT_COMPACTED` or `OUT_OF_SCOPE`. These are debug/log categories, not
+student-facing trace text. Provider retries and the circuit breaker remain
+solely in `src/llm.py`.
