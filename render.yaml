@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: stochlab
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    autoDeploy: true
+    envVars:
+      - key: TUTOR_MEMORY_PATH
+        value: /app/runtime/tutor_memory.sqlite3
+      - key: MEMORY_RETENTION_DAYS
+        value: "30"
+      - key: MAX_SESSION_EVENTS
+        value: "1000"
+      - key: API_RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: AUTH_COOKIE_SECURE
+        value: "1"

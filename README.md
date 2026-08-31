@@ -188,6 +188,20 @@ Runtime gate:
 python -m unittest discover -s tests -v
 ```
 
+## Public demo deployment
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/JW35711/ai-tutor-for-stochastic-processes)
+
+The Render Blueprint deploys the Docker image as a public HTTPS web service.
+No model key is required for the bounded offline course mode. To enable hosted
+Tutor synthesis, add `LLM_API_KEY`, `LLM_MODEL` and the matching
+`LLM_BASE_URL` in the Render dashboard; never store a key in the repository.
+
+The free Render service is intended for demonstrations. Its filesystem is
+ephemeral, so accounts and learner records can be reset when the service
+restarts or redeploys. A course pilot needs reviewed authentication, persistent
+storage and an institutional data policy.
+
 ## For recruiters and interviewers
 
 - **1 minute:** read the motivation and system diagram above.
