@@ -15,6 +15,7 @@ class DeploymentContractTests(unittest.TestCase):
         ).read_text("utf-8")
         cls.environment = (ROOT / ".env.example").read_text("utf-8")
         cls.dockerignore = (ROOT / ".dockerignore").read_text("utf-8")
+        cls.render = (ROOT / "render.yaml").read_text("utf-8")
 
     def test_container_runs_as_unprivileged_user(self) -> None:
         self.assertIn("USER appuser", self.dockerfile)
@@ -82,6 +83,17 @@ class DeploymentContractTests(unittest.TestCase):
             self.assertRegex(self.environment, rf"(?m)^{variable}=$")
             self.assertNotRegex(self.environment, rf"(?m)^{variable}=(?!$).+")
         self.assertNotRegex(self.environment, r"(?m)^.*sk-[A-Za-z0-9_-]{10,}.*$")
+
+    def test_render_demo_uses_dynamic_port_and_health_check(self) -> None:
+        for contract in (
+            "runtime: docker",
+            "plan: free",
+            "healthCheckPath: /ready",
+            "AUTH_COOKIE_SECURE",
+        ):
+            self.assertIn(contract, self.render)
+        self.assertIn("${PORT:-8000}", self.dockerfile)
+        self.assertIn("os.getenv('PORT', '8000')", self.dockerfile)
 
 
 if __name__ == "__main__":
